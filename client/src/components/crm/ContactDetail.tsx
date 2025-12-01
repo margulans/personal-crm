@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { HeatStatusBadge } from "./HeatStatusBadge";
 import { ValueCategoryBadge } from "./ValueCategoryBadge";
@@ -26,8 +27,56 @@ import {
   TrendingDown,
   Minus,
   Lightbulb,
+  Info,
 } from "lucide-react";
+
 import type { Contact, Interaction } from "@/lib/types";
+
+const BLOCK_DESCRIPTIONS = {
+  contact: {
+    title: "Контактная информация",
+    description: "Основные способы связи с контактом: телефон, email и социальные сети. Используйте эти данные для поддержания регулярного общения."
+  },
+  priority: {
+    title: "Приоритизация и внимание",
+    description: "Определяет, сколько времени и усилий нужно уделять этому контакту. Важность (A/B/C) показывает стратегическую ценность, категория — комбинацию вклада и потенциала. Уровень внимания (1-10) задаёт интенсивность взаимодействия."
+  },
+  heat: {
+    title: "Тепловой статус",
+    description: "Показывает 'здоровье' отношений. Heat Index рассчитывается по формуле: 40% давность контакта + 30% энергия связи + 20% качество ответа + 10% тренд. Зелёный — всё хорошо, жёлтый — нужно внимание, красный — срочно связаться!"
+  },
+  contribution: {
+    title: "Вклад (0-15 баллов)",
+    description: "Что этот человек уже даёт вам: финансовая польза, помощь сетью контактов, тактическая поддержка, стратегическое влияние и лояльность. Каждый критерий от 0 до 3 баллов."
+  },
+  potential: {
+    title: "Потенциал (0-15 баллов)",
+    description: "Что этот человек может дать в будущем: личностный рост, ресурсы, доступ к сети, синергия и роль в вашей системе. Каждый критерий от 0 до 3 баллов."
+  },
+  interactions: {
+    title: "Взаимодействия",
+    description: "История всех контактов с этим человеком. Отмечайте значимые взаимодействия — они влияют на Heat Index и помогают отслеживать динамику отношений."
+  }
+};
+
+function InfoPopover({ blockKey }: { blockKey: keyof typeof BLOCK_DESCRIPTIONS }) {
+  const info = BLOCK_DESCRIPTIONS[blockKey];
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
+          <Info className="h-4 w-4 text-muted-foreground" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80">
+        <div className="space-y-2">
+          <h4 className="font-medium">{info.title}</h4>
+          <p className="text-sm text-muted-foreground">{info.description}</p>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 interface ContactDetailProps {
   contact: Contact;
@@ -157,7 +206,10 @@ export function ContactDetail({
             <div className="lg:col-span-2 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Контактная информация</CardTitle>
+                  <CardTitle className="text-base flex items-center">
+                    Контактная информация
+                    <InfoPopover blockKey="contact" />
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {contact.phone && (
@@ -199,7 +251,10 @@ export function ContactDetail({
 
               <Card className="bg-slate-100 dark:bg-slate-800/50 border-slate-300 dark:border-slate-600">
                 <CardHeader>
-                  <CardTitle className="text-base">Приоритизация и внимание</CardTitle>
+                  <CardTitle className="text-base flex items-center">
+                    Приоритизация и внимание
+                    <InfoPopover blockKey="priority" />
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -267,7 +322,10 @@ export function ContactDetail({
                 contact.heatStatus === "red" && "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
               )}>
                 <CardHeader>
-                  <CardTitle className="text-base">Тепловой статус</CardTitle>
+                  <CardTitle className="text-base flex items-center">
+                    Тепловой статус
+                    <InfoPopover blockKey="heat" />
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -350,7 +408,10 @@ export function ContactDetail({
             <div className="space-y-4">
               <Card className="bg-slate-100 dark:bg-slate-800/50 border-slate-300 dark:border-slate-600">
                 <CardHeader className="flex-row items-center justify-between space-y-0 gap-2 pb-3">
-                  <CardTitle className="text-base">Взаимодействия</CardTitle>
+                  <CardTitle className="text-base flex items-center">
+                    Взаимодействия
+                    <InfoPopover blockKey="interactions" />
+                  </CardTitle>
                   <Dialog open={showInteractionForm} onOpenChange={setShowInteractionForm}>
                     <DialogTrigger asChild>
                       <Button size="sm" className="gap-1" data-testid="button-add-interaction">
