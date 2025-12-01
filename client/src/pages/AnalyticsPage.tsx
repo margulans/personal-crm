@@ -1,9 +1,19 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnalyticsMatrix } from "@/components/crm/AnalyticsMatrix";
 import { PriorityList } from "@/components/crm/PriorityList";
 import { ContactDetail } from "@/components/crm/ContactDetail";
+import { HeatStatusBadge } from "@/components/crm/HeatStatusBadge";
+import { ValueCategoryBadge } from "@/components/crm/ValueCategoryBadge";
 import {
   HeatStatusChart,
   ValueCategoryChart,
@@ -14,10 +24,18 @@ import { interactionsApi, invalidateContacts, invalidateInteractions } from "@/l
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Users, TrendingUp, TrendingDown, Activity, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Contact, Interaction } from "@/lib/types";
+
+const STATUS_LABELS: Record<string, string> = {
+  green: "Зелёный",
+  yellow: "Жёлтый", 
+  red: "Красный",
+};
 
 export default function AnalyticsPage() {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [matrixFilter, setMatrixFilter] = useState<{ importance: string; status: string } | null>(null);
   const { toast } = useToast();
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
@@ -73,6 +91,21 @@ export default function AnalyticsPage() {
         c.valueCategory === "BA" ||
         c.valueCategory === "AB")
   );
+
+  const matrixFilteredContacts = matrixFilter
+    ? contacts.filter(
+        (c) => c.importanceLevel === matrixFilter.importance && c.heatStatus === matrixFilter.status
+      )
+    : [];
+
+  const handleMatrixCellClick = (importance: string, status: string) => {
+    const count = contacts.filter(
+      (c) => c.importanceLevel === importance && c.heatStatus === status
+    ).length;
+    if (count > 0) {
+      setMatrixFilter({ importance, status });
+    }
+  };
 
   if (selectedContact) {
     return (
@@ -183,9 +216,7 @@ export default function AnalyticsPage() {
               <div className="lg:col-span-1">
                 <AnalyticsMatrix
                   contacts={contacts}
-                  onCellClick={(importance, status) => {
-                    console.log(`Filter: ${importance}-class, ${status} status`);
-                  }}
+                  onCellClick={handleMatrixCellClick}
                 />
               </div>
 
@@ -219,6 +250,72 @@ export default function AnalyticsPage() {
           </>
         )}
       </div>
+
+      <Dialog open={!!matrixFilter} onOpenChange={(open) => !open && setMatrixFilter(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {matrixFilter && (
+                <>
+                  <Badge variant="outline" className="font-mono">
+                    {matrixFilter.importance}-класс
+                  </Badge>
+                  <Badge
+                    className={cn(
+                      matrixFilter.status === "green" && "bg-emerald-500",
+                      matrixFilter.status === "yellow" && "bg-amber-500",
+                      matrixFilter.status === "red" && "bg-red-500"
+                    )}
+                  >
+                    {STATUS_LABELS[matrixFilter.status]}
+                  </Badge>
+                  <span className="text-muted-foreground font-normal">
+                    ({matrixFilteredContacts.length})
+                  </span>
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            <div className="space-y-2 pr-4">
+              {matrixFilteredContacts.map((contact) => (
+                <button
+                  key={contact.id}
+                  onClick={() => {
+                    setMatrixFilter(null);
+                    setSelectedContactId(contact.id);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all",
+                    "hover-elevate cursor-pointer bg-muted/30"
+                  )}
+                  data-testid={`matrix-contact-${contact.id}`}
+                >
+                  <HeatStatusBadge status={contact.heatStatus} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm truncate">{contact.fullName}</span>
+                      <ValueCategoryBadge category={contact.valueCategory} size="sm" />
+                    </div>
+                    {contact.roleTags && contact.roleTags.length > 0 && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {contact.roleTags.slice(0, 2).map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-xs px-1.5 py-0">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right text-xs text-muted-foreground font-mono">
+                    {contact.heatIndex.toFixed(2)}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
