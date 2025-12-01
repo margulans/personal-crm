@@ -26,7 +26,7 @@ import {
   Minus,
   Lightbulb,
 } from "lucide-react";
-import type { Contact, Interaction } from "@/lib/mockData";
+import type { Contact, Interaction } from "@/lib/types";
 
 interface ContactDetailProps {
   contact: Contact;
@@ -39,6 +39,7 @@ interface ContactDetailProps {
     note: string;
     isMeaningful: boolean;
   }) => void;
+  onEdit?: () => void;
 }
 
 export function ContactDetail({
@@ -46,14 +47,15 @@ export function ContactDetail({
   interactions,
   onBack,
   onAddInteraction,
+  onEdit,
 }: ContactDetailProps) {
   const [showInteractionForm, setShowInteractionForm] = useState(false);
 
   const today = new Date();
-  const lastContact = new Date(contact.lastContactDate);
-  const daysSince = Math.floor(
-    (today.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const lastContact = contact.lastContactDate ? new Date(contact.lastContactDate) : null;
+  const daysSince = lastContact
+    ? Math.floor((today.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24))
+    : contact.desiredFrequencyDays;
 
   const initials = contact.fullName
     .split(" ")
@@ -64,7 +66,7 @@ export function ContactDetail({
 
   const attentionInfo = ATTENTION_LEVELS.find((l) => l.id === contact.attentionLevel);
 
-  const trendIcon = {
+  const trendIcon: Record<string, JSX.Element> = {
     "-1": <TrendingDown className="w-4 h-4 text-red-500" />,
     "0": <Minus className="w-4 h-4 text-muted-foreground" />,
     "1": <TrendingUp className="w-4 h-4 text-emerald-500" />,
@@ -76,8 +78,9 @@ export function ContactDetail({
     const recommendations: string[] = [];
     
     if (daysSince > contact.desiredFrequencyDays) {
+      const daysOverdue = daysSince - contact.desiredFrequencyDays;
       recommendations.push(
-        `Сделайте meaningful-контакт в ближайшие ${Math.max(1, contact.desiredFrequencyDays - daysSince)} дней`
+        `Связаться как можно скорее (просрочено на ${daysOverdue} дн.)`
       );
     }
     
@@ -105,8 +108,10 @@ export function ContactDetail({
   }) => {
     onAddInteraction?.(data);
     setShowInteractionForm(false);
-    console.log("Interaction added:", data);
   };
+
+  const contributionDetails = contact.contributionDetails || { financial: 0, network: 0, tactical: 0, strategic: 0, loyalty: 0 };
+  const potentialDetails = contact.potentialDetails || { personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 };
 
   return (
     <div className="h-full flex flex-col" data-testid="contact-detail">
@@ -131,7 +136,7 @@ export function ContactDetail({
               />
             </div>
             <div className="flex items-center gap-2 mt-1">
-              {contact.roleTags.map((tag) => (
+              {contact.roleTags?.map((tag) => (
                 <Badge key={tag} variant="secondary" className="text-xs">
                   {tag}
                 </Badge>
@@ -139,7 +144,7 @@ export function ContactDetail({
             </div>
           </div>
         </div>
-        <Button variant="outline" size="default" className="gap-2" data-testid="button-edit">
+        <Button variant="outline" size="default" className="gap-2" onClick={onEdit} data-testid="button-edit">
           <Edit className="h-4 w-4" />
           Редактировать
         </Button>
@@ -170,7 +175,7 @@ export function ContactDetail({
                       </a>
                     </div>
                   )}
-                  {contact.socialLinks.map((link, i) => (
+                  {contact.socialLinks?.map((link, i) => (
                     <div key={i} className="flex items-center gap-2 text-sm">
                       <LinkIcon className="h-4 w-4 text-muted-foreground" />
                       <a
@@ -183,6 +188,11 @@ export function ContactDetail({
                       </a>
                     </div>
                   ))}
+                  {!contact.phone && !contact.email && (!contact.socialLinks || contact.socialLinks.length === 0) && (
+                    <p className="text-sm text-muted-foreground col-span-2">
+                      Контактные данные не указаны
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -217,7 +227,7 @@ export function ContactDetail({
                         Тренд
                       </div>
                       <div className="flex items-center gap-1">
-                        {trendIcon[String(contact.attentionTrend) as keyof typeof trendIcon]}
+                        {trendIcon[String(contact.attentionTrend)]}
                         <span className="text-sm">
                           {contact.attentionTrend === 1
                             ? "Растёт"
@@ -261,9 +271,11 @@ export function ContactDetail({
                         Последний контакт
                       </div>
                       <div className="text-sm font-medium">{formatDaysAgo(daysSince)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(contact.lastContactDate).toLocaleDateString("ru-RU")}
-                      </div>
+                      {lastContact && (
+                        <div className="text-xs text-muted-foreground">
+                          {lastContact.toLocaleDateString("ru-RU")}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
@@ -307,13 +319,13 @@ export function ContactDetail({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <ScorePanel
                   type="contribution"
-                  scores={contact.contributionDetails}
+                  scores={contributionDetails}
                   totalScore={contact.contributionScore}
                   scoreClass={contact.contributionClass}
                 />
                 <ScorePanel
                   type="potential"
-                  scores={contact.potentialDetails}
+                  scores={potentialDetails}
                   totalScore={contact.potentialScore}
                   scoreClass={contact.potentialClass}
                 />

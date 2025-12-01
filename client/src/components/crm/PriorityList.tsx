@@ -5,7 +5,7 @@ import { ValueCategoryBadge } from "./ValueCategoryBadge";
 import { formatDaysAgo } from "@/lib/constants";
 import { AlertCircle, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Contact } from "@/lib/mockData";
+import type { Contact } from "@/lib/types";
 
 interface PriorityListProps {
   title: string;
@@ -25,7 +25,8 @@ export function PriorityList({
   const Icon = variant === "urgent" ? AlertCircle : TrendingUp;
 
   const today = new Date();
-  const getDaysSince = (dateStr: string) => {
+  const getDaysSince = (dateStr: string | null) => {
+    if (!dateStr) return 30;
     const date = new Date(dateStr);
     return Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
   };

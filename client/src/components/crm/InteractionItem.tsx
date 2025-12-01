@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { INTERACTION_TYPES, INTERACTION_CHANNELS } from "@/lib/constants";
 import { Phone, MessageSquare, Users, Gift, Share2, Calendar, MoreHorizontal, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Interaction } from "@/lib/mockData";
+import type { Interaction } from "@/lib/types";
 
 interface InteractionItemProps {
   interaction: Interaction;

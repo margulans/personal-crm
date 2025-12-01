@@ -1,10 +1,13 @@
 import { useState, useMemo } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ContactCard } from "@/components/crm/ContactCard";
 import { ContactFilters } from "@/components/crm/ContactFilters";
 import { ContactDetail } from "@/components/crm/ContactDetail";
-import { mockContacts, mockInteractions, type Contact } from "@/lib/mockData";
-import { Plus, LayoutGrid, List } from "lucide-react";
+import { ContactForm } from "@/components/crm/ContactForm";
+import { contactsApi, interactionsApi, invalidateContacts, invalidateInteractions } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, LayoutGrid, List, Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -12,20 +15,81 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import type { Contact, Interaction, InsertContact } from "@/lib/types";
 
 export default function ContactsPage() {
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState("heatIndex");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [filters, setFilters] = useState({
     search: "",
     importance: "",
     valueCategory: "",
     heatStatus: "",
   });
+  const { toast } = useToast();
 
-  // todo: remove mock functionality - replace with real data from API
-  const contacts = mockContacts;
+  const { data: contacts = [], isLoading } = useQuery<Contact[]>({
+    queryKey: ["/api/contacts"],
+  });
+
+  const { data: interactions = [] } = useQuery<Interaction[]>({
+    queryKey: ["/api/contacts", selectedContactId, "interactions"],
+    queryFn: () => interactionsApi.getByContact(selectedContactId!),
+    enabled: !!selectedContactId,
+  });
+
+  const createContactMutation = useMutation({
+    mutationFn: contactsApi.create,
+    onSuccess: () => {
+      invalidateContacts();
+      setShowCreateForm(false);
+      toast({ title: "Контакт создан" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateContactMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertContact> }) =>
+      contactsApi.update(id, data),
+    onSuccess: () => {
+      invalidateContacts();
+      setEditingContact(null);
+      toast({ title: "Контакт обновлён" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const addInteractionMutation = useMutation({
+    mutationFn: ({ contactId, data }: { contactId: string; data: { date: string; type: string; channel: string; note: string; isMeaningful: boolean } }) =>
+      interactionsApi.create(contactId, data),
+    onSuccess: () => {
+      if (selectedContactId) {
+        invalidateInteractions(selectedContactId);
+        invalidateContacts();
+      }
+      toast({ title: "Взаимодействие добавлено" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const selectedContact = useMemo(() => {
+    return contacts.find((c) => c.id === selectedContactId) || null;
+  }, [contacts, selectedContactId]);
 
   const filteredContacts = useMemo(() => {
     let result = [...contacts];
@@ -36,8 +100,8 @@ export default function ContactsPage() {
         (c) =>
           c.fullName.toLowerCase().includes(search) ||
           c.shortName?.toLowerCase().includes(search) ||
-          c.tags.some((t) => t.toLowerCase().includes(search)) ||
-          c.roleTags.some((t) => t.toLowerCase().includes(search))
+          c.tags?.some((t) => t.toLowerCase().includes(search)) ||
+          c.roleTags?.some((t) => t.toLowerCase().includes(search))
       );
     }
 
@@ -60,10 +124,9 @@ export default function ContactsPage() {
         case "importance":
           return a.importanceLevel.localeCompare(b.importanceLevel);
         case "lastContact":
-          return (
-            new Date(a.lastContactDate).getTime() -
-            new Date(b.lastContactDate).getTime()
-          );
+          const dateA = a.lastContactDate ? new Date(a.lastContactDate).getTime() : 0;
+          const dateB = b.lastContactDate ? new Date(b.lastContactDate).getTime() : 0;
+          return dateA - dateB;
         case "name":
           return a.fullName.localeCompare(b.fullName);
         default:
@@ -75,16 +138,14 @@ export default function ContactsPage() {
   }, [contacts, filters, sortBy]);
 
   if (selectedContact) {
-    const interactions = mockInteractions.filter(
-      (i) => i.contactId === selectedContact.id
-    );
     return (
       <ContactDetail
         contact={selectedContact}
         interactions={interactions}
-        onBack={() => setSelectedContact(null)}
+        onBack={() => setSelectedContactId(null)}
+        onEdit={() => setEditingContact(selectedContact)}
         onAddInteraction={(data) => {
-          console.log("Add interaction:", data);
+          addInteractionMutation.mutate({ contactId: selectedContact.id, data });
         }}
       />
     );
@@ -95,7 +156,7 @@ export default function ContactsPage() {
       <div className="p-4 border-b bg-background sticky top-0 z-10">
         <div className="flex items-center justify-between gap-4 mb-4">
           <h1 className="text-2xl font-semibold">Контакты</h1>
-          <Button className="gap-2" data-testid="button-add-contact">
+          <Button className="gap-2" onClick={() => setShowCreateForm(true)} data-testid="button-add-contact">
             <Plus className="h-4 w-4" />
             Добавить контакт
           </Button>
@@ -140,12 +201,26 @@ export default function ContactsPage() {
       </div>
 
       <div className="flex-1 overflow-auto p-4">
-        {filteredContacts.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredContacts.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <p className="text-muted-foreground mb-2">Контакты не найдены</p>
-            <p className="text-sm text-muted-foreground">
-              Попробуйте изменить параметры фильтрации
+            <p className="text-muted-foreground mb-2">
+              {contacts.length === 0 ? "Нет контактов" : "Контакты не найдены"}
             </p>
+            <p className="text-sm text-muted-foreground">
+              {contacts.length === 0
+                ? "Добавьте первый контакт, чтобы начать"
+                : "Попробуйте изменить параметры фильтрации"}
+            </p>
+            {contacts.length === 0 && (
+              <Button className="mt-4" onClick={() => setShowCreateForm(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Добавить контакт
+              </Button>
+            )}
           </div>
         ) : (
           <div
@@ -159,16 +234,47 @@ export default function ContactsPage() {
               <ContactCard
                 key={contact.id}
                 contact={contact}
-                onClick={() => setSelectedContact(contact)}
+                onClick={() => setSelectedContactId(contact.id)}
               />
             ))}
           </div>
         )}
 
-        <div className="mt-4 text-center text-sm text-muted-foreground">
-          Показано {filteredContacts.length} из {contacts.length} контактов
-        </div>
+        {filteredContacts.length > 0 && (
+          <div className="mt-4 text-center text-sm text-muted-foreground">
+            Показано {filteredContacts.length} из {contacts.length} контактов
+          </div>
+        )}
       </div>
+
+      <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Новый контакт</DialogTitle>
+          </DialogHeader>
+          <ContactForm
+            onSubmit={(data) => createContactMutation.mutate(data)}
+            onCancel={() => setShowCreateForm(false)}
+            isLoading={createContactMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingContact} onOpenChange={(open) => !open && setEditingContact(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Редактировать контакт</DialogTitle>
+          </DialogHeader>
+          {editingContact && (
+            <ContactForm
+              initialData={editingContact}
+              onSubmit={(data) => updateContactMutation.mutate({ id: editingContact.id, data })}
+              onCancel={() => setEditingContact(null)}
+              isLoading={updateContactMutation.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

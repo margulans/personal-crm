@@ -6,7 +6,7 @@ import { ImportanceBadge } from "./ImportanceBadge";
 import { AttentionLevelIndicator } from "./AttentionLevelIndicator";
 import { formatDaysAgo } from "@/lib/constants";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import type { Contact } from "@/lib/mockData";
+import type { Contact } from "@/lib/types";
 
 interface ContactCardProps {
   contact: Contact;
@@ -15,8 +15,10 @@ interface ContactCardProps {
 
 export function ContactCard({ contact, onClick }: ContactCardProps) {
   const today = new Date();
-  const lastContact = new Date(contact.lastContactDate);
-  const daysSince = Math.floor((today.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24));
+  const lastContact = contact.lastContactDate ? new Date(contact.lastContactDate) : null;
+  const daysSince = lastContact 
+    ? Math.floor((today.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24))
+    : contact.desiredFrequencyDays;
 
   const initials = contact.fullName
     .split(" ")

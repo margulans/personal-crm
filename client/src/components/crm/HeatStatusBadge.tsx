@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 interface HeatStatusBadgeProps {
-  status: "green" | "yellow" | "red";
+  status: string;
   heatIndex?: number;
   size?: "sm" | "md" | "lg";
   showIndex?: boolean;
@@ -19,7 +19,7 @@ export function HeatStatusBadge({
     lg: "w-5 h-5",
   };
 
-  const statusColors = {
+  const statusColors: Record<string, string> = {
     green: "bg-emerald-500",
     yellow: "bg-amber-500",
     red: "bg-red-500",

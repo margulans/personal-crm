@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { Contact } from "@/lib/mockData";
+import type { Contact } from "@/lib/types";
 
 interface AnalyticsMatrixProps {
   contacts: Contact[];
@@ -50,11 +50,8 @@ export function AnalyticsMatrix({ contacts, onCellClick }: AnalyticsMatrixProps)
           ))}
 
           {importanceLevels.map((importance) => (
-            <>
-              <div
-                key={`label-${importance}`}
-                className="flex items-center justify-center text-sm font-semibold"
-              >
+            <div key={importance} className="contents">
+              <div className="flex items-center justify-center text-sm font-semibold">
                 {importance}-класс
               </div>
               {heatStatuses.map((status) => {
@@ -74,7 +71,7 @@ export function AnalyticsMatrix({ contacts, onCellClick }: AnalyticsMatrixProps)
                   </button>
                 );
               })}
-            </>
+            </div>
           ))}
         </div>
 

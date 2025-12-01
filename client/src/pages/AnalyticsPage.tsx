@@ -1,16 +1,45 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalyticsMatrix } from "@/components/crm/AnalyticsMatrix";
 import { PriorityList } from "@/components/crm/PriorityList";
 import { ContactDetail } from "@/components/crm/ContactDetail";
-import { mockContacts, mockInteractions, type Contact } from "@/lib/mockData";
-import { Users, TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { interactionsApi, invalidateContacts, invalidateInteractions } from "@/lib/api";
+import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { Users, TrendingUp, TrendingDown, Activity, Loader2 } from "lucide-react";
+import type { Contact, Interaction } from "@/lib/types";
 
 export default function AnalyticsPage() {
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  // todo: remove mock functionality - replace with real data from API
-  const contacts = mockContacts;
+  const { data: contacts = [], isLoading } = useQuery<Contact[]>({
+    queryKey: ["/api/contacts"],
+  });
+
+  const { data: interactions = [] } = useQuery<Interaction[]>({
+    queryKey: ["/api/contacts", selectedContactId, "interactions"],
+    queryFn: () => interactionsApi.getByContact(selectedContactId!),
+    enabled: !!selectedContactId,
+  });
+
+  const addInteractionMutation = useMutation({
+    mutationFn: ({ contactId, data }: { contactId: string; data: { date: string; type: string; channel: string; note: string; isMeaningful: boolean } }) =>
+      interactionsApi.create(contactId, data),
+    onSuccess: () => {
+      if (selectedContactId) {
+        invalidateInteractions(selectedContactId);
+        invalidateContacts();
+      }
+      toast({ title: "Взаимодействие добавлено" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const selectedContact = contacts.find((c) => c.id === selectedContactId) || null;
 
   const stats = {
     total: contacts.length,
@@ -18,8 +47,9 @@ export default function AnalyticsPage() {
     yellow: contacts.filter((c) => c.heatStatus === "yellow").length,
     red: contacts.filter((c) => c.heatStatus === "red").length,
     aClass: contacts.filter((c) => c.importanceLevel === "A").length,
-    avgHeatIndex:
-      contacts.reduce((sum, c) => sum + c.heatIndex, 0) / contacts.length,
+    avgHeatIndex: contacts.length > 0
+      ? contacts.reduce((sum, c) => sum + c.heatIndex, 0) / contacts.length
+      : 0,
   };
 
   const urgentContacts = contacts.filter(
@@ -39,18 +69,23 @@ export default function AnalyticsPage() {
   );
 
   if (selectedContact) {
-    const interactions = mockInteractions.filter(
-      (i) => i.contactId === selectedContact.id
-    );
     return (
       <ContactDetail
         contact={selectedContact}
         interactions={interactions}
-        onBack={() => setSelectedContact(null)}
+        onBack={() => setSelectedContactId(null)}
         onAddInteraction={(data) => {
-          console.log("Add interaction:", data);
+          addInteractionMutation.mutate({ contactId: selectedContact.id, data });
         }}
       />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
@@ -128,55 +163,67 @@ export default function AnalyticsPage() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <AnalyticsMatrix
-              contacts={contacts}
-              onCellClick={(importance, status) => {
-                console.log(`Filter: ${importance}-class, ${status} status`);
-              }}
-            />
-          </div>
+        {contacts.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">
+                Нет контактов для анализа. Добавьте контакты на странице "Контакты".
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <AnalyticsMatrix
+                  contacts={contacts}
+                  onCellClick={(importance, status) => {
+                    console.log(`Filter: ${importance}-class, ${status} status`);
+                  }}
+                />
+              </div>
 
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <PriorityList
-              title="Срочно связаться"
-              description="AA/AB/BA контакты в красной зоне"
-              contacts={urgentContacts}
-              variant="urgent"
-              onContactClick={setSelectedContact}
-            />
-            <PriorityList
-              title="Для развития"
-              description="AA/AB/BA контакты в жёлтой зоне"
-              contacts={developContacts}
-              variant="develop"
-              onContactClick={setSelectedContact}
-            />
-          </div>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Распределение по классам важности</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4">
-              {(["A", "B", "C"] as const).map((level) => {
-                const count = contacts.filter((c) => c.importanceLevel === level).length;
-                const percentage = ((count / stats.total) * 100).toFixed(0);
-                return (
-                  <div key={level} className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-3xl font-bold font-mono mb-1">{count}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {level}-класс ({percentage}%)
-                    </div>
-                  </div>
-                );
-              })}
+              <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <PriorityList
+                  title="Срочно связаться"
+                  description="AA/AB/BA контакты в красной зоне"
+                  contacts={urgentContacts}
+                  variant="urgent"
+                  onContactClick={(c) => setSelectedContactId(c.id)}
+                />
+                <PriorityList
+                  title="Для развития"
+                  description="AA/AB/BA контакты в жёлтой зоне"
+                  contacts={developContacts}
+                  variant="develop"
+                  onContactClick={(c) => setSelectedContactId(c.id)}
+                />
+              </div>
             </div>
-          </CardContent>
-        </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Распределение по классам важности</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4">
+                  {(["A", "B", "C"] as const).map((level) => {
+                    const count = contacts.filter((c) => c.importanceLevel === level).length;
+                    const percentage = stats.total > 0 ? ((count / stats.total) * 100).toFixed(0) : 0;
+                    return (
+                      <div key={level} className="text-center p-4 bg-muted/50 rounded-lg">
+                        <div className="text-3xl font-bold font-mono mb-1">{count}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {level}-класс ({percentage}%)
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );
