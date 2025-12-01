@@ -61,8 +61,14 @@ export default function ContactsPage() {
   useEffect(() => {
     const params = new URLSearchParams(searchString);
     const status = params.get("status");
+    const fromAnalytics = params.get("from") === "analytics";
+    
     if (status && ["green", "yellow", "red"].includes(status)) {
       setFilters(prev => ({ ...prev, heatStatus: status }));
+      setCameFromAnalytics(true);
+      // Clear the URL param after applying
+      setLocation("/", { replace: true });
+    } else if (fromAnalytics) {
       setCameFromAnalytics(true);
       // Clear the URL param after applying
       setLocation("/", { replace: true });

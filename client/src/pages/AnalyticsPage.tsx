@@ -143,7 +143,7 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card
             className="cursor-pointer hover-elevate transition-all"
-            onClick={() => setLocation("/")}
+            onClick={() => setLocation("/?from=analytics")}
             data-testid="card-total-contacts"
           >
             <CardContent className="pt-6">
