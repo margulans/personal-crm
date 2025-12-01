@@ -53,17 +53,11 @@ export function TagManagement({ contacts }: TagManagementProps) {
   );
 
   const allTags = Array.from(
-    new Set([
-      ...contacts.flatMap((c) => c.tags || []),
-      ...contacts.flatMap((c) => c.roleTags || [])
-    ])
+    new Set(contacts.flatMap((c) => c.tags || []))
   ).sort();
 
   const getContactsWithTag = (tag: string) => 
-    contacts.filter((c) => c.tags?.includes(tag) || c.roleTags?.includes(tag));
-  
-  const isRoleTag = (tag: string) => 
-    contacts.some((c) => c.roleTags?.includes(tag));
+    contacts.filter((c) => c.tags?.includes(tag));
 
   const toggleTagSelection = (tag: string) => {
     setSelectedTags((prev) => {
@@ -86,28 +80,19 @@ export function TagManagement({ contacts }: TagManagementProps) {
   };
 
   const updateTagsMutation = useMutation({
-    mutationFn: async ({ ids, tag, action, tagType }: { ids: string[]; tag: string; action: "add" | "remove"; tagType: "tags" | "roleTags" }) => {
+    mutationFn: async ({ ids, tag, action }: { ids: string[]; tag: string; action: "add" | "remove" }) => {
       const updates = ids.map(async (id) => {
         const contact = contacts.find((c) => c.id === id);
         if (!contact) return null;
 
-        if (tagType === "roleTags") {
-          let newRoleTags = [...(contact.roleTags || [])];
-          if (action === "add" && !newRoleTags.includes(tag)) {
-            newRoleTags.push(tag);
-          } else if (action === "remove") {
-            newRoleTags = newRoleTags.filter((t) => t !== tag);
-          }
-          return bulkApi.updateContacts([id], { roleTags: newRoleTags });
-        } else {
-          let newTags = [...(contact.tags || [])];
-          if (action === "add" && !newTags.includes(tag)) {
-            newTags.push(tag);
-          } else if (action === "remove") {
-            newTags = newTags.filter((t) => t !== tag);
-          }
-          return bulkApi.updateContacts([id], { tags: newTags });
+        let newTags = [...(contact.tags || [])];
+        if (action === "add" && !newTags.includes(tag)) {
+          newTags.push(tag);
+        } else if (action === "remove") {
+          newTags = newTags.filter((t) => t !== tag);
         }
+
+        return bulkApi.updateContacts([id], { tags: newTags });
       });
 
       return Promise.all(updates);
