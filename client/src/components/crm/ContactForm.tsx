@@ -481,7 +481,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
           </div>
 
           <div className="space-y-2">
-            <Label>Уровень внимания: {formData.attentionLevel}</Label>
+            <Label>Статус отношений: {formData.attentionLevel}</Label>
             <Slider
               value={[formData.attentionLevel || 1]}
               onValueChange={([v]) => setFormData({ ...formData, attentionLevel: v })}

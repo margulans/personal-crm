@@ -38,7 +38,7 @@ const BLOCK_DESCRIPTIONS = {
   },
   priority: {
     title: "Уровень приоритета",
-    description: "Определяет, сколько времени и усилий нужно уделять этому контакту. Важность (A/B/C) автоматически рассчитывается из оценок вклада и потенциала. Уровень внимания (1-10) задаёт интенсивность взаимодействия."
+    description: "Определяет, сколько времени и усилий нужно уделять этому контакту. Важность (A/B/C) автоматически рассчитывается из оценок вклада и потенциала. Статус отношений (1-10) задаёт интенсивность взаимодействия."
   },
   heat: {
     title: "Тепловой статус",
@@ -157,10 +157,10 @@ export function ContactDetail({
       
       if (recommendedLevel && currentLevel) {
         recommendations.push(
-          `Поднимите уровень внимания с ${contact.attentionLevel} («${currentLevel.name}») до ${contact.recommendedAttentionLevel} («${recommendedLevel.name}» — ${recommendedLevel.description.toLowerCase()})`
+          `Поднимите статус отношений с ${contact.attentionLevel} («${currentLevel.name}») до ${contact.recommendedAttentionLevel} («${recommendedLevel.name}» — ${recommendedLevel.description.toLowerCase()})`
         );
       } else {
-        recommendations.push(`Поднимите уровень внимания до ${contact.recommendedAttentionLevel} (сейчас ${contact.attentionLevel})`);
+        recommendations.push(`Поднимите статус отношений до ${contact.recommendedAttentionLevel} (сейчас ${contact.attentionLevel})`);
       }
     }
     
@@ -336,7 +336,7 @@ export function ContactDetail({
 
                   <div>
                     <div className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
-                      Уровень внимания (факт / рекоменд.)
+                      Статус отношений (факт / рекоменд.)
                     </div>
                     <div className="flex items-center gap-4">
                       <AttentionGapIndicator 
@@ -436,7 +436,7 @@ export function ContactDetail({
                           </PopoverTrigger>
                           <PopoverContent className="w-80" align="start">
                             <div className="space-y-2">
-                              <h4 className="font-medium text-sm">Шкала уровней внимания</h4>
+                              <h4 className="font-medium text-sm">Шкала статусов отношений</h4>
                               <div className="space-y-1 text-xs">
                                 {ATTENTION_LEVELS.map((level) => (
                                   <div key={level.id} className={cn(
