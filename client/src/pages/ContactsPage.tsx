@@ -185,6 +185,14 @@ export default function ContactsPage() {
     return result;
   }, [contacts, filters, sortBy]);
 
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    contacts.forEach((contact) => {
+      contact.tags?.forEach((tag) => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [contacts]);
+
   const editDialog = (
     <Dialog open={!!editingContact} onOpenChange={(open) => !open && setEditingContact(null)}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -200,6 +208,7 @@ export default function ContactsPage() {
             onSubmit={(data) => updateContactMutation.mutate({ id: editingContact.id, data })}
             onCancel={() => setEditingContact(null)}
             isLoading={updateContactMutation.isPending}
+            allTags={allTags}
           />
         )}
       </DialogContent>
@@ -367,6 +376,7 @@ export default function ContactsPage() {
             onSubmit={(data) => createContactMutation.mutate(data)}
             onCancel={() => setShowCreateForm(false)}
             isLoading={createContactMutation.isPending}
+            allTags={allTags}
           />
         </DialogContent>
       </Dialog>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,9 +21,10 @@ interface ContactFormProps {
   onSubmit: (data: InsertContact) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  allTags?: string[];
 }
 
-export function ContactForm({ initialData, onSubmit, onCancel, isLoading }: ContactFormProps) {
+export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTags = [] }: ContactFormProps) {
   const [formData, setFormData] = useState<InsertContact>({
     fullName: initialData?.fullName || "",
     shortName: initialData?.shortName || "",
@@ -57,6 +58,32 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading }: Cont
 
   const [newSocialLink, setNewSocialLink] = useState("");
   const [newTag, setNewTag] = useState("");
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const tagInputRef = useRef<HTMLInputElement>(null);
+  const tagSuggestionsRef = useRef<HTMLDivElement>(null);
+
+  const tagSuggestions = newTag.trim()
+    ? allTags.filter(
+        (tag) =>
+          tag.toLowerCase().includes(newTag.toLowerCase()) &&
+          !formData.tags?.includes(tag)
+      )
+    : [];
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        tagSuggestionsRef.current &&
+        !tagSuggestionsRef.current.contains(event.target as Node) &&
+        tagInputRef.current &&
+        !tagInputRef.current.contains(event.target as Node)
+      ) {
+        setShowTagSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,14 +107,20 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading }: Cont
     });
   };
 
-  const addTag = () => {
-    if (newTag.trim() && !formData.tags?.includes(newTag.trim())) {
+  const addTag = (tagToAdd?: string) => {
+    const tag = tagToAdd || newTag.trim();
+    if (tag && !formData.tags?.includes(tag)) {
       setFormData({
         ...formData,
-        tags: [...(formData.tags || []), newTag.trim()],
+        tags: [...(formData.tags || []), tag],
       });
       setNewTag("");
+      setShowTagSuggestions(false);
     }
+  };
+
+  const selectTagSuggestion = (tag: string) => {
+    addTag(tag);
   };
 
   const removeTag = (tag: string) => {
@@ -246,14 +279,48 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading }: Cont
                 </Badge>
               ))}
             </div>
-            <div className="flex gap-2">
-              <Input
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                placeholder="Добавить тег"
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-              />
-              <Button type="button" variant="outline" size="icon" onClick={addTag}>
+            <div className="flex gap-2 relative">
+              <div className="flex-1 relative">
+                <Input
+                  ref={tagInputRef}
+                  value={newTag}
+                  onChange={(e) => {
+                    setNewTag(e.target.value);
+                    setShowTagSuggestions(true);
+                  }}
+                  onFocus={() => setShowTagSuggestions(true)}
+                  placeholder="Добавить тег"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (tagSuggestions.length > 0) {
+                        selectTagSuggestion(tagSuggestions[0]);
+                      } else {
+                        addTag();
+                      }
+                    }
+                  }}
+                  data-testid="input-add-tag"
+                />
+                {showTagSuggestions && tagSuggestions.length > 0 && (
+                  <div
+                    ref={tagSuggestionsRef}
+                    className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-auto"
+                  >
+                    {tagSuggestions.slice(0, 10).map((tag) => (
+                      <div
+                        key={tag}
+                        className="px-3 py-2 cursor-pointer hover:bg-accent text-sm"
+                        onClick={() => selectTagSuggestion(tag)}
+                        data-testid={`tag-suggestion-${tag}`}
+                      >
+                        {tag}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button type="button" variant="outline" size="icon" onClick={() => addTag()}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
