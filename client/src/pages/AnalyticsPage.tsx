@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -13,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnalyticsMatrix } from "@/components/crm/AnalyticsMatrix";
 import { PriorityList } from "@/components/crm/PriorityList";
 import { ContactDetail } from "@/components/crm/ContactDetail";
+import { ContactForm } from "@/components/crm/ContactForm";
 import { HeatStatusBadge } from "@/components/crm/HeatStatusBadge";
 import { ValueCategoryBadge } from "@/components/crm/ValueCategoryBadge";
 import {
@@ -21,12 +23,11 @@ import {
   ImportanceLevelChart,
   AttentionDistributionChart,
 } from "@/components/crm/AnalyticsCharts";
-import { interactionsApi, invalidateContacts, invalidateInteractions } from "@/lib/api";
-import { useMutation } from "@tanstack/react-query";
+import { contactsApi, interactionsApi, invalidateContacts, invalidateInteractions } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Users, TrendingUp, TrendingDown, Activity, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Contact, Interaction } from "@/lib/types";
+import type { Contact, Interaction, InsertContact } from "@/lib/types";
 
 const STATUS_LABELS: Record<string, string> = {
   green: "Зелёный",
@@ -38,6 +39,8 @@ export default function AnalyticsPage() {
   const [, setLocation] = useLocation();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [matrixFilter, setMatrixFilter] = useState<{ importance: string; status: string } | null>(null);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [editingTab, setEditingTab] = useState<"basic" | "priority" | "contribution" | "potential">("basic");
   const { toast } = useToast();
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
@@ -65,7 +68,28 @@ export default function AnalyticsPage() {
     },
   });
 
+  const updateContactMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertContact> }) =>
+      contactsApi.update(id, data),
+    onSuccess: () => {
+      invalidateContacts();
+      setEditingContact(null);
+      toast({ title: "Контакт обновлён" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
   const selectedContact = contacts.find((c) => c.id === selectedContactId) || null;
+
+  const allTags = Array.from(new Set(contacts.flatMap(c => c.tags || [])));
+  const allRoles = Array.from(new Set(contacts.flatMap(c => c.roleTags || [])));
+
+  const openEditForm = (contact: Contact, tab: "basic" | "priority" | "contribution" | "potential" = "basic") => {
+    setEditingTab(tab);
+    setEditingContact(contact);
+  };
 
   const stats = {
     total: contacts.length,
@@ -109,16 +133,45 @@ export default function AnalyticsPage() {
     }
   };
 
+  const editDialog = (
+    <Dialog open={!!editingContact} onOpenChange={(open) => !open && setEditingContact(null)}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Редактировать контакт</DialogTitle>
+          <DialogDescription>
+            Внесите изменения в информацию о контакте
+          </DialogDescription>
+        </DialogHeader>
+        {editingContact && (
+          <ContactForm
+            initialData={editingContact}
+            onSubmit={(data) => updateContactMutation.mutate({ id: editingContact.id, data })}
+            onCancel={() => setEditingContact(null)}
+            isLoading={updateContactMutation.isPending}
+            allTags={allTags}
+            allRoles={allRoles}
+            initialTab={editingTab}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
   if (selectedContact) {
     return (
-      <ContactDetail
-        contact={selectedContact}
-        interactions={interactions}
-        onBack={() => setSelectedContactId(null)}
-        onAddInteraction={(data) => {
-          addInteractionMutation.mutate({ contactId: selectedContact.id, data });
-        }}
-      />
+      <>
+        <ContactDetail
+          contact={selectedContact}
+          interactions={interactions}
+          onBack={() => setSelectedContactId(null)}
+          onEdit={() => openEditForm(selectedContact)}
+          onEditTab={(tab) => openEditForm(selectedContact, tab)}
+          onAddInteraction={(data) => {
+            addInteractionMutation.mutate({ contactId: selectedContact.id, data });
+          }}
+        />
+        {editDialog}
+      </>
     );
   }
 
