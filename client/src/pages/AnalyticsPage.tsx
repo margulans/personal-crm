@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -34,6 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function AnalyticsPage() {
+  const [, setLocation] = useLocation();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [matrixFilter, setMatrixFilter] = useState<{ importance: string; status: string } | null>(null);
   const { toast } = useToast();
@@ -139,7 +141,11 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
+          <Card
+            className="cursor-pointer hover-elevate transition-all"
+            onClick={() => setLocation("/")}
+            data-testid="card-total-contacts"
+          >
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
@@ -153,7 +159,11 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="cursor-pointer hover-elevate transition-all"
+            onClick={() => setLocation("/?status=green")}
+            data-testid="card-green-zone"
+          >
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-emerald-500/10 rounded-lg">
@@ -169,7 +179,11 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="cursor-pointer hover-elevate transition-all"
+            onClick={() => setLocation("/?status=red")}
+            data-testid="card-red-zone"
+          >
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-500/10 rounded-lg">
@@ -185,7 +199,11 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="cursor-pointer hover-elevate transition-all"
+            onClick={() => setLocation("/?status=yellow")}
+            data-testid="card-avg-heat"
+          >
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-amber-500/10 rounded-lg">

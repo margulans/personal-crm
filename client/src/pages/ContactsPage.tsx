@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ContactCard } from "@/components/crm/ContactCard";
 import { ContactFilters } from "@/components/crm/ContactFilters";
@@ -36,6 +37,8 @@ import {
 import type { Contact, Interaction, InsertContact } from "@/lib/types";
 
 export default function ContactsPage() {
+  const [, setLocation] = useLocation();
+  const searchString = useSearch();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState("heatIndex");
@@ -52,6 +55,17 @@ export default function ContactsPage() {
     heatStatus: "",
   });
   const { toast } = useToast();
+
+  // Read URL params and apply filters
+  useEffect(() => {
+    const params = new URLSearchParams(searchString);
+    const status = params.get("status");
+    if (status && ["green", "yellow", "red"].includes(status)) {
+      setFilters(prev => ({ ...prev, heatStatus: status }));
+      // Clear the URL param after applying
+      setLocation("/", { replace: true });
+    }
+  }, [searchString, setLocation]);
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
