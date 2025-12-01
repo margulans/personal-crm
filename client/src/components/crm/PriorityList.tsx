@@ -1,11 +1,24 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { HeatStatusBadge } from "./HeatStatusBadge";
 import { ValueCategoryBadge } from "./ValueCategoryBadge";
 import { formatDaysAgo } from "@/lib/constants";
-import { AlertCircle, TrendingUp } from "lucide-react";
+import { AlertCircle, TrendingUp, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types";
+
+const PRIORITY_DESCRIPTIONS = {
+  urgent: {
+    title: "Срочно связаться",
+    description: "Контакты высокой ценности (AA, AB, BA) в красной зоне — отношения критически «остыли». Свяжитесь с ними в ближайшие дни, чтобы восстановить связь. Промедление может привести к потере контакта."
+  },
+  develop: {
+    title: "Для развития",
+    description: "Ценные контакты (AA, AB, BA) в жёлтой зоне — отношения ещё не критичны, но нуждаются во внимании. Запланируйте взаимодействие на ближайшие недели, чтобы предотвратить переход в красную зону."
+  }
+};
 
 interface PriorityListProps {
   title: string;
@@ -31,6 +44,8 @@ export function PriorityList({
     return Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
   };
 
+  const info = PRIORITY_DESCRIPTIONS[variant];
+
   return (
     <Card data-testid={`priority-list-${variant}`}>
       <CardHeader className="pb-3">
@@ -41,8 +56,23 @@ export function PriorityList({
               variant === "urgent" ? "text-red-500" : "text-amber-500"
             )}
           />
-          <div>
-            <CardTitle className="text-base">{title}</CardTitle>
+          <div className="flex-1">
+            <CardTitle className="text-base flex items-center">
+              {title}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">{info.title}</h4>
+                    <p className="text-sm text-muted-foreground">{info.description}</p>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </CardTitle>
             <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
           </div>
         </div>

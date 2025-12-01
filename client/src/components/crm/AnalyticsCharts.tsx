@@ -1,4 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Info } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -12,6 +15,44 @@ import {
   Legend,
 } from "recharts";
 import type { Contact } from "@/lib/types";
+
+const CHART_DESCRIPTIONS = {
+  heatStatus: {
+    title: "Распределение по статусу",
+    description: "Показывает долю контактов в каждой зоне. Зелёный — отношения в порядке, жёлтый — нужно внимание, красный — срочно связаться. Стремитесь к максимуму зелёных контактов."
+  },
+  valueCategory: {
+    title: "Распределение по ценности",
+    description: "Категория ценности — комбинация Вклада и Потенциала (например, AA, AB, BC). Первая буква — класс вклада, вторая — потенциала. AA — самые ценные контакты, DD — наименее приоритетные."
+  },
+  importanceStatus: {
+    title: "Важность vs Статус",
+    description: "Сопоставляет уровень важности (A/B/C) с тепловым статусом. Помогает найти проблемы: A-класс в красной зоне — критично, C-класс в красной — менее срочно."
+  },
+  attention: {
+    title: "Распределение по уровню внимания",
+    description: "Показывает, как распределены контакты по 10 уровням внимания (1 — минимум, 10 — максимум). Помогает оценить баланс усилий и выявить перегруженные/недогруженные уровни."
+  }
+};
+
+function InfoPopover({ chartKey }: { chartKey: keyof typeof CHART_DESCRIPTIONS }) {
+  const info = CHART_DESCRIPTIONS[chartKey];
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
+          <Info className="h-4 w-4 text-muted-foreground" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80">
+        <div className="space-y-2">
+          <h4 className="font-medium">{info.title}</h4>
+          <p className="text-sm text-muted-foreground">{info.description}</p>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 interface AnalyticsChartsProps {
   contacts: Contact[];
@@ -40,7 +81,10 @@ export function HeatStatusChart({ contacts }: AnalyticsChartsProps) {
   return (
     <Card data-testid="chart-heat-status">
       <CardHeader>
-        <CardTitle className="text-base">Распределение по статусу</CardTitle>
+        <CardTitle className="text-base flex items-center">
+          Распределение по статусу
+          <InfoPopover chartKey="heatStatus" />
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-64">
@@ -110,7 +154,10 @@ export function ValueCategoryChart({ contacts }: AnalyticsChartsProps) {
   return (
     <Card data-testid="chart-value-category">
       <CardHeader>
-        <CardTitle className="text-base">Распределение по ценности</CardTitle>
+        <CardTitle className="text-base flex items-center">
+          Распределение по ценности
+          <InfoPopover chartKey="valueCategory" />
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-64">
@@ -179,7 +226,10 @@ export function ImportanceLevelChart({ contacts }: AnalyticsChartsProps) {
   return (
     <Card data-testid="chart-importance-status">
       <CardHeader>
-        <CardTitle className="text-base">Важность vs Статус</CardTitle>
+        <CardTitle className="text-base flex items-center">
+          Важность vs Статус
+          <InfoPopover chartKey="importanceStatus" />
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-64">
@@ -230,7 +280,10 @@ export function AttentionDistributionChart({ contacts }: AnalyticsChartsProps) {
   return (
     <Card data-testid="chart-attention">
       <CardHeader>
-        <CardTitle className="text-base">Распределение по уровню внимания</CardTitle>
+        <CardTitle className="text-base flex items-center">
+          Распределение по уровню внимания
+          <InfoPopover chartKey="attention" />
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-64">
