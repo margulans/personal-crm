@@ -197,7 +197,7 @@ export function ContactDetail({
                 </CardContent>
               </Card>
 
-              <Card className="bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800">
+              <Card className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-base">Приоритизация и внимание</CardTitle>
                 </CardHeader>
@@ -348,7 +348,7 @@ export function ContactDetail({
             </div>
 
             <div className="space-y-4">
-              <Card>
+              <Card className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700">
                 <CardHeader className="flex-row items-center justify-between space-y-0 gap-2 pb-3">
                   <CardTitle className="text-base">Взаимодействия</CardTitle>
                   <Dialog open={showInteractionForm} onOpenChange={setShowInteractionForm}>
