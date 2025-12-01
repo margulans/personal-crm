@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Bell, AlertTriangle, Clock, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types";
@@ -18,6 +20,8 @@ interface NotificationsPanelProps {
 
 export function NotificationsPanel({ onContactClick }: NotificationsPanelProps) {
   const [, setLocation] = useLocation();
+  const [open, setOpen] = useState(false);
+  const { setOpenMobile } = useSidebar();
 
   const { data: contacts = [] } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
@@ -62,8 +66,15 @@ export function NotificationsPanel({ onContactClick }: NotificationsPanelProps) 
     return overdue > 0 ? overdue : 0;
   };
 
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      setOpenMobile(false);
+    }
+    setOpen(isOpen);
+  };
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -86,7 +97,7 @@ export function NotificationsPanel({ onContactClick }: NotificationsPanelProps) 
       <PopoverContent 
         className="w-80 p-0" 
         align="start" 
-        side="right"
+        side="bottom"
         sideOffset={8}
       >
         <div className="p-3 border-b">
