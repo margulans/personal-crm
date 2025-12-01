@@ -152,7 +152,16 @@ export function ContactDetail({
     
     const attentionGap = contact.recommendedAttentionLevel - contact.attentionLevel;
     if (attentionGap > 0) {
-      recommendations.push(`Поднимите уровень внимания до ${contact.recommendedAttentionLevel} (сейчас ${contact.attentionLevel})`);
+      const recommendedLevel = ATTENTION_LEVELS.find(l => l.id === contact.recommendedAttentionLevel);
+      const currentLevel = ATTENTION_LEVELS.find(l => l.id === contact.attentionLevel);
+      
+      if (recommendedLevel && currentLevel) {
+        recommendations.push(
+          `Поднимите уровень внимания с ${contact.attentionLevel} («${currentLevel.name}») до ${contact.recommendedAttentionLevel} («${recommendedLevel.name}» — ${recommendedLevel.description.toLowerCase()})`
+        );
+      } else {
+        recommendations.push(`Поднимите уровень внимания до ${contact.recommendedAttentionLevel} (сейчас ${contact.attentionLevel})`);
+      }
     }
     
     if (contact.relationshipEnergy < 4) {
@@ -416,8 +425,41 @@ export function ContactDetail({
                       contact.heatStatus === "yellow" && "text-amber-600 dark:text-amber-400",
                       contact.heatStatus === "red" && "text-red-600 dark:text-red-400"
                     )} />
-                    <div>
-                      <div className="text-sm font-medium mb-1">Рекомендация</div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-sm font-medium">Рекомендация</span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-5 w-5">
+                              <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80" align="start">
+                            <div className="space-y-2">
+                              <h4 className="font-medium text-sm">Шкала уровней внимания</h4>
+                              <div className="space-y-1 text-xs">
+                                {ATTENTION_LEVELS.map((level) => (
+                                  <div key={level.id} className={cn(
+                                    "flex gap-2 py-1 px-1.5 rounded",
+                                    level.id === contact.recommendedAttentionLevel && "bg-primary/10 font-medium",
+                                    level.id === contact.attentionLevel && "border border-primary/30"
+                                  )}>
+                                    <span className="font-mono w-5 text-right">{level.id}.</span>
+                                    <div>
+                                      <span className="font-medium">{level.name}</span>
+                                      <span className="text-muted-foreground"> — {level.description}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="pt-2 border-t text-xs text-muted-foreground space-y-1">
+                                <p><span className="inline-block w-3 h-3 bg-primary/10 rounded mr-1" /> Рекомендуемый уровень</p>
+                                <p><span className="inline-block w-3 h-3 border border-primary/30 rounded mr-1" /> Текущий уровень</p>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                       <p className="text-sm text-muted-foreground">{getRecommendation()}</p>
                     </div>
                   </div>
