@@ -42,11 +42,24 @@ export const ROLE_TAGS = [
 ] as const;
 
 export const CONTRIBUTION_CRITERIA = [
-  { key: "financial", label: "Финансовый вклад", description: "0=нет; 1=до $10K; 2=$10-100K; 3=$100K+" },
-  { key: "network", label: "Помощь связями", description: "Интро, рекомендации" },
-  { key: "tactical", label: "Тактическая помощь", description: "Решил задачу, выделил ресурсы" },
-  { key: "strategic", label: "Стратегическая поддержка", description: "Усилил решения, был рядом в переломный момент" },
-  { key: "loyalty", label: "Лояльность", description: "Защита, конфиденциальность" },
+  { 
+    key: "financial", 
+    label: "Финансовый вклад", 
+    description: "Покупки, инвестиции, привёл оборот",
+    scale: "0=нет; 1=до $10K; 2=$10-100K; 3=$100K+"
+  },
+  { 
+    key: "network", 
+    label: "Помощь связями", 
+    description: "Интро, доступ к ключевым людям, открыл двери",
+    scale: "0=нет; 1=одиночное интро; 2=сильное интро; 3=системная помощь"
+  },
+  { 
+    key: "trust", 
+    label: "Доверие и репутация", 
+    description: "Лояльность, рекомендации, защита репутации",
+    scale: "0=нет; 1=единичные жесты; 2=ощутимый вклад; 3=системное усиление"
+  },
 ] as const;
 
 export const POTENTIAL_CRITERIA = [
@@ -57,10 +70,16 @@ export const POTENTIAL_CRITERIA = [
   { key: "systemRole", label: "Системная роль", description: "Потенциал стать партнёром, лидером, советником" },
 ] as const;
 
-export function getClassFromScore(score: number): string {
-  if (score >= 12) return "A";
-  if (score >= 8) return "B";
-  if (score >= 4) return "C";
+export function getClassFromScore(score: number, maxScore: number = 9): string {
+  if (maxScore === 15) {
+    if (score >= 12) return "A";
+    if (score >= 8) return "B";
+    if (score >= 4) return "C";
+    return "D";
+  }
+  if (score >= 7) return "A";
+  if (score >= 5) return "B";
+  if (score >= 2) return "C";
   return "D";
 }
 

@@ -25,24 +25,23 @@ export interface IStorage {
   
   recalculateContactMetrics(contactId: string): Promise<Contact | undefined>;
   recalculateAllContactMetrics(): Promise<void>;
+  migrateContributionData(): Promise<void>;
 }
 
 function calculateScoresAndClass(details: { 
   financial?: number; 
   network?: number; 
-  tactical?: number; 
-  strategic?: number; 
-  loyalty?: number; 
+  trust?: number;
 } | { 
   personal?: number; 
   resources?: number; 
   network?: number; 
   synergy?: number; 
   systemRole?: number; 
-}): { score: number; scoreClass: string } {
+}, maxScore: number = 9): { score: number; scoreClass: string } {
   const values = Object.values(details || {});
   const score = values.reduce((sum, val) => sum + (val || 0), 0);
-  const scoreClass = getClassFromScore(score);
+  const scoreClass = getClassFromScore(score, maxScore);
   return { score, scoreClass };
 }
 
@@ -57,8 +56,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createContact(insertContact: InsertContact): Promise<Contact> {
-    const contribution = calculateScoresAndClass(insertContact.contributionDetails || {});
-    const potential = calculateScoresAndClass(insertContact.potentialDetails || {});
+    const contribution = calculateScoresAndClass(insertContact.contributionDetails || {}, 9);
+    const potential = calculateScoresAndClass(insertContact.potentialDetails || {}, 15);
     
     const today = new Date();
     const lastContactDate = insertContact.lastContactDate ? new Date(insertContact.lastContactDate) : null;
@@ -92,12 +91,34 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getContact(id);
     if (!existing) return undefined;
 
-    const defaultContribution = { financial: 0, network: 0, tactical: 0, strategic: 0, loyalty: 0 };
+    const defaultContribution = { financial: 0, network: 0, trust: 0 };
     const defaultPotential = { personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 };
     
+    const existingContribution = existing.contributionDetails as { 
+      financial?: number; network?: number; tactical?: number; 
+      strategic?: number; loyalty?: number; trust?: number 
+    } | null;
+    
+    let baseContribution = defaultContribution;
+    if (existingContribution) {
+      if ('trust' in existingContribution) {
+        baseContribution = { 
+          financial: existingContribution.financial || 0, 
+          network: existingContribution.network || 0, 
+          trust: existingContribution.trust || 0 
+        };
+      } else {
+        const trustValue = Math.min(3, Math.round(((existingContribution.tactical || 0) + (existingContribution.strategic || 0) + (existingContribution.loyalty || 0)) / 3));
+        baseContribution = { 
+          financial: existingContribution.financial || 0, 
+          network: existingContribution.network || 0, 
+          trust: trustValue 
+        };
+      }
+    }
+    
     const mergedContribution = {
-      ...defaultContribution,
-      ...existing.contributionDetails,
+      ...baseContribution,
       ...updateData.contributionDetails,
     };
     const mergedPotential = {
@@ -106,8 +127,8 @@ export class DatabaseStorage implements IStorage {
       ...updateData.potentialDetails,
     };
 
-    const contribution = calculateScoresAndClass(mergedContribution);
-    const potential = calculateScoresAndClass(mergedPotential);
+    const contribution = calculateScoresAndClass(mergedContribution, 9);
+    const potential = calculateScoresAndClass(mergedPotential, 15);
 
     const lastContactDate = updateData.lastContactDate !== undefined 
       ? updateData.lastContactDate 
@@ -215,7 +236,7 @@ export class DatabaseStorage implements IStorage {
     const lastContactDate = lastMeaningful?.date || null;
 
     return await this.updateContact(contactId, { 
-      lastContactDate: lastContactDate ? String(lastContactDate) : null 
+      lastContactDate: lastContactDate ? String(lastContactDate) : null,
     });
   }
 
@@ -223,6 +244,26 @@ export class DatabaseStorage implements IStorage {
     const allContacts = await this.getContacts();
     for (const contact of allContacts) {
       await this.recalculateContactMetrics(contact.id);
+    }
+  }
+
+  async migrateContributionData(): Promise<void> {
+    const allContacts = await this.getContacts();
+    for (const contact of allContacts) {
+      const details = contact.contributionDetails as { 
+        financial?: number; network?: number; tactical?: number; 
+        strategic?: number; loyalty?: number; trust?: number 
+      } | null;
+      
+      if (details && !('trust' in details)) {
+        const trustValue = Math.min(3, Math.round(((details.tactical || 0) + (details.strategic || 0) + (details.loyalty || 0)) / 3));
+        const newDetails = { 
+          financial: details.financial || 0, 
+          network: details.network || 0, 
+          trust: trustValue 
+        };
+        await this.updateContact(contact.id, { contributionDetails: newDetails });
+      }
     }
   }
 }

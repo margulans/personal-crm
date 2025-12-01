@@ -131,6 +131,16 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/migrate-contribution", async (req, res) => {
+    try {
+      await storage.migrateContributionData();
+      res.json({ message: "Contribution data migrated successfully" });
+    } catch (error) {
+      console.error("Error migrating contribution data:", error);
+      res.status(500).json({ error: "Failed to migrate contribution data" });
+    }
+  });
+
   app.get("/api/export/json", async (req, res) => {
     try {
       const contacts = await storage.getContacts();
@@ -170,8 +180,7 @@ export async function registerRoutes(
         "fullName", "shortName", "phone", "email", "socialLinks", "tags", "roleTags",
         "importanceLevel", "attentionLevel", "desiredFrequencyDays", "lastContactDate",
         "responseQuality", "relationshipEnergy", "attentionTrend",
-        "contribution_financial", "contribution_network", "contribution_tactical",
-        "contribution_strategic", "contribution_loyalty",
+        "contribution_financial", "contribution_network", "contribution_trust",
         "potential_personal", "potential_resources", "potential_network",
         "potential_synergy", "potential_systemRole"
       ];
@@ -186,7 +195,21 @@ export async function registerRoutes(
       };
       
       const rows = contacts.map(contact => {
-        const contrib = contact.contributionDetails || { financial: 0, network: 0, tactical: 0, strategic: 0, loyalty: 0 };
+        const rawContrib = contact.contributionDetails as { 
+          financial?: number; network?: number; tactical?: number; 
+          strategic?: number; loyalty?: number; trust?: number 
+        } | null;
+        
+        let contrib = { financial: 0, network: 0, trust: 0 };
+        if (rawContrib) {
+          if ('trust' in rawContrib) {
+            contrib = { financial: rawContrib.financial || 0, network: rawContrib.network || 0, trust: rawContrib.trust || 0 };
+          } else {
+            const trustValue = Math.min(3, Math.round(((rawContrib.tactical || 0) + (rawContrib.strategic || 0) + (rawContrib.loyalty || 0)) / 3));
+            contrib = { financial: rawContrib.financial || 0, network: rawContrib.network || 0, trust: trustValue };
+          }
+        }
+        
         const pot = contact.potentialDetails || { personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 };
         
         return [
@@ -206,9 +229,7 @@ export async function registerRoutes(
           String(contact.attentionTrend),
           String(contrib.financial),
           String(contrib.network),
-          String(contrib.tactical),
-          String(contrib.strategic),
-          String(contrib.loyalty),
+          String(contrib.trust),
           String(pot.personal),
           String(pot.resources),
           String(pot.network),
@@ -308,13 +329,33 @@ export async function registerRoutes(
             responseQuality: Number(contactData.responseQuality) || 2,
             relationshipEnergy: Number(contactData.relationshipEnergy) || 3,
             attentionTrend: Number(contactData.attentionTrend) || 0,
-            contributionDetails: contactData.contributionDetails || {
-              financial: Number(contactData.contribution_financial) || 0,
-              network: Number(contactData.contribution_network) || 0,
-              tactical: Number(contactData.contribution_tactical) || 0,
-              strategic: Number(contactData.contribution_strategic) || 0,
-              loyalty: Number(contactData.contribution_loyalty) || 0,
-            },
+            contributionDetails: (() => {
+              if (contactData.contributionDetails) {
+                const cd = contactData.contributionDetails;
+                if ('trust' in cd) {
+                  return { financial: cd.financial || 0, network: cd.network || 0, trust: cd.trust || 0 };
+                }
+                const trust = Math.min(3, Math.round(((cd.tactical || 0) + (cd.strategic || 0) + (cd.loyalty || 0)) / 3));
+                return { financial: cd.financial || 0, network: cd.network || 0, trust };
+              }
+              if (contactData.contribution_trust !== undefined) {
+                return {
+                  financial: Number(contactData.contribution_financial) || 0,
+                  network: Number(contactData.contribution_network) || 0,
+                  trust: Number(contactData.contribution_trust) || 0,
+                };
+              }
+              const trust = Math.min(3, Math.round((
+                (Number(contactData.contribution_tactical) || 0) +
+                (Number(contactData.contribution_strategic) || 0) +
+                (Number(contactData.contribution_loyalty) || 0)
+              ) / 3));
+              return {
+                financial: Number(contactData.contribution_financial) || 0,
+                network: Number(contactData.contribution_network) || 0,
+                trust,
+              };
+            })(),
             potentialDetails: contactData.potentialDetails || {
               personal: Number(contactData.potential_personal) || 0,
               resources: Number(contactData.potential_resources) || 0,

@@ -41,13 +41,20 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
     responseQuality: initialData?.responseQuality || 2,
     relationshipEnergy: initialData?.relationshipEnergy || 3,
     attentionTrend: initialData?.attentionTrend || 0,
-    contributionDetails: initialData?.contributionDetails || {
-      financial: 0,
-      network: 0,
-      tactical: 0,
-      strategic: 0,
-      loyalty: 0,
-    },
+    contributionDetails: (() => {
+      if (initialData?.contributionDetails) {
+        const oldData = initialData.contributionDetails as { 
+          financial?: number; network?: number; tactical?: number; 
+          strategic?: number; loyalty?: number; trust?: number 
+        };
+        if ('trust' in oldData) {
+          return { financial: oldData.financial || 0, network: oldData.network || 0, trust: oldData.trust || 0 };
+        }
+        const trustValue = Math.min(3, Math.round(((oldData.tactical || 0) + (oldData.strategic || 0) + (oldData.loyalty || 0)) / 3));
+        return { financial: oldData.financial || 0, network: oldData.network || 0, trust: trustValue };
+      }
+      return { financial: 0, network: 0, trust: 0 };
+    })(),
     potentialDetails: initialData?.potentialDetails || {
       personal: 0,
       resources: 0,
@@ -560,17 +567,18 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
 
         <TabsContent value="contribution" className="space-y-4 mt-4">
           <p className="text-sm text-muted-foreground">
-            Оцените вклад контакта по каждому критерию от 0 до 3
+            Оцените вклад контакта по каждому критерию от 0 до 3. Максимум 9 баллов.
           </p>
           {CONTRIBUTION_CRITERIA.map((criterion) => (
-            <div key={criterion.key} className="space-y-2">
+            <div key={criterion.key} className="space-y-2 p-3 rounded-lg border bg-muted/30">
               <div className="flex items-center justify-between">
-                <Label>{criterion.label}</Label>
-                <span className="text-sm font-mono">
+                <Label className="font-medium">{criterion.label}</Label>
+                <span className="text-sm font-mono bg-background px-2 py-0.5 rounded">
                   {formData.contributionDetails?.[criterion.key as keyof typeof formData.contributionDetails] || 0}/3
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">{criterion.description}</p>
+              <p className="text-xs text-muted-foreground/70 italic">{'scale' in criterion ? criterion.scale : ''}</p>
               <Slider
                 value={[formData.contributionDetails?.[criterion.key as keyof typeof formData.contributionDetails] || 0]}
                 onValueChange={([v]) => updateContribution(criterion.key, v)}

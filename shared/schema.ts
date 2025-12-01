@@ -22,10 +22,8 @@ export const contacts = pgTable("contacts", {
   contributionDetails: jsonb("contribution_details").$type<{
     financial: number;
     network: number;
-    tactical: number;
-    strategic: number;
-    loyalty: number;
-  }>().default({ financial: 0, network: 0, tactical: 0, strategic: 0, loyalty: 0 }),
+    trust: number;
+  }>().default({ financial: 0, network: 0, trust: 0 }),
   
   potentialDetails: jsonb("potential_details").$type<{
     personal: number;
@@ -66,9 +64,7 @@ export const interactions = pgTable("interactions", {
 const contributionDetailsSchema = z.object({
   financial: z.number().min(0).max(3).default(0),
   network: z.number().min(0).max(3).default(0),
-  tactical: z.number().min(0).max(3).default(0),
-  strategic: z.number().min(0).max(3).default(0),
-  loyalty: z.number().min(0).max(3).default(0),
+  trust: z.number().min(0).max(3).default(0),
 });
 
 const potentialDetailsSchema = z.object({
@@ -95,7 +91,7 @@ export const insertContactSchema = createInsertSchema(contacts).omit({
   socialLinks: z.array(z.string()).default([]),
   tags: z.array(z.string()).default([]),
   roleTags: z.array(z.string()).default([]),
-  contributionDetails: contributionDetailsSchema.default({ financial: 0, network: 0, tactical: 0, strategic: 0, loyalty: 0 }),
+  contributionDetails: contributionDetailsSchema.default({ financial: 0, network: 0, trust: 0 }),
   potentialDetails: potentialDetailsSchema.default({ personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 }),
   importanceLevel: z.enum(["A", "B", "C"]).default("C"),
   attentionLevel: z.number().min(1).max(10).default(1),
@@ -124,10 +120,16 @@ export type Contact = typeof contacts.$inferSelect;
 export type InsertInteraction = z.infer<typeof insertInteractionSchema>;
 export type Interaction = typeof interactions.$inferSelect;
 
-export function getClassFromScore(score: number): string {
-  if (score >= 12) return "A";
-  if (score >= 8) return "B";
-  if (score >= 4) return "C";
+export function getClassFromScore(score: number, maxScore: number = 9): string {
+  if (maxScore === 15) {
+    if (score >= 12) return "A";
+    if (score >= 8) return "B";
+    if (score >= 4) return "C";
+    return "D";
+  }
+  if (score >= 7) return "A";
+  if (score >= 5) return "B";
+  if (score >= 2) return "C";
   return "D";
 }
 

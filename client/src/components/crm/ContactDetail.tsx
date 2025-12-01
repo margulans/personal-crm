@@ -177,7 +177,18 @@ export function ContactDetail({
     setShowInteractionForm(false);
   };
 
-  const contributionDetails = contact.contributionDetails || { financial: 0, network: 0, tactical: 0, strategic: 0, loyalty: 0 };
+  const contributionDetails = (() => {
+    const details = contact.contributionDetails as { 
+      financial?: number; network?: number; tactical?: number; 
+      strategic?: number; loyalty?: number; trust?: number 
+    } | null;
+    if (!details) return { financial: 0, network: 0, trust: 0 };
+    if ('trust' in details) {
+      return { financial: details.financial || 0, network: details.network || 0, trust: details.trust || 0 };
+    }
+    const trustValue = Math.min(3, Math.round(((details.tactical || 0) + (details.strategic || 0) + (details.loyalty || 0)) / 3));
+    return { financial: details.financial || 0, network: details.network || 0, trust: trustValue };
+  })();
   const potentialDetails = contact.potentialDetails || { personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 };
 
   return (

@@ -15,9 +15,7 @@ export interface Contact {
   contributionDetails: {
     financial: number;
     network: number;
-    tactical: number;
-    strategic: number;
-    loyalty: number;
+    trust: number;
   };
   potentialDetails: {
     personal: number;
@@ -62,9 +60,7 @@ export interface InsertContact {
   contributionDetails?: {
     financial: number;
     network: number;
-    tactical: number;
-    strategic: number;
-    loyalty: number;
+    trust: number;
   };
   potentialDetails?: {
     personal: number;
