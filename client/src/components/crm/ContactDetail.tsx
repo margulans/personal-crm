@@ -78,6 +78,8 @@ function InfoPopover({ blockKey }: { blockKey: keyof typeof BLOCK_DESCRIPTIONS }
   );
 }
 
+type EditTab = "basic" | "priority" | "contribution" | "potential";
+
 interface ContactDetailProps {
   contact: Contact;
   interactions: Interaction[];
@@ -90,6 +92,7 @@ interface ContactDetailProps {
     isMeaningful: boolean;
   }) => void;
   onEdit?: () => void;
+  onEditTab?: (tab: EditTab) => void;
 }
 
 export function ContactDetail({
@@ -98,8 +101,22 @@ export function ContactDetail({
   onBack,
   onAddInteraction,
   onEdit,
+  onEditTab,
 }: ContactDetailProps) {
   const [showInteractionForm, setShowInteractionForm] = useState(false);
+  const [lastTapTime, setLastTapTime] = useState<Record<string, number>>({});
+
+  const handleDoubleTap = (blockId: string, tab: EditTab) => {
+    const now = Date.now();
+    const lastTap = lastTapTime[blockId] || 0;
+    
+    if (now - lastTap < 300) {
+      onEditTab?.(tab);
+      setLastTapTime({});
+    } else {
+      setLastTapTime({ ...lastTapTime, [blockId]: now });
+    }
+  };
 
   const today = new Date();
   const lastContact = contact.lastContactDate ? new Date(contact.lastContactDate) : null;
@@ -204,7 +221,10 @@ export function ContactDetail({
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-              <Card>
+              <Card 
+                className="cursor-pointer transition-colors hover:bg-muted/30"
+                onClick={() => handleDoubleTap("contact", "basic")}
+              >
                 <CardHeader>
                   <CardTitle className="text-base flex items-center">
                     Контактная информация
@@ -249,7 +269,10 @@ export function ContactDetail({
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-100 dark:bg-slate-800/50 border-slate-300 dark:border-slate-600">
+              <Card 
+                className="bg-slate-100 dark:bg-slate-800/50 border-slate-300 dark:border-slate-600 cursor-pointer transition-colors hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                onClick={() => handleDoubleTap("priority", "priority")}
+              >
                 <CardHeader>
                   <CardTitle className="text-base flex items-center">
                     Приоритизация и внимание
@@ -316,11 +339,15 @@ export function ContactDetail({
                 </CardContent>
               </Card>
 
-              <Card className={cn(
-                contact.heatStatus === "green" && "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800",
-                contact.heatStatus === "yellow" && "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
-                contact.heatStatus === "red" && "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
-              )}>
+              <Card 
+                className={cn(
+                  "cursor-pointer transition-colors",
+                  contact.heatStatus === "green" && "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/40",
+                  contact.heatStatus === "yellow" && "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 hover:bg-amber-100/50 dark:hover:bg-amber-900/40",
+                  contact.heatStatus === "red" && "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 hover:bg-red-100/50 dark:hover:bg-red-900/40"
+                )}
+                onClick={() => handleDoubleTap("heat", "priority")}
+              >
                 <CardHeader>
                   <CardTitle className="text-base flex items-center">
                     Тепловой статус
@@ -390,18 +417,28 @@ export function ContactDetail({
               </Card>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ScorePanel
-                  type="contribution"
-                  scores={contributionDetails}
-                  totalScore={contact.contributionScore}
-                  scoreClass={contact.contributionClass}
-                />
-                <ScorePanel
-                  type="potential"
-                  scores={potentialDetails}
-                  totalScore={contact.potentialScore}
-                  scoreClass={contact.potentialClass}
-                />
+                <div 
+                  className="cursor-pointer" 
+                  onClick={() => handleDoubleTap("contribution", "contribution")}
+                >
+                  <ScorePanel
+                    type="contribution"
+                    scores={contributionDetails}
+                    totalScore={contact.contributionScore}
+                    scoreClass={contact.contributionClass}
+                  />
+                </div>
+                <div 
+                  className="cursor-pointer" 
+                  onClick={() => handleDoubleTap("potential", "potential")}
+                >
+                  <ScorePanel
+                    type="potential"
+                    scores={potentialDetails}
+                    totalScore={contact.potentialScore}
+                    scoreClass={contact.potentialClass}
+                  />
+                </div>
               </div>
             </div>
 

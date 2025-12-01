@@ -41,6 +41,7 @@ export default function ContactsPage() {
   const [sortBy, setSortBy] = useState("heatIndex");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [editingTab, setEditingTab] = useState<"basic" | "priority" | "contribution" | "potential">("basic");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteContactId, setDeleteContactId] = useState<string | null>(null);
@@ -224,6 +225,11 @@ export default function ContactsPage() {
     return Array.from(roleSet).sort();
   }, [contacts]);
 
+  const openEditForm = (contact: Contact, tab: "basic" | "priority" | "contribution" | "potential" = "basic") => {
+    setEditingTab(tab);
+    setEditingContact(contact);
+  };
+
   const editDialog = (
     <Dialog open={!!editingContact} onOpenChange={(open) => !open && setEditingContact(null)}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -241,6 +247,7 @@ export default function ContactsPage() {
             isLoading={updateContactMutation.isPending}
             allTags={allTags}
             allRoles={allRoles}
+            initialTab={editingTab}
           />
         )}
       </DialogContent>
@@ -254,7 +261,8 @@ export default function ContactsPage() {
           contact={selectedContact}
           interactions={interactions}
           onBack={() => setSelectedContactId(null)}
-          onEdit={() => setEditingContact(selectedContact)}
+          onEdit={() => openEditForm(selectedContact)}
+          onEditTab={(tab) => openEditForm(selectedContact, tab)}
           onAddInteraction={(data) => {
             addInteractionMutation.mutate({ contactId: selectedContact.id, data });
           }}

@@ -23,9 +23,10 @@ interface ContactFormProps {
   isLoading?: boolean;
   allTags?: string[];
   allRoles?: string[];
+  initialTab?: "basic" | "priority" | "contribution" | "potential";
 }
 
-export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTags = [], allRoles = [] }: ContactFormProps) {
+export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTags = [], allRoles = [], initialTab = "basic" }: ContactFormProps) {
   const [formData, setFormData] = useState<InsertContact>({
     fullName: initialData?.fullName || "",
     shortName: initialData?.shortName || "",
@@ -214,7 +215,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Tabs defaultValue="basic" className="w-full">
+      <Tabs defaultValue={initialTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="basic">Основное</TabsTrigger>
           <TabsTrigger value="priority">Приоритеты</TabsTrigger>
