@@ -6,9 +6,27 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { bulkApi, invalidateContacts } from "@/lib/api";
-import { Plus, Trash2, Tag, Loader2 } from "lucide-react";
+import { Plus, Trash2, Tag, Loader2, Pencil, X } from "lucide-react";
 import type { Contact } from "@/lib/types";
 
 interface TagManagementProps {
@@ -19,11 +37,17 @@ export function TagManagement({ contacts }: TagManagementProps) {
   const [newTag, setNewTag] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
   const [tagAction, setTagAction] = useState<"add" | "remove">("add");
+  const [editingTag, setEditingTag] = useState<string | null>(null);
+  const [editedTagName, setEditedTagName] = useState("");
+  const [deletingTag, setDeletingTag] = useState<string | null>(null);
   const { toast } = useToast();
 
   const allTags = Array.from(
     new Set(contacts.flatMap((c) => [...(c.tags || []), ...(c.roleTags || [])]))
   ).sort();
+
+  const getContactsWithTag = (tag: string) => 
+    contacts.filter((c) => c.tags?.includes(tag) || c.roleTags?.includes(tag));
 
   const updateTagsMutation = useMutation({
     mutationFn: async ({ ids, tag, action }: { ids: string[]; tag: string; action: "add" | "remove" }) => {
@@ -55,6 +79,66 @@ export function TagManagement({ contacts }: TagManagementProps) {
       toast({ title: "Ошибка", description: error.message, variant: "destructive" });
     },
   });
+
+  const renameTagMutation = useMutation({
+    mutationFn: async ({ oldTag, newTagName }: { oldTag: string; newTagName: string }) => {
+      const affectedContacts = getContactsWithTag(oldTag);
+      const updates = affectedContacts.map(async (contact) => {
+        const newTags = (contact.tags || []).map((t) => (t === oldTag ? newTagName : t));
+        const newRoleTags = (contact.roleTags || []).map((t) => (t === oldTag ? newTagName : t));
+        return bulkApi.updateContacts([contact.id], { tags: newTags, roleTags: newRoleTags });
+      });
+      return Promise.all(updates);
+    },
+    onSuccess: (_, { oldTag, newTagName }) => {
+      invalidateContacts();
+      setEditingTag(null);
+      setEditedTagName("");
+      toast({ title: "Тег переименован", description: `"${oldTag}" → "${newTagName}"` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteTagMutation = useMutation({
+    mutationFn: async (tag: string) => {
+      const affectedContacts = getContactsWithTag(tag);
+      const updates = affectedContacts.map(async (contact) => {
+        const newTags = (contact.tags || []).filter((t) => t !== tag);
+        const newRoleTags = (contact.roleTags || []).filter((t) => t !== tag);
+        return bulkApi.updateContacts([contact.id], { tags: newTags, roleTags: newRoleTags });
+      });
+      return Promise.all(updates);
+    },
+    onSuccess: (_, tag) => {
+      invalidateContacts();
+      setDeletingTag(null);
+      toast({ title: "Тег удалён", description: `Тег "${tag}" удалён у всех контактов` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleEditTag = (tag: string) => {
+    setEditingTag(tag);
+    setEditedTagName(tag);
+  };
+
+  const handleSaveRename = () => {
+    if (!editingTag || !editedTagName.trim()) return;
+    if (editedTagName === editingTag) {
+      setEditingTag(null);
+      return;
+    }
+    renameTagMutation.mutate({ oldTag: editingTag, newTagName: editedTagName.trim() });
+  };
+
+  const handleDeleteTag = () => {
+    if (!deletingTag) return;
+    deleteTagMutation.mutate(deletingTag);
+  };
 
   const handleApplyTag = (tag: string) => {
     if (selectedContacts.size === 0) {
@@ -143,22 +227,53 @@ export function TagManagement({ contacts }: TagManagementProps) {
 
           {allTags.length > 0 && (
             <div>
-              <Label className="text-sm">Или выберите существующий</Label>
+              <Label className="text-sm">Существующие теги ({allTags.length})</Label>
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {allTags.slice(0, 20).map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="secondary"
-                    className="cursor-pointer hover-elevate"
-                    onClick={() => handleApplyTag(tag)}
-                    data-testid={`tag-option-${tag}`}
+                {allTags.slice(0, 30).map((tag) => (
+                  <div 
+                    key={tag} 
+                    className="group flex items-center gap-0.5"
                   >
-                    {tag}
-                  </Badge>
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer hover-elevate pr-1"
+                      onClick={() => handleApplyTag(tag)}
+                      data-testid={`tag-option-${tag}`}
+                    >
+                      <span className="mr-1">{tag}</span>
+                      <span className="text-muted-foreground text-xs">
+                        ({getContactsWithTag(tag).length})
+                      </span>
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditTag(tag);
+                      }}
+                      data-testid={`button-edit-tag-${tag}`}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingTag(tag);
+                      }}
+                      data-testid={`button-delete-tag-${tag}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
                 ))}
-                {allTags.length > 20 && (
+                {allTags.length > 30 && (
                   <span className="text-xs text-muted-foreground self-center">
-                    +{allTags.length - 20} ещё
+                    +{allTags.length - 30} ещё
                   </span>
                 )}
               </div>
@@ -215,6 +330,69 @@ export function TagManagement({ contacts }: TagManagementProps) {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={!!editingTag} onOpenChange={(open) => !open && setEditingTag(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Переименовать тег</DialogTitle>
+            <DialogDescription>
+              Тег будет переименован у {editingTag ? getContactsWithTag(editingTag).length : 0} контактов
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Новое название</Label>
+              <Input
+                value={editedTagName}
+                onChange={(e) => setEditedTagName(e.target.value)}
+                placeholder="Введите новое название"
+                className="mt-1"
+                data-testid="input-edit-tag-name"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingTag(null)}>
+              Отмена
+            </Button>
+            <Button 
+              onClick={handleSaveRename}
+              disabled={!editedTagName.trim() || renameTagMutation.isPending}
+              data-testid="button-save-tag-rename"
+            >
+              {renameTagMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deletingTag} onOpenChange={(open) => !open && setDeletingTag(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить тег?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Тег "{deletingTag}" будет удалён у {deletingTag ? getContactsWithTag(deletingTag).length : 0} контактов. 
+              Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteTag}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-tag"
+            >
+              {deleteTagMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
