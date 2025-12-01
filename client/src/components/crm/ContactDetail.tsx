@@ -197,7 +197,7 @@ export function ContactDetail({
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800">
                 <CardHeader>
                   <CardTitle className="text-base">Приоритизация и внимание</CardTitle>
                 </CardHeader>
