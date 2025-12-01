@@ -1,0 +1,183 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AnalyticsMatrix } from "@/components/crm/AnalyticsMatrix";
+import { PriorityList } from "@/components/crm/PriorityList";
+import { ContactDetail } from "@/components/crm/ContactDetail";
+import { mockContacts, mockInteractions, type Contact } from "@/lib/mockData";
+import { Users, TrendingUp, TrendingDown, Activity } from "lucide-react";
+
+export default function AnalyticsPage() {
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+
+  // todo: remove mock functionality - replace with real data from API
+  const contacts = mockContacts;
+
+  const stats = {
+    total: contacts.length,
+    green: contacts.filter((c) => c.heatStatus === "green").length,
+    yellow: contacts.filter((c) => c.heatStatus === "yellow").length,
+    red: contacts.filter((c) => c.heatStatus === "red").length,
+    aClass: contacts.filter((c) => c.importanceLevel === "A").length,
+    avgHeatIndex:
+      contacts.reduce((sum, c) => sum + c.heatIndex, 0) / contacts.length,
+  };
+
+  const urgentContacts = contacts.filter(
+    (c) =>
+      c.heatStatus === "red" &&
+      (c.valueCategory.startsWith("A") ||
+        c.valueCategory === "BA" ||
+        c.valueCategory === "AB")
+  );
+
+  const developContacts = contacts.filter(
+    (c) =>
+      c.heatStatus === "yellow" &&
+      (c.valueCategory.startsWith("A") ||
+        c.valueCategory === "BA" ||
+        c.valueCategory === "AB")
+  );
+
+  if (selectedContact) {
+    const interactions = mockInteractions.filter(
+      (i) => i.contactId === selectedContact.id
+    );
+    return (
+      <ContactDetail
+        contact={selectedContact}
+        interactions={interactions}
+        onBack={() => setSelectedContact(null)}
+        onAddInteraction={(data) => {
+          console.log("Add interaction:", data);
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="h-full overflow-auto" data-testid="analytics-page">
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold mb-1">Аналитика</h1>
+          <p className="text-muted-foreground">
+            Обзор состояния вашей сети контактов
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold font-mono">{stats.total}</div>
+                  <div className="text-xs text-muted-foreground">Всего контактов</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-500/10 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-emerald-500" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                    {stats.green}
+                  </div>
+                  <div className="text-xs text-muted-foreground">В зелёной зоне</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-500/10 rounded-lg">
+                  <TrendingDown className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold font-mono text-red-600 dark:text-red-400">
+                    {stats.red}
+                  </div>
+                  <div className="text-xs text-muted-foreground">В красной зоне</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-500/10 rounded-lg">
+                  <Activity className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold font-mono">
+                    {stats.avgHeatIndex.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Средний HeatIndex</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <AnalyticsMatrix
+              contacts={contacts}
+              onCellClick={(importance, status) => {
+                console.log(`Filter: ${importance}-class, ${status} status`);
+              }}
+            />
+          </div>
+
+          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <PriorityList
+              title="Срочно связаться"
+              description="AA/AB/BA контакты в красной зоне"
+              contacts={urgentContacts}
+              variant="urgent"
+              onContactClick={setSelectedContact}
+            />
+            <PriorityList
+              title="Для развития"
+              description="AA/AB/BA контакты в жёлтой зоне"
+              contacts={developContacts}
+              variant="develop"
+              onContactClick={setSelectedContact}
+            />
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Распределение по классам важности</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              {(["A", "B", "C"] as const).map((level) => {
+                const count = contacts.filter((c) => c.importanceLevel === level).length;
+                const percentage = ((count / stats.total) * 100).toFixed(0);
+                return (
+                  <div key={level} className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="text-3xl font-bold font-mono mb-1">{count}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {level}-класс ({percentage}%)
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
