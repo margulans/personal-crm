@@ -268,7 +268,12 @@ export default function ContactsPage() {
     <div className="h-full flex flex-col" data-testid="contacts-page">
       <div className="p-4 border-b bg-background sticky top-0 z-10">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 mb-4">
-          <h1 className="text-xl sm:text-2xl font-semibold">Контакты</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold">
+                Контакты
+                <span className="ml-2 text-base font-normal text-muted-foreground">
+                  ({contacts.length})
+                </span>
+              </h1>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <Button
               variant={selectionMode ? "secondary" : "outline"}
