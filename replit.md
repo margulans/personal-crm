@@ -12,6 +12,12 @@ A single-user personal CRM (Customer Relationship Management) web application de
 - Interaction tracking with meaningful engagement flags
 - Matrix visualization for importance vs. heat status
 - Priority lists for urgent and development contacts
+- **Notifications panel** showing contacts needing attention (red/yellow zones)
+- **Import/Export** functionality supporting CSV and JSON formats
+- **Analytics charts** with 4 visualizations (heat status, value category, importance vs status, attention distribution)
+- **Bulk operations** for selecting multiple contacts and performing delete/update actions
+- **Tag management** panel for adding/removing tags across multiple contacts
+- **Mobile-optimized** responsive layouts and touch-friendly UI
 
 **Technology Stack:**
 - Frontend: React with TypeScript, Vite build system
@@ -75,6 +81,10 @@ Single-user application with no authentication system. All data belongs to one u
 - `DELETE /api/interactions/:id` - Delete interaction
 - `POST /api/contacts/:id/recalculate` - Recalculate metrics
 - `POST /api/contacts/recalculate-all` - Batch recalculation
+- `GET /api/export?format=csv|json` - Export contacts
+- `POST /api/import` - Import contacts from CSV/JSON
+- `POST /api/contacts/bulk-delete` - Delete multiple contacts
+- `POST /api/contacts/bulk-update` - Update multiple contacts
 
 **Business Logic:**
 The core algorithm calculates contact priority through:
