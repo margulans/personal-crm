@@ -23,6 +23,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Contact, Interaction, InsertContact } from "@/lib/types";
 
 export default function ContactsPage() {
@@ -33,6 +43,7 @@ export default function ContactsPage() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteContactId, setDeleteContactId] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     search: "",
     importance: "",
@@ -85,6 +96,18 @@ export default function ContactsPage() {
         invalidateContacts();
       }
       toast({ title: "Взаимодействие добавлено" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteContactMutation = useMutation({
+    mutationFn: (id: string) => contactsApi.delete(id),
+    onSuccess: () => {
+      invalidateContacts();
+      setDeleteContactId(null);
+      toast({ title: "Контакт удалён" });
     },
     onError: (error: Error) => {
       toast({ title: "Ошибка", description: error.message, variant: "destructive" });
@@ -358,6 +381,7 @@ export default function ContactsPage() {
                 key={contact.id}
                 contact={contact}
                 onClick={() => setSelectedContactId(contact.id)}
+                onDelete={() => setDeleteContactId(contact.id)}
                 selectionMode={selectionMode}
                 isSelected={selectedIds.has(contact.id)}
                 onSelect={(selected) => toggleSelection(contact.id, selected)}
@@ -392,6 +416,30 @@ export default function ContactsPage() {
       </Dialog>
 
       {editDialog}
+
+      <AlertDialog open={!!deleteContactId} onOpenChange={(open) => !open && setDeleteContactId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить контакт?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <span className="font-medium">{deleteContactId && contacts.find(c => c.id === deleteContactId)?.fullName}</span>
+                <span className="block mt-1">Это действие нельзя отменить. Контакт и все связанные данные будут удалены.</span>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteContactId && deleteContactMutation.mutate(deleteContactId)}
+              data-testid="button-confirm-delete"
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
