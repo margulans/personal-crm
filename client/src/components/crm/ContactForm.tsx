@@ -451,7 +451,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
                    formData.importanceLevel === "B" ? "B - Средняя" : "C - Низкая"}
                 </Badge>
                 <span className="text-xs text-muted-foreground">
-                  (рассчитывается из категории)
+                  (авто-расчёт из вклада и потенциала)
                 </span>
               </div>
             </div>

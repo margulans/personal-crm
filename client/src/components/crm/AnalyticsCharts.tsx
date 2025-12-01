@@ -21,9 +21,9 @@ const CHART_DESCRIPTIONS = {
     title: "Распределение по статусу",
     description: "Показывает долю контактов в каждой зоне. Зелёный — отношения в порядке, жёлтый — нужно внимание, красный — срочно связаться. Стремитесь к максимуму зелёных контактов."
   },
-  valueCategory: {
-    title: "Распределение по ценности",
-    description: "Категория ценности — комбинация Вклада и Потенциала (например, AA, AB, BC). Первая буква — класс вклада, вторая — потенциала. AA — самые ценные контакты, DD — наименее приоритетные."
+  importance: {
+    title: "Распределение по важности",
+    description: "Показывает количество контактов в каждом классе важности (A, B, C). Важность рассчитывается автоматически из оценок вклада и потенциала."
   },
   importanceStatus: {
     title: "Важность vs Статус",
@@ -121,21 +121,18 @@ export function HeatStatusChart({ contacts }: AnalyticsChartsProps) {
   );
 }
 
-export function ValueCategoryChart({ contacts }: AnalyticsChartsProps) {
-  const categories = ["AA", "AB", "BA", "BB", "AC", "CA", "BC", "CB", "CC", "AD", "DA", "BD", "DB", "CD", "DC", "DD"];
-  
-  const data = categories
-    .map((cat) => ({
-      name: cat,
-      value: contacts.filter((c) => c.valueCategory === cat).length,
-    }))
-    .filter((d) => d.value > 0);
+export function ImportanceChart({ contacts }: AnalyticsChartsProps) {
+  const data = [
+    { name: "A - Высокая", value: contacts.filter((c) => c.importanceLevel === "A").length, color: "#10b981" },
+    { name: "B - Средняя", value: contacts.filter((c) => c.importanceLevel === "B").length, color: "#3b82f6" },
+    { name: "C - Низкая", value: contacts.filter((c) => c.importanceLevel === "C").length, color: "#6b7280" },
+  ].filter((d) => d.value > 0);
 
   if (data.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Распределение по ценности</CardTitle>
+          <CardTitle className="text-base">Распределение по важности</CardTitle>
         </CardHeader>
         <CardContent className="h-64 flex items-center justify-center text-muted-foreground">
           Нет данных
@@ -144,41 +141,42 @@ export function ValueCategoryChart({ contacts }: AnalyticsChartsProps) {
     );
   }
 
-  const getBarColor = (category: string) => {
-    if (category.startsWith("A")) return "#10b981";
-    if (category.startsWith("B")) return "#3b82f6";
-    if (category.startsWith("C")) return "#f59e0b";
-    return "#6b7280";
-  };
-
   return (
-    <Card data-testid="chart-value-category">
+    <Card data-testid="chart-importance">
       <CardHeader>
         <CardTitle className="text-base flex items-center">
-          Распределение по ценности
-          <InfoPopover chartKey="valueCategory" />
+          Распределение по важности
+          <InfoPopover chartKey="importance" />
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ left: 10, right: 20 }}>
-              <XAxis type="number" allowDecimals={false} />
-              <YAxis dataKey="name" type="category" width={40} fontSize={12} />
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={80}
+                paddingAngle={2}
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
               <Tooltip
-                formatter={(value: number) => [`${value} контактов`, "Количество"]}
+                formatter={(value: number) => [`${value} контактов`, ""]}
                 contentStyle={{
                   backgroundColor: "hsl(var(--background))",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "6px",
                 }}
               />
-              <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={getBarColor(entry.name)} />
-                ))}
-              </Bar>
-            </BarChart>
+            </PieChart>
           </ResponsiveContainer>
         </div>
       </CardContent>

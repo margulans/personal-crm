@@ -123,29 +123,6 @@ export function ContactFilters({ filters, onFiltersChange }: ContactFiltersProps
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Категория
-            </label>
-            <Select
-              value={filters.valueCategory}
-              onValueChange={(v) => updateFilter("valueCategory", v)}
-            >
-              <SelectTrigger className="w-[130px]" data-testid="select-category">
-                <SelectValue placeholder="Все" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все</SelectItem>
-                <SelectItem value="AA">AA</SelectItem>
-                <SelectItem value="AB">AB</SelectItem>
-                <SelectItem value="BA">BA</SelectItem>
-                <SelectItem value="BB">BB</SelectItem>
-                <SelectItem value="BC">BC</SelectItem>
-                <SelectItem value="CC">CC</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Статус
             </label>
             <Select

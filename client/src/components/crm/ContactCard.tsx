@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HeatStatusBadge } from "./HeatStatusBadge";
-import { ValueCategoryBadge } from "./ValueCategoryBadge";
 import { ImportanceBadge } from "./ImportanceBadge";
 import { AttentionLevelIndicator } from "./AttentionLevelIndicator";
 import { formatDaysAgo } from "@/lib/constants";
@@ -192,14 +191,10 @@ export function ContactCard({ contact, onClick, onDelete, selectionMode, isSelec
 
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Ценность:</span>
-                  <ValueCategoryBadge category={contact.valueCategory} size="sm" />
-                </div>
-                <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Важность:</span>
                   <ImportanceBadge level={contact.importanceLevel} size="sm" />
                 </div>
-                <div className="flex items-center justify-between col-span-2 mt-1">
+                <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Внимание:</span>
                   <AttentionLevelIndicator level={contact.attentionLevel} compact />
                 </div>

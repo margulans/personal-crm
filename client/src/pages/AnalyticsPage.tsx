@@ -16,10 +16,10 @@ import { PriorityList } from "@/components/crm/PriorityList";
 import { ContactDetail } from "@/components/crm/ContactDetail";
 import { ContactForm } from "@/components/crm/ContactForm";
 import { HeatStatusBadge } from "@/components/crm/HeatStatusBadge";
-import { ValueCategoryBadge } from "@/components/crm/ValueCategoryBadge";
+import { ImportanceBadge } from "@/components/crm/ImportanceBadge";
 import {
   HeatStatusChart,
-  ValueCategoryChart,
+  ImportanceChart,
   ImportanceLevelChart,
   AttentionDistributionChart,
 } from "@/components/crm/AnalyticsCharts";
@@ -315,7 +315,7 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ValueCategoryChart contacts={contacts} />
+              <ImportanceChart contacts={contacts} />
               <AttentionDistributionChart contacts={contacts} />
             </div>
           </>
@@ -366,7 +366,7 @@ export default function AnalyticsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm truncate">{contact.fullName}</span>
-                      <ValueCategoryBadge category={contact.valueCategory} size="sm" />
+                      <ImportanceBadge level={contact.importanceLevel} size="sm" />
                     </div>
                     {contact.roleTags && contact.roleTags.length > 0 && (
                       <div className="flex items-center gap-1 mt-0.5">

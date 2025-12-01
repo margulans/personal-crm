@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { HeatStatusBadge } from "./HeatStatusBadge";
-import { ValueCategoryBadge } from "./ValueCategoryBadge";
 import { ImportanceBadge } from "./ImportanceBadge";
 import { AttentionLevelIndicator } from "./AttentionLevelIndicator";
 import { ScorePanel } from "./ScorePanel";
@@ -38,16 +37,16 @@ const BLOCK_DESCRIPTIONS = {
     description: "Основные способы связи с контактом: телефон, email и социальные сети. Используйте эти данные для поддержания регулярного общения."
   },
   priority: {
-    title: "Приоритизация и внимание",
-    description: "Определяет, сколько времени и усилий нужно уделять этому контакту. Важность (A/B/C) показывает стратегическую ценность, категория — комбинацию вклада и потенциала. Уровень внимания (1-10) задаёт интенсивность взаимодействия."
+    title: "Уровень приоритета",
+    description: "Определяет, сколько времени и усилий нужно уделять этому контакту. Важность (A/B/C) автоматически рассчитывается из оценок вклада и потенциала. Уровень внимания (1-10) задаёт интенсивность взаимодействия."
   },
   heat: {
     title: "Тепловой статус",
     description: "Показывает 'здоровье' отношений. Heat Index рассчитывается по формуле: 40% давность контакта + 30% энергия связи + 20% качество ответа + 10% тренд. Зелёный — всё хорошо, жёлтый — нужно внимание, красный — срочно связаться!"
   },
   contribution: {
-    title: "Вклад (0-15 баллов)",
-    description: "Что этот человек уже даёт вам: финансовая польза, помощь сетью контактов, тактическая поддержка, стратегическое влияние и лояльность. Каждый критерий от 0 до 3 баллов."
+    title: "Вклад (0-9 баллов)",
+    description: "Что этот человек уже даёт вам: финансовая польза (0-3), помощь сетью контактов (0-3), доверие и репутация (0-3)."
   },
   potential: {
     title: "Потенциал (0-15 баллов)",
@@ -286,23 +285,17 @@ export function ContactDetail({
               >
                 <CardHeader>
                   <CardTitle className="text-base flex items-center">
-                    Приоритизация и внимание
+                    Уровень приоритета
                     <InfoPopover blockKey="priority" />
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                         Важность
                       </div>
                       <ImportanceBadge level={contact.importanceLevel} />
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                        Категория
-                      </div>
-                      <ValueCategoryBadge category={contact.valueCategory} />
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">

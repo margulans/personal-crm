@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { HeatStatusBadge } from "./HeatStatusBadge";
-import { ValueCategoryBadge } from "./ValueCategoryBadge";
+import { ImportanceBadge } from "./ImportanceBadge";
 import { formatDaysAgo } from "@/lib/constants";
 import { AlertCircle, TrendingUp, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -80,7 +80,7 @@ export function PriorityList({
       <CardContent className="space-y-2">
         {contacts.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            Нет контактов в этой категории
+            Нет контактов в этом списке
           </p>
         ) : (
           contacts.map((contact) => (
@@ -99,7 +99,7 @@ export function PriorityList({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm truncate">{contact.fullName}</span>
-                  <ValueCategoryBadge category={contact.valueCategory} size="sm" />
+                  <ImportanceBadge level={contact.importanceLevel} size="sm" />
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   {contact.roleTags.slice(0, 2).map((tag) => (
