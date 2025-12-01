@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -14,11 +15,17 @@ import type { Contact } from "@/lib/types";
 
 export function TagManagementPanel() {
   const [open, setOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
     enabled: open,
   });
+
+  const handleEditContact = (contactId: string) => {
+    setOpen(false);
+    setLocation(`/?contact=${contactId}&edit=true`);
+  };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -42,7 +49,7 @@ export function TagManagementPanel() {
               Нет контактов для управления тегами
             </div>
           ) : (
-            <TagManagement contacts={contacts} />
+            <TagManagement contacts={contacts} onEditContact={handleEditContact} />
           )}
         </div>
       </SheetContent>

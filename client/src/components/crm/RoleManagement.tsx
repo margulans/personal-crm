@@ -31,9 +31,10 @@ import type { Contact } from "@/lib/types";
 
 interface RoleManagementProps {
   contacts: Contact[];
+  onEditContact?: (contactId: string) => void;
 }
 
-export function RoleManagement({ contacts }: RoleManagementProps) {
+export function RoleManagement({ contacts, onEditContact }: RoleManagementProps) {
   const [newRole, setNewRole] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
@@ -422,8 +423,9 @@ export function RoleManagement({ contacts }: RoleManagementProps) {
             {filteredContacts.map((contact) => (
               <div
                 key={contact.id}
-                className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
+                className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded cursor-pointer select-none"
                 onClick={() => toggleContact(contact.id)}
+                onDoubleClick={() => onEditContact?.(contact.id)}
                 data-testid={`role-contact-${contact.id}`}
               >
                 <Checkbox

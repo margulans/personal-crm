@@ -57,13 +57,30 @@ export default function ContactsPage() {
   const [cameFromAnalytics, setCameFromAnalytics] = useState(false);
   const { toast } = useToast();
 
+  const { data: contacts = [], isLoading } = useQuery<Contact[]>({
+    queryKey: ["/api/contacts"],
+  });
+
   // Read URL params and apply filters
   useEffect(() => {
     const params = new URLSearchParams(searchString);
     const status = params.get("status");
     const fromAnalytics = params.get("from") === "analytics";
+    const contactId = params.get("contact");
+    const editMode = params.get("edit") === "true";
     
-    if (status && ["green", "yellow", "red"].includes(status)) {
+    if (contactId && contacts.length > 0) {
+      const contact = contacts.find(c => c.id === contactId);
+      if (contact) {
+        if (editMode) {
+          setEditingContact(contact);
+        } else {
+          setSelectedContactId(contactId);
+        }
+      }
+      // Clear the URL params after applying
+      setLocation("/", { replace: true });
+    } else if (status && ["green", "yellow", "red"].includes(status)) {
       setFilters(prev => ({ ...prev, heatStatus: status }));
       setCameFromAnalytics(true);
       // Clear the URL param after applying
@@ -73,17 +90,13 @@ export default function ContactsPage() {
       // Clear the URL param after applying
       setLocation("/", { replace: true });
     }
-  }, [searchString, setLocation]);
+  }, [searchString, setLocation, contacts]);
 
   const handleBackToAnalytics = () => {
     setCameFromAnalytics(false);
     setFilters({ search: "", importance: "", valueCategory: "", heatStatus: "" });
     setLocation("/analytics");
   };
-
-  const { data: contacts = [], isLoading } = useQuery<Contact[]>({
-    queryKey: ["/api/contacts"],
-  });
 
   const { data: interactions = [] } = useQuery<Interaction[]>({
     queryKey: ["/api/contacts", selectedContactId, "interactions"],

@@ -31,9 +31,10 @@ import type { Contact } from "@/lib/types";
 
 interface TagManagementProps {
   contacts: Contact[];
+  onEditContact?: (contactId: string) => void;
 }
 
-export function TagManagement({ contacts }: TagManagementProps) {
+export function TagManagement({ contacts, onEditContact }: TagManagementProps) {
   const [newTag, setNewTag] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
@@ -422,8 +423,9 @@ export function TagManagement({ contacts }: TagManagementProps) {
             {filteredContacts.map((contact) => (
               <div
                 key={contact.id}
-                className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
+                className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded cursor-pointer select-none"
                 onClick={() => toggleContact(contact.id)}
+                onDoubleClick={() => onEditContact?.(contact.id)}
                 data-testid={`tag-contact-${contact.id}`}
               >
                 <Checkbox
