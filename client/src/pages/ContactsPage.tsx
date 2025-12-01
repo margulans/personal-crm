@@ -137,17 +137,38 @@ export default function ContactsPage() {
     return result;
   }, [contacts, filters, sortBy]);
 
+  const editDialog = (
+    <Dialog open={!!editingContact} onOpenChange={(open) => !open && setEditingContact(null)}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Редактировать контакт</DialogTitle>
+        </DialogHeader>
+        {editingContact && (
+          <ContactForm
+            initialData={editingContact}
+            onSubmit={(data) => updateContactMutation.mutate({ id: editingContact.id, data })}
+            onCancel={() => setEditingContact(null)}
+            isLoading={updateContactMutation.isPending}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
   if (selectedContact) {
     return (
-      <ContactDetail
-        contact={selectedContact}
-        interactions={interactions}
-        onBack={() => setSelectedContactId(null)}
-        onEdit={() => setEditingContact(selectedContact)}
-        onAddInteraction={(data) => {
-          addInteractionMutation.mutate({ contactId: selectedContact.id, data });
-        }}
-      />
+      <>
+        <ContactDetail
+          contact={selectedContact}
+          interactions={interactions}
+          onBack={() => setSelectedContactId(null)}
+          onEdit={() => setEditingContact(selectedContact)}
+          onAddInteraction={(data) => {
+            addInteractionMutation.mutate({ contactId: selectedContact.id, data });
+          }}
+        />
+        {editDialog}
+      </>
     );
   }
 
@@ -260,21 +281,7 @@ export default function ContactsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!editingContact} onOpenChange={(open) => !open && setEditingContact(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Редактировать контакт</DialogTitle>
-          </DialogHeader>
-          {editingContact && (
-            <ContactForm
-              initialData={editingContact}
-              onSubmit={(data) => updateContactMutation.mutate({ id: editingContact.id, data })}
-              onCancel={() => setEditingContact(null)}
-              isLoading={updateContactMutation.isPending}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {editDialog}
     </div>
   );
 }
