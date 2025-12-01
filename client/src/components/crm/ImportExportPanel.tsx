@@ -16,7 +16,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Download, Upload, FileJson, FileSpreadsheet, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Download, Upload, FileJson, FileSpreadsheet, Loader2, CheckCircle, AlertCircle, Smartphone } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -75,6 +76,76 @@ export function ImportExportPanel() {
     return result;
   };
 
+  const parseVCF = (text: string): Record<string, unknown>[] => {
+    const contacts: Record<string, unknown>[] = [];
+    const vcards = text.split(/(?=BEGIN:VCARD)/i).filter(v => v.trim());
+    
+    for (const vcard of vcards) {
+      const lines = vcard.split(/\r?\n/);
+      const contact: Record<string, unknown> = {
+        roleTags: ["iPhone"],
+        tags: [],
+      };
+      
+      let fullName = "";
+      const phones: string[] = [];
+      const emails: string[] = [];
+      
+      for (const line of lines) {
+        const colonIndex = line.indexOf(":");
+        if (colonIndex === -1) continue;
+        
+        const keyPart = line.substring(0, colonIndex).toUpperCase();
+        const value = line.substring(colonIndex + 1).trim();
+        
+        if (!value) continue;
+        
+        if (keyPart === "FN" || keyPart.startsWith("FN;")) {
+          fullName = value;
+        } else if (keyPart === "N" || keyPart.startsWith("N;")) {
+          if (!fullName) {
+            const parts = value.split(";");
+            const lastName = parts[0] || "";
+            const firstName = parts[1] || "";
+            fullName = `${firstName} ${lastName}`.trim();
+          }
+        } else if (keyPart.startsWith("TEL") || keyPart === "TEL") {
+          phones.push(value.replace(/[^\d+\-() ]/g, ""));
+        } else if (keyPart.startsWith("EMAIL") || keyPart === "EMAIL") {
+          emails.push(value);
+        } else if (keyPart === "ORG" || keyPart.startsWith("ORG;")) {
+          const org = value.split(";")[0];
+          if (org) {
+            (contact.tags as string[]).push(org);
+          }
+        } else if (keyPart === "TITLE" || keyPart.startsWith("TITLE;")) {
+          (contact.roleTags as string[]).push(value);
+        } else if (keyPart === "NOTE" || keyPart.startsWith("NOTE;")) {
+          contact.notes = value;
+        }
+      }
+      
+      if (fullName) {
+        contact.fullName = fullName;
+        contact.phone = phones[0] || "";
+        contact.email = emails[0] || "";
+        
+        if (phones.length > 1 || emails.length > 1) {
+          const socialLinks: string[] = [];
+          phones.slice(1).forEach(p => socialLinks.push(`тел: ${p}`));
+          emails.slice(1).forEach(e => socialLinks.push(`email: ${e}`));
+          if (socialLinks.length > 0) {
+            contact.socialLinks = socialLinks.join(", ");
+          }
+        }
+        
+        contacts.push(contact);
+      }
+    }
+    
+    return contacts;
+  };
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -93,8 +164,10 @@ export function ImportExportPanel() {
         }
       } else if (file.name.endsWith(".csv")) {
         contacts = parseCSV(text);
+      } else if (file.name.endsWith(".vcf")) {
+        contacts = parseVCF(text);
       } else {
-        throw new Error("Поддерживаются только файлы .json и .csv");
+        throw new Error("Поддерживаются только файлы .json, .csv и .vcf");
       }
 
       const response = await apiRequest("POST", "/api/import", { contacts });
@@ -180,7 +253,7 @@ export function ImportExportPanel() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".json,.csv"
+                accept=".json,.csv,.vcf"
                 onChange={handleFileSelect}
                 className="hidden"
                 data-testid="input-import-file"
@@ -197,7 +270,7 @@ export function ImportExportPanel() {
                     Нажмите для выбора файла
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Поддерживаются форматы .json и .csv
+                    Поддерживаются .json, .csv и .vcf (iPhone)
                   </p>
                 </div>
               )}
@@ -231,16 +304,36 @@ export function ImportExportPanel() {
               </Alert>
             )}
 
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p className="font-medium">Формат JSON:</p>
-              <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
+            <Tabs defaultValue="iphone" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="iphone" className="text-xs">
+                  <Smartphone className="h-3 w-3 mr-1" />
+                  iPhone
+                </TabsTrigger>
+                <TabsTrigger value="other" className="text-xs">Другие</TabsTrigger>
+              </TabsList>
+              <TabsContent value="iphone" className="text-xs text-muted-foreground space-y-2 mt-2">
+                <p className="font-medium">Как экспортировать контакты с iPhone:</p>
+                <ol className="list-decimal list-inside space-y-1 text-xs">
+                  <li>Откройте приложение <strong>Контакты</strong></li>
+                  <li>Нажмите <strong>Списки</strong> (вверху слева)</li>
+                  <li>Удерживайте <strong>"Все контакты"</strong></li>
+                  <li>Выберите <strong>Экспортировать</strong></li>
+                  <li>Отправьте файл .vcf на этот компьютер</li>
+                </ol>
+                <p className="text-xs opacity-75">Или через iCloud.com → Контакты → Экспорт vCard</p>
+              </TabsContent>
+              <TabsContent value="other" className="text-xs text-muted-foreground space-y-1 mt-2">
+                <p className="font-medium">Формат JSON:</p>
+                <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
 {`[{
   "fullName": "Имя Фамилия",
   "phone": "+7...",
   "email": "email@..."
 }]`}
-              </pre>
-            </div>
+                </pre>
+              </TabsContent>
+            </Tabs>
           </div>
         </DialogContent>
       </Dialog>
