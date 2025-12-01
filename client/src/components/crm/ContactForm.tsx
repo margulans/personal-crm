@@ -354,19 +354,21 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              <span className="text-xs text-muted-foreground mr-1">Типовые:</span>
-              {ROLE_TAGS.filter(tag => !formData.roleTags?.includes(tag)).slice(0, 8).map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="cursor-pointer text-xs hover-elevate"
-                  onClick={() => addRole(tag)}
-                >
-                  {tag}
-                </Badge>
-              ))}
-            </div>
+            {allRoles.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                <span className="text-xs text-muted-foreground mr-1">Существующие:</span>
+                {allRoles.filter(role => !formData.roleTags?.includes(role)).slice(0, 8).map((role) => (
+                  <Badge
+                    key={role}
+                    variant="outline"
+                    className="cursor-pointer text-xs hover-elevate"
+                    onClick={() => addRole(role)}
+                  >
+                    {role}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
