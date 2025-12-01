@@ -9,6 +9,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useSidebar } from "@/components/ui/sidebar";
 import { RoleManagement } from "./RoleManagement";
 import { Briefcase, Loader2 } from "lucide-react";
 import type { Contact } from "@/lib/types";
@@ -16,6 +17,7 @@ import type { Contact } from "@/lib/types";
 export function RoleManagementPanel() {
   const [open, setOpen] = useState(false);
   const [, setLocation] = useLocation();
+  const { setOpenMobile } = useSidebar();
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
@@ -27,15 +29,22 @@ export function RoleManagementPanel() {
     setLocation(`/?contact=${contactId}&edit=true`);
   };
 
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      setOpenMobile(false);
+    }
+    setOpen(isOpen);
+  };
+
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="sm" className="w-full justify-start gap-2" data-testid="button-role-management">
           <Briefcase className="h-4 w-4" />
           Управление ролями
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent side="bottom" className="h-[85vh] overflow-y-auto rounded-t-xl">
         <SheetHeader>
           <SheetTitle>Управление ролями</SheetTitle>
         </SheetHeader>
