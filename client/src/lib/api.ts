@@ -57,3 +57,15 @@ export const invalidateContact = (id: string) => {
 export const invalidateInteractions = (contactId: string) => {
   queryClient.invalidateQueries({ queryKey: ["/api/contacts", contactId, "interactions"] });
 };
+
+export const bulkApi = {
+  deleteContacts: async (ids: string[]): Promise<{ deleted: number }> => {
+    const response = await apiRequest("POST", "/api/contacts/bulk-delete", { ids });
+    return response.json();
+  },
+
+  updateContacts: async (ids: string[], updates: Record<string, unknown>): Promise<{ updated: number }> => {
+    const response = await apiRequest("POST", "/api/contacts/bulk-update", { ids, updates });
+    return response.json();
+  },
+};

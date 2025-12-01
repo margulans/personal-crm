@@ -5,9 +5,10 @@ import { ContactCard } from "@/components/crm/ContactCard";
 import { ContactFilters } from "@/components/crm/ContactFilters";
 import { ContactDetail } from "@/components/crm/ContactDetail";
 import { ContactForm } from "@/components/crm/ContactForm";
-import { contactsApi, interactionsApi, invalidateContacts, invalidateInteractions } from "@/lib/api";
+import { BulkActionsBar } from "@/components/crm/BulkActionsBar";
+import { contactsApi, interactionsApi, bulkApi, invalidateContacts, invalidateInteractions } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, LayoutGrid, List, Loader2 } from "lucide-react";
+import { Plus, LayoutGrid, List, Loader2, CheckSquare } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -18,6 +19,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -29,6 +31,8 @@ export default function ContactsPage() {
   const [sortBy, setSortBy] = useState("heatIndex");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
     search: "",
     importance: "",
@@ -87,6 +91,50 @@ export default function ContactsPage() {
     },
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => bulkApi.deleteContacts(ids),
+    onSuccess: ({ deleted }) => {
+      invalidateContacts();
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+      toast({ title: `Удалено ${deleted} контактов` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const bulkUpdateMutation = useMutation({
+    mutationFn: ({ ids, updates }: { ids: string[]; updates: Record<string, unknown> }) =>
+      bulkApi.updateContacts(ids, updates),
+    onSuccess: ({ updated }) => {
+      invalidateContacts();
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+      toast({ title: `Обновлено ${updated} контактов` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const toggleSelection = (id: string, selected: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (selected) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const handleCancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
   const selectedContact = useMemo(() => {
     return contacts.find((c) => c.id === selectedContactId) || null;
   }, [contacts, selectedContactId]);
@@ -142,6 +190,9 @@ export default function ContactsPage() {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Редактировать контакт</DialogTitle>
+          <DialogDescription>
+            Внесите изменения в информацию о контакте
+          </DialogDescription>
         </DialogHeader>
         {editingContact && (
           <ContactForm
@@ -175,20 +226,53 @@ export default function ContactsPage() {
   return (
     <div className="h-full flex flex-col" data-testid="contacts-page">
       <div className="p-4 border-b bg-background sticky top-0 z-10">
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <h1 className="text-2xl font-semibold">Контакты</h1>
-          <Button className="gap-2" onClick={() => setShowCreateForm(true)} data-testid="button-add-contact">
-            <Plus className="h-4 w-4" />
-            Добавить контакт
-          </Button>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 mb-4">
+          <h1 className="text-xl sm:text-2xl font-semibold">Контакты</h1>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button
+              variant={selectionMode ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => selectionMode ? handleCancelSelection() : setSelectionMode(true)}
+              data-testid="button-selection-mode"
+              className="flex-1 sm:flex-none"
+            >
+              <CheckSquare className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{selectionMode ? "Отмена" : "Выбрать"}</span>
+            </Button>
+            <Button className="gap-2 flex-1 sm:flex-none" onClick={() => setShowCreateForm(true)} data-testid="button-add-contact">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Добавить контакт</span>
+              <span className="sm:hidden">Добавить</span>
+            </Button>
+          </div>
         </div>
 
-        <div className="flex items-end justify-between gap-4">
-          <ContactFilters filters={filters} onFiltersChange={setFilters} />
+        {selectionMode && selectedIds.size > 0 && (
+          <div className="mb-4">
+            <BulkActionsBar
+              selectedCount={selectedIds.size}
+              onDelete={() => bulkDeleteMutation.mutate(Array.from(selectedIds))}
+              onUpdateImportance={(level) =>
+                bulkUpdateMutation.mutate({
+                  ids: Array.from(selectedIds),
+                  updates: { importanceLevel: level },
+                })
+              }
+              onCancel={handleCancelSelection}
+              isDeleting={bulkDeleteMutation.isPending}
+              isUpdating={bulkUpdateMutation.isPending}
+            />
+          </div>
+        )}
 
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+          <div className="flex-1">
+            <ContactFilters filters={filters} onFiltersChange={setFilters} />
+          </div>
+
+          <div className="flex items-center gap-2 justify-between sm:justify-end">
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px]" data-testid="select-sort">
+              <SelectTrigger className="w-[140px] sm:w-[180px]" data-testid="select-sort">
                 <SelectValue placeholder="Сортировка" />
               </SelectTrigger>
               <SelectContent>
@@ -256,6 +340,9 @@ export default function ContactsPage() {
                 key={contact.id}
                 contact={contact}
                 onClick={() => setSelectedContactId(contact.id)}
+                selectionMode={selectionMode}
+                isSelected={selectedIds.has(contact.id)}
+                onSelect={(selected) => toggleSelection(contact.id, selected)}
               />
             ))}
           </div>
@@ -272,6 +359,9 @@ export default function ContactsPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Новый контакт</DialogTitle>
+            <DialogDescription>
+              Заполните информацию о новом контакте
+            </DialogDescription>
           </DialogHeader>
           <ContactForm
             onSubmit={(data) => createContactMutation.mutate(data)}

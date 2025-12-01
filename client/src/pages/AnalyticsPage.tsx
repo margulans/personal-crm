@@ -4,6 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalyticsMatrix } from "@/components/crm/AnalyticsMatrix";
 import { PriorityList } from "@/components/crm/PriorityList";
 import { ContactDetail } from "@/components/crm/ContactDetail";
+import {
+  HeatStatusChart,
+  ValueCategoryChart,
+  ImportanceLevelChart,
+  AttentionDistributionChart,
+} from "@/components/crm/AnalyticsCharts";
 import { interactionsApi, invalidateContacts, invalidateInteractions } from "@/lib/api";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -201,27 +207,15 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Распределение по классам важности</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 gap-4">
-                  {(["A", "B", "C"] as const).map((level) => {
-                    const count = contacts.filter((c) => c.importanceLevel === level).length;
-                    const percentage = stats.total > 0 ? ((count / stats.total) * 100).toFixed(0) : 0;
-                    return (
-                      <div key={level} className="text-center p-4 bg-muted/50 rounded-lg">
-                        <div className="text-3xl font-bold font-mono mb-1">{count}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {level}-класс ({percentage}%)
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <HeatStatusChart contacts={contacts} />
+              <ImportanceLevelChart contacts={contacts} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ValueCategoryChart contacts={contacts} />
+              <AttentionDistributionChart contacts={contacts} />
+            </div>
           </>
         )}
       </div>

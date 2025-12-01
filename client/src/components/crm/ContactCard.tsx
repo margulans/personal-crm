@@ -1,19 +1,24 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { HeatStatusBadge } from "./HeatStatusBadge";
 import { ValueCategoryBadge } from "./ValueCategoryBadge";
 import { ImportanceBadge } from "./ImportanceBadge";
 import { AttentionLevelIndicator } from "./AttentionLevelIndicator";
 import { formatDaysAgo } from "@/lib/constants";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types";
 
 interface ContactCardProps {
   contact: Contact;
   onClick?: () => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onSelect?: (selected: boolean) => void;
 }
 
-export function ContactCard({ contact, onClick }: ContactCardProps) {
+export function ContactCard({ contact, onClick, selectionMode, isSelected, onSelect }: ContactCardProps) {
   const today = new Date();
   const lastContact = contact.lastContactDate ? new Date(contact.lastContactDate) : null;
   const daysSince = lastContact 
@@ -27,14 +32,34 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
     .toUpperCase()
     .slice(0, 2);
 
+  const handleClick = () => {
+    if (selectionMode) {
+      onSelect?.(!isSelected);
+    } else {
+      onClick?.();
+    }
+  };
+
   return (
     <Card
-      className="hover-elevate cursor-pointer transition-all"
-      onClick={onClick}
+      className={cn(
+        "hover-elevate cursor-pointer transition-all",
+        isSelected && "ring-2 ring-primary bg-primary/5"
+      )}
+      onClick={handleClick}
       data-testid={`contact-card-${contact.id}`}
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
+          {selectionMode && (
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={(checked) => onSelect?.(!!checked)}
+              onClick={(e) => e.stopPropagation()}
+              className="mt-1"
+              data-testid={`checkbox-contact-${contact.id}`}
+            />
+          )}
           <Avatar className="h-10 w-10 flex-shrink-0">
             <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
               {initials}

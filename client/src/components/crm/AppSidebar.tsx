@@ -9,9 +9,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Users, BarChart3, Zap } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
+import { NotificationsPanel } from "./NotificationsPanel";
+import { ImportExportPanel } from "./ImportExportPanel";
+import { TagManagementPanel } from "./TagManagementPanel";
 
 const menuItems = [
   {
@@ -62,6 +66,16 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <NotificationsPanel />
+            <ImportExportPanel />
+            <TagManagementPanel />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
