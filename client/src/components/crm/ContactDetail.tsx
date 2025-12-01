@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -260,7 +261,11 @@ export function ContactDetail({
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className={cn(
+                contact.heatStatus === "green" && "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800",
+                contact.heatStatus === "yellow" && "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
+                contact.heatStatus === "red" && "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+              )}>
                 <CardHeader>
                   <CardTitle className="text-base">Тепловой статус</CardTitle>
                 </CardHeader>
@@ -306,8 +311,18 @@ export function ContactDetail({
 
                   <Separator />
 
-                  <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-                    <Lightbulb className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div className={cn(
+                    "flex items-start gap-3 p-3 rounded-lg",
+                    contact.heatStatus === "green" && "bg-emerald-100/50 dark:bg-emerald-900/30",
+                    contact.heatStatus === "yellow" && "bg-amber-100/50 dark:bg-amber-900/30",
+                    contact.heatStatus === "red" && "bg-red-100/50 dark:bg-red-900/30"
+                  )}>
+                    <Lightbulb className={cn(
+                      "w-5 h-5 flex-shrink-0 mt-0.5",
+                      contact.heatStatus === "green" && "text-emerald-600 dark:text-emerald-400",
+                      contact.heatStatus === "yellow" && "text-amber-600 dark:text-amber-400",
+                      contact.heatStatus === "red" && "text-red-600 dark:text-red-400"
+                    )} />
                     <div>
                       <div className="text-sm font-medium mb-1">Рекомендация</div>
                       <p className="text-sm text-muted-foreground">{getRecommendation()}</p>
