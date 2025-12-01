@@ -301,22 +301,6 @@ export function RoleManagement({ contacts, onEditContact }: RoleManagementProps)
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-sm">Существующие роли ({allRoles.length})</Label>
                 <div className="flex gap-2">
-                  {selectedRoles.size > 0 && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={handleDeleteSelectedRoles}
-                      disabled={deleteMultipleRolesMutation.isPending}
-                      data-testid="button-delete-selected-roles"
-                    >
-                      {deleteMultipleRolesMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                      ) : (
-                        <Trash2 className="h-4 w-4 mr-1" />
-                      )}
-                      Удалить ({selectedRoles.size})
-                    </Button>
-                  )}
                   <Button variant="ghost" size="sm" onClick={selectAllRoles}>
                     Все
                   </Button>

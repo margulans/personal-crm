@@ -301,22 +301,6 @@ export function TagManagement({ contacts, onEditContact }: TagManagementProps) {
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-sm">Существующие теги ({allTags.length})</Label>
                 <div className="flex gap-2">
-                  {selectedTags.size > 0 && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={handleDeleteSelectedTags}
-                      disabled={deleteMultipleTagsMutation.isPending}
-                      data-testid="button-delete-selected-tags"
-                    >
-                      {deleteMultipleTagsMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                      ) : (
-                        <Trash2 className="h-4 w-4 mr-1" />
-                      )}
-                      Удалить ({selectedTags.size})
-                    </Button>
-                  )}
                   <Button variant="ghost" size="sm" onClick={selectAllTags}>
                     Все
                   </Button>
