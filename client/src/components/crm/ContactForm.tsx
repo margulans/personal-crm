@@ -452,15 +452,22 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
             <div className="space-y-2">
               <Label>Желаемая частота контакта (дней)</Label>
               <Input
-                type="number"
-                min={1}
-                max={999}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={formData.desiredFrequencyDays}
                 onChange={(e) => {
-                  const val = parseInt(e.target.value);
-                  if (!isNaN(val) && val >= 1) {
+                  const rawValue = e.target.value.replace(/\D/g, '');
+                  if (rawValue === '') {
+                    setFormData({ ...formData, desiredFrequencyDays: 0 });
+                  } else {
+                    const val = parseInt(rawValue);
                     setFormData({ ...formData, desiredFrequencyDays: val });
                   }
+                }}
+                onBlur={(e) => {
+                  const val = parseInt(e.target.value) || 30;
+                  setFormData({ ...formData, desiredFrequencyDays: Math.max(1, val) });
                 }}
                 data-testid="input-frequency"
               />
