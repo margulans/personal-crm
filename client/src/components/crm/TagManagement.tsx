@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { bulkApi, invalidateContacts } from "@/lib/api";
-import { Plus, Trash2, Tag, Loader2, Pencil, X } from "lucide-react";
+import { Plus, Trash2, Tag, Loader2, Pencil, X, Search } from "lucide-react";
 import type { Contact } from "@/lib/types";
 
 interface TagManagementProps {
@@ -42,7 +42,15 @@ export function TagManagement({ contacts }: TagManagementProps) {
   const [editedTagName, setEditedTagName] = useState("");
   const [deletingTag, setDeletingTag] = useState<string | null>(null);
   const [deletingMultipleTags, setDeletingMultipleTags] = useState(false);
+  const [contactSearch, setContactSearch] = useState("");
   const { toast } = useToast();
+
+  const filteredContacts = contacts.filter((contact) =>
+    contact.fullName.toLowerCase().includes(contactSearch.toLowerCase()) ||
+    contact.shortName?.toLowerCase().includes(contactSearch.toLowerCase()) ||
+    contact.tags?.some((tag) => tag.toLowerCase().includes(contactSearch.toLowerCase())) ||
+    contact.roleTags?.some((tag) => tag.toLowerCase().includes(contactSearch.toLowerCase()))
+  );
 
   const allTags = Array.from(
     new Set(contacts.flatMap((c) => [...(c.tags || []), ...(c.roleTags || [])]))
@@ -377,7 +385,7 @@ export function TagManagement({ contacts }: TagManagementProps) {
 
       <Card>
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-base">
               Контакты ({selectedContacts.size}/{contacts.length})
             </CardTitle>
@@ -390,10 +398,25 @@ export function TagManagement({ contacts }: TagManagementProps) {
               </Button>
             </div>
           </div>
+          <div className="relative mt-2">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={contactSearch}
+              onChange={(e) => setContactSearch(e.target.value)}
+              placeholder="Поиск контактов..."
+              className="pl-8"
+              data-testid="input-contact-search"
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="max-h-64 overflow-auto space-y-1">
-            {contacts.map((contact) => (
+            {filteredContacts.length === 0 && contactSearch && (
+              <div className="text-center text-muted-foreground py-4 text-sm">
+                Контакты не найдены
+              </div>
+            )}
+            {filteredContacts.map((contact) => (
               <div
                 key={contact.id}
                 className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
