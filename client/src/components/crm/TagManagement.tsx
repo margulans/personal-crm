@@ -53,11 +53,11 @@ export function TagManagement({ contacts }: TagManagementProps) {
   );
 
   const allTags = Array.from(
-    new Set(contacts.flatMap((c) => [...(c.tags || []), ...(c.roleTags || [])]))
+    new Set(contacts.flatMap((c) => c.tags || []))
   ).sort();
 
   const getContactsWithTag = (tag: string) => 
-    contacts.filter((c) => c.tags?.includes(tag) || c.roleTags?.includes(tag));
+    contacts.filter((c) => c.tags?.includes(tag));
 
   const toggleTagSelection = (tag: string) => {
     setSelectedTags((prev) => {
@@ -115,8 +115,7 @@ export function TagManagement({ contacts }: TagManagementProps) {
       const affectedContacts = getContactsWithTag(oldTag);
       const updates = affectedContacts.map(async (contact) => {
         const newTags = (contact.tags || []).map((t) => (t === oldTag ? newTagName : t));
-        const newRoleTags = (contact.roleTags || []).map((t) => (t === oldTag ? newTagName : t));
-        return bulkApi.updateContacts([contact.id], { tags: newTags, roleTags: newRoleTags });
+        return bulkApi.updateContacts([contact.id], { tags: newTags });
       });
       return Promise.all(updates);
     },
@@ -136,8 +135,7 @@ export function TagManagement({ contacts }: TagManagementProps) {
       const affectedContacts = getContactsWithTag(tag);
       const updates = affectedContacts.map(async (contact) => {
         const newTags = (contact.tags || []).filter((t) => t !== tag);
-        const newRoleTags = (contact.roleTags || []).filter((t) => t !== tag);
-        return bulkApi.updateContacts([contact.id], { tags: newTags, roleTags: newRoleTags });
+        return bulkApi.updateContacts([contact.id], { tags: newTags });
       });
       return Promise.all(updates);
     },
@@ -160,8 +158,7 @@ export function TagManagement({ contacts }: TagManagementProps) {
       
       const updates = Array.from(affectedContactsMap.values()).map(async (contact) => {
         const newTags = (contact.tags || []).filter((t) => !tags.includes(t));
-        const newRoleTags = (contact.roleTags || []).filter((t) => !tags.includes(t));
-        return bulkApi.updateContacts([contact.id], { tags: newTags, roleTags: newRoleTags });
+        return bulkApi.updateContacts([contact.id], { tags: newTags });
       });
       return Promise.all(updates);
     },
