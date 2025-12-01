@@ -193,6 +193,14 @@ export default function ContactsPage() {
     return Array.from(tagSet).sort();
   }, [contacts]);
 
+  const allRoles = useMemo(() => {
+    const roleSet = new Set<string>();
+    contacts.forEach((contact) => {
+      contact.roleTags?.forEach((role) => roleSet.add(role));
+    });
+    return Array.from(roleSet).sort();
+  }, [contacts]);
+
   const editDialog = (
     <Dialog open={!!editingContact} onOpenChange={(open) => !open && setEditingContact(null)}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -209,6 +217,7 @@ export default function ContactsPage() {
             onCancel={() => setEditingContact(null)}
             isLoading={updateContactMutation.isPending}
             allTags={allTags}
+            allRoles={allRoles}
           />
         )}
       </DialogContent>
@@ -377,6 +386,7 @@ export default function ContactsPage() {
             onCancel={() => setShowCreateForm(false)}
             isLoading={createContactMutation.isPending}
             allTags={allTags}
+            allRoles={allRoles}
           />
         </DialogContent>
       </Dialog>

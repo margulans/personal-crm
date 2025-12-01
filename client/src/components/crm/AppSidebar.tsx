@@ -17,6 +17,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { ImportExportPanel } from "./ImportExportPanel";
 import { TagManagementPanel } from "./TagManagementPanel";
+import { RoleManagementPanel } from "./RoleManagementPanel";
 import type { Contact } from "@shared/schema";
 
 const menuItems = [
@@ -94,6 +95,7 @@ export function AppSidebar() {
             <NotificationsPanel />
             <ImportExportPanel />
             <TagManagementPanel />
+            <RoleManagementPanel />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

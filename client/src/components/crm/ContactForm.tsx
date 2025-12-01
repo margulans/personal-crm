@@ -22,9 +22,10 @@ interface ContactFormProps {
   onCancel: () => void;
   isLoading?: boolean;
   allTags?: string[];
+  allRoles?: string[];
 }
 
-export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTags = [] }: ContactFormProps) {
+export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTags = [], allRoles = [] }: ContactFormProps) {
   const [formData, setFormData] = useState<InsertContact>({
     fullName: initialData?.fullName || "",
     shortName: initialData?.shortName || "",
@@ -58,15 +59,28 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
 
   const [newSocialLink, setNewSocialLink] = useState("");
   const [newTag, setNewTag] = useState("");
+  const [newRole, setNewRole] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [showRoleSuggestions, setShowRoleSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const tagSuggestionsRef = useRef<HTMLDivElement>(null);
+  const roleInputRef = useRef<HTMLInputElement>(null);
+  const roleSuggestionsRef = useRef<HTMLDivElement>(null);
 
   const tagSuggestions = newTag.trim()
     ? allTags.filter(
         (tag) =>
           tag.toLowerCase().includes(newTag.toLowerCase()) &&
           !formData.tags?.includes(tag)
+      )
+    : [];
+
+  const combinedRoles = Array.from(new Set([...ROLE_TAGS, ...allRoles])).sort();
+  const roleSuggestions = newRole.trim()
+    ? combinedRoles.filter(
+        (role) =>
+          role.toLowerCase().includes(newRole.toLowerCase()) &&
+          !formData.roleTags?.includes(role)
       )
     : [];
 
@@ -79,6 +93,14 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
         !tagInputRef.current.contains(event.target as Node)
       ) {
         setShowTagSuggestions(false);
+      }
+      if (
+        roleSuggestionsRef.current &&
+        !roleSuggestionsRef.current.contains(event.target as Node) &&
+        roleInputRef.current &&
+        !roleInputRef.current.contains(event.target as Node)
+      ) {
+        setShowRoleSuggestions(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -127,6 +149,29 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
     setFormData({
       ...formData,
       tags: formData.tags?.filter((t) => t !== tag) || [],
+    });
+  };
+
+  const addRole = (roleToAdd?: string) => {
+    const role = roleToAdd || newRole.trim();
+    if (role && !formData.roleTags?.includes(role)) {
+      setFormData({
+        ...formData,
+        roleTags: [...(formData.roleTags || []), role],
+      });
+      setNewRole("");
+      setShowRoleSuggestions(false);
+    }
+  };
+
+  const selectRoleSuggestion = (role: string) => {
+    addRole(role);
+  };
+
+  const removeRole = (role: string) => {
+    setFormData({
+      ...formData,
+      roleTags: formData.roleTags?.filter((t) => t !== role) || [],
     });
   };
 
@@ -253,13 +298,69 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
 
           <div className="space-y-2">
             <Label>Роли</Label>
-            <div className="flex flex-wrap gap-2">
-              {ROLE_TAGS.map((tag) => (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {formData.roleTags?.map((role) => (
+                <Badge key={role} variant="secondary" className="gap-1">
+                  {role}
+                  <button type="button" onClick={() => removeRole(role)}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2 relative">
+              <div className="flex-1 relative">
+                <Input
+                  ref={roleInputRef}
+                  value={newRole}
+                  onChange={(e) => {
+                    setNewRole(e.target.value);
+                    setShowRoleSuggestions(true);
+                  }}
+                  onFocus={() => setShowRoleSuggestions(true)}
+                  placeholder="Добавить роль"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (roleSuggestions.length > 0) {
+                        selectRoleSuggestion(roleSuggestions[0]);
+                      } else {
+                        addRole();
+                      }
+                    }
+                  }}
+                  data-testid="input-add-role"
+                />
+                {showRoleSuggestions && roleSuggestions.length > 0 && (
+                  <div
+                    ref={roleSuggestionsRef}
+                    className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-auto"
+                  >
+                    {roleSuggestions.slice(0, 10).map((role) => (
+                      <div
+                        key={role}
+                        className="px-3 py-2 cursor-pointer hover:bg-accent text-sm"
+                        onClick={() => selectRoleSuggestion(role)}
+                        data-testid={`role-suggestion-${role}`}
+                      >
+                        {role}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button type="button" variant="outline" size="icon" onClick={() => addRole()}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              <span className="text-xs text-muted-foreground mr-1">Типовые:</span>
+              {ROLE_TAGS.filter(tag => !formData.roleTags?.includes(tag)).slice(0, 8).map((tag) => (
                 <Badge
                   key={tag}
-                  variant={formData.roleTags?.includes(tag) ? "default" : "outline"}
-                  className="cursor-pointer"
-                  onClick={() => toggleRoleTag(tag)}
+                  variant="outline"
+                  className="cursor-pointer text-xs hover-elevate"
+                  onClick={() => addRole(tag)}
                 >
                   {tag}
                 </Badge>
