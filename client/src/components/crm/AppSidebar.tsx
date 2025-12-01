@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +17,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { ImportExportPanel } from "./ImportExportPanel";
 import { TagManagementPanel } from "./TagManagementPanel";
+import type { Contact } from "@shared/schema";
 
 const menuItems = [
   {
@@ -32,6 +34,12 @@ const menuItems = [
 
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
+  
+  const { data: contacts = [] } = useQuery<Contact[]>({
+    queryKey: ["/api/contacts"],
+  });
+
+  const contactCount = contacts.length;
 
   return (
     <Sidebar>
@@ -42,7 +50,9 @@ export function AppSidebar() {
           </div>
           <div>
             <h1 className="font-semibold text-sm">Personal CRM</h1>
-            <p className="text-xs text-muted-foreground">Управление связями</p>
+            <p className="text-xs text-muted-foreground">
+              {contactCount > 0 ? `${contactCount} контактов` : "Управление связями"}
+            </p>
           </div>
         </div>
       </SidebarHeader>
@@ -61,6 +71,14 @@ export function AppSidebar() {
                     <button onClick={() => setLocation(item.url)}>
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>
+                      {item.title === "Контакты" && contactCount > 0 && (
+                        <span 
+                          className="ml-auto text-xs text-muted-foreground tabular-nums"
+                          data-testid="text-contact-count"
+                        >
+                          {contactCount}
+                        </span>
+                      )}
                     </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
