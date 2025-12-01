@@ -36,10 +36,12 @@ interface TagManagementProps {
 export function TagManagement({ contacts }: TagManagementProps) {
   const [newTag, setNewTag] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [tagAction, setTagAction] = useState<"add" | "remove">("add");
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [editedTagName, setEditedTagName] = useState("");
   const [deletingTag, setDeletingTag] = useState<string | null>(null);
+  const [deletingMultipleTags, setDeletingMultipleTags] = useState(false);
   const { toast } = useToast();
 
   const allTags = Array.from(
@@ -48,6 +50,26 @@ export function TagManagement({ contacts }: TagManagementProps) {
 
   const getContactsWithTag = (tag: string) => 
     contacts.filter((c) => c.tags?.includes(tag) || c.roleTags?.includes(tag));
+
+  const toggleTagSelection = (tag: string) => {
+    setSelectedTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) {
+        next.delete(tag);
+      } else {
+        next.add(tag);
+      }
+      return next;
+    });
+  };
+
+  const selectAllTags = () => {
+    setSelectedTags(new Set(allTags));
+  };
+
+  const deselectAllTags = () => {
+    setSelectedTags(new Set());
+  };
 
   const updateTagsMutation = useMutation({
     mutationFn: async ({ ids, tag, action }: { ids: string[]; tag: string; action: "add" | "remove" }) => {
@@ -120,6 +142,43 @@ export function TagManagement({ contacts }: TagManagementProps) {
       toast({ title: "Ошибка", description: error.message, variant: "destructive" });
     },
   });
+
+  const deleteMultipleTagsMutation = useMutation({
+    mutationFn: async (tags: string[]) => {
+      const affectedContactsMap = new Map<string, Contact>();
+      tags.forEach((tag) => {
+        getContactsWithTag(tag).forEach((c) => affectedContactsMap.set(c.id, c));
+      });
+      
+      const updates = Array.from(affectedContactsMap.values()).map(async (contact) => {
+        const newTags = (contact.tags || []).filter((t) => !tags.includes(t));
+        const newRoleTags = (contact.roleTags || []).filter((t) => !tags.includes(t));
+        return bulkApi.updateContacts([contact.id], { tags: newTags, roleTags: newRoleTags });
+      });
+      return Promise.all(updates);
+    },
+    onSuccess: (_, tags) => {
+      invalidateContacts();
+      setDeletingMultipleTags(false);
+      setSelectedTags(new Set());
+      toast({ title: "Теги удалены", description: `Удалено ${tags.length} тегов` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleDeleteSelectedTags = () => {
+    if (selectedTags.size === 0) {
+      toast({ title: "Выберите теги для удаления", variant: "destructive" });
+      return;
+    }
+    setDeletingMultipleTags(true);
+  };
+
+  const confirmDeleteMultipleTags = () => {
+    deleteMultipleTagsMutation.mutate(Array.from(selectedTags));
+  };
 
   const handleEditTag = (tag: string) => {
     setEditingTag(tag);
@@ -227,21 +286,55 @@ export function TagManagement({ contacts }: TagManagementProps) {
 
           {allTags.length > 0 && (
             <div>
-              <Label className="text-sm">Существующие теги ({allTags.length})</Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm">Существующие теги ({allTags.length})</Label>
+                <div className="flex gap-2">
+                  {selectedTags.size > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDeleteSelectedTags}
+                      disabled={deleteMultipleTagsMutation.isPending}
+                      data-testid="button-delete-selected-tags"
+                    >
+                      {deleteMultipleTagsMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-1" />
+                      )}
+                      Удалить ({selectedTags.size})
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={selectAllTags}>
+                    Все
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={deselectAllTags}>
+                    Сбросить
+                  </Button>
+                </div>
+              </div>
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {allTags.slice(0, 30).map((tag) => (
+                {allTags.slice(0, 50).map((tag) => (
                   <div 
                     key={tag} 
-                    className="group flex items-center gap-0.5"
+                    className={`group flex items-center gap-1 p-1 rounded-md transition-colors ${
+                      selectedTags.has(tag) ? "bg-primary/10" : ""
+                    }`}
                   >
+                    <Checkbox
+                      checked={selectedTags.has(tag)}
+                      onCheckedChange={() => toggleTagSelection(tag)}
+                      className="h-4 w-4"
+                      data-testid={`checkbox-tag-${tag}`}
+                    />
                     <Badge
-                      variant="secondary"
+                      variant={selectedTags.has(tag) ? "default" : "secondary"}
                       className="cursor-pointer hover-elevate pr-1"
                       onClick={() => handleApplyTag(tag)}
                       data-testid={`tag-option-${tag}`}
                     >
                       <span className="mr-1">{tag}</span>
-                      <span className="text-muted-foreground text-xs">
+                      <span className="text-xs opacity-70">
                         ({getContactsWithTag(tag).length})
                       </span>
                     </Badge>
@@ -271,9 +364,9 @@ export function TagManagement({ contacts }: TagManagementProps) {
                     </Button>
                   </div>
                 ))}
-                {allTags.length > 30 && (
+                {allTags.length > 50 && (
                   <span className="text-xs text-muted-foreground self-center">
-                    +{allTags.length - 30} ещё
+                    +{allTags.length - 50} ещё
                   </span>
                 )}
               </div>
@@ -389,6 +482,44 @@ export function TagManagement({ contacts }: TagManagementProps) {
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}
               Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deletingMultipleTags} onOpenChange={(open) => !open && setDeletingMultipleTags(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить {selectedTags.size} тегов?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Выбранные теги будут удалены у всех контактов. Это действие нельзя отменить.
+              <div className="mt-2 max-h-32 overflow-auto">
+                <div className="flex flex-wrap gap-1">
+                  {Array.from(selectedTags).slice(0, 10).map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {selectedTags.size > 10 && (
+                    <span className="text-xs text-muted-foreground">
+                      +{selectedTags.size - 10} ещё
+                    </span>
+                  )}
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteMultipleTags}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-multiple-tags"
+            >
+              {deleteMultipleTagsMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Удалить все
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
