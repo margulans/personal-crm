@@ -454,11 +454,11 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
               <Input
                 type="number"
                 min={1}
-                max={365}
+                max={999}
                 value={formData.desiredFrequencyDays}
                 onChange={(e) => {
                   const val = parseInt(e.target.value);
-                  if (!isNaN(val) && val >= 1 && val <= 365) {
+                  if (!isNaN(val) && val >= 1) {
                     setFormData({ ...formData, desiredFrequencyDays: val });
                   }
                 }}
