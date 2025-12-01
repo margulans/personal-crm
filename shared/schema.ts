@@ -34,6 +34,7 @@ export const contacts = pgTable("contacts", {
   }>().default({ personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 }),
   
   importanceLevel: varchar("importance_level", { length: 1 }).notNull().default("C"),
+  recommendedAttentionLevel: integer("recommended_attention_level").notNull().default(2),
   attentionLevel: integer("attention_level").notNull().default(1),
   desiredFrequencyDays: integer("desired_frequency_days").notNull().default(30),
   
@@ -82,6 +83,7 @@ export const insertContactSchema = createInsertSchema(contacts).omit({
   contributionClass: true,
   potentialClass: true,
   valueCategory: true,
+  recommendedAttentionLevel: true,
   heatIndex: true,
   heatStatus: true,
   createdAt: true,
@@ -119,6 +121,22 @@ export type InsertContact = z.infer<typeof insertContactSchema>;
 export type Contact = typeof contacts.$inferSelect;
 export type InsertInteraction = z.infer<typeof insertInteractionSchema>;
 export type Interaction = typeof interactions.$inferSelect;
+
+export function getRecommendedAttentionLevel(importanceLevel: string): number {
+  switch (importanceLevel) {
+    case "A": return 8;
+    case "B": return 5;
+    case "C": return 2;
+    default: return 2;
+  }
+}
+
+export function getAttentionGapStatus(actual: number, recommended: number): "green" | "yellow" | "red" {
+  const gap = recommended - actual;
+  if (gap <= 0) return "green";
+  if (gap <= 2) return "yellow";
+  return "red";
+}
 
 export function getClassFromScore(score: number, maxScore: number = 9): string {
   if (maxScore === 15) {

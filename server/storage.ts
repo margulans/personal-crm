@@ -7,6 +7,7 @@ import {
   interactions,
   getClassFromScore,
   calculateHeatIndex,
+  getRecommendedAttentionLevel,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or, sql } from "drizzle-orm";
@@ -83,6 +84,7 @@ export class DatabaseStorage implements IStorage {
     );
 
     const importanceLevel = calculateImportanceFromCategory(contribution.scoreClass, potential.scoreClass);
+    const recommendedAttentionLevel = getRecommendedAttentionLevel(importanceLevel);
 
     const [contact] = await db.insert(contacts).values({
       ...insertContact,
@@ -92,6 +94,7 @@ export class DatabaseStorage implements IStorage {
       potentialClass: potential.scoreClass,
       valueCategory: `${contribution.scoreClass}${potential.scoreClass}`,
       importanceLevel,
+      recommendedAttentionLevel,
       heatIndex,
       heatStatus,
     }).returning();
@@ -161,6 +164,7 @@ export class DatabaseStorage implements IStorage {
     );
 
     const importanceLevel = calculateImportanceFromCategory(contribution.scoreClass, potential.scoreClass);
+    const recommendedAttentionLevel = getRecommendedAttentionLevel(importanceLevel);
 
     const [updated] = await db.update(contacts)
       .set({
@@ -173,6 +177,7 @@ export class DatabaseStorage implements IStorage {
         potentialClass: potential.scoreClass,
         valueCategory: `${contribution.scoreClass}${potential.scoreClass}`,
         importanceLevel,
+        recommendedAttentionLevel,
         heatIndex,
         heatStatus,
         updatedAt: new Date(),

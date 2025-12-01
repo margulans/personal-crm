@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HeatStatusBadge } from "./HeatStatusBadge";
 import { ImportanceBadge } from "./ImportanceBadge";
-import { AttentionLevelIndicator } from "./AttentionLevelIndicator";
+import { AttentionGapIndicator } from "./AttentionGapIndicator";
 import { formatDaysAgo } from "@/lib/constants";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -196,7 +196,11 @@ export function ContactCard({ contact, onClick, onDelete, selectionMode, isSelec
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Внимание:</span>
-                  <AttentionLevelIndicator level={contact.attentionLevel} compact />
+                  <AttentionGapIndicator 
+                    actual={contact.attentionLevel} 
+                    recommended={contact.recommendedAttentionLevel} 
+                    compact 
+                  />
                 </div>
               </div>
             </div>

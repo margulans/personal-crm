@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { HeatStatusBadge } from "./HeatStatusBadge";
 import { ImportanceBadge } from "./ImportanceBadge";
-import { AttentionLevelIndicator } from "./AttentionLevelIndicator";
+import { AttentionGapIndicator } from "./AttentionGapIndicator";
 import { ScorePanel } from "./ScorePanel";
 import { InteractionItem } from "./InteractionItem";
 import { InteractionForm } from "./InteractionForm";
@@ -150,8 +150,9 @@ export function ContactDetail({
       );
     }
     
-    if (contact.attentionLevel < 6) {
-      recommendations.push(`Поднимите уровень внимания хотя бы до 6`);
+    const attentionGap = contact.recommendedAttentionLevel - contact.attentionLevel;
+    if (attentionGap > 0) {
+      recommendations.push(`Поднимите уровень внимания до ${contact.recommendedAttentionLevel} (сейчас ${contact.attentionLevel})`);
     }
     
     if (contact.relationshipEnergy < 4) {
@@ -326,10 +327,13 @@ export function ContactDetail({
 
                   <div>
                     <div className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
-                      Уровень внимания
+                      Уровень внимания (факт / рекоменд.)
                     </div>
                     <div className="flex items-center gap-4">
-                      <AttentionLevelIndicator level={contact.attentionLevel} />
+                      <AttentionGapIndicator 
+                        actual={contact.attentionLevel} 
+                        recommended={contact.recommendedAttentionLevel} 
+                      />
                       {attentionInfo && (
                         <div className="text-sm">
                           <span className="font-medium">{attentionInfo.name}</span>

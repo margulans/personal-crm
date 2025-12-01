@@ -25,6 +25,7 @@ export interface Contact {
     systemRole: number;
   };
   importanceLevel: "A" | "B" | "C";
+  recommendedAttentionLevel: number;
   attentionLevel: number;
   desiredFrequencyDays: number;
   lastContactDate: string | null;
