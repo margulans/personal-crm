@@ -537,7 +537,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
           </div>
 
           <div className="space-y-2">
-            <Label>Тренд внимания</Label>
+            <Label>Тренд отношений</Label>
             <Select
               value={String(formData.attentionTrend)}
               onValueChange={(v) => setFormData({ ...formData, attentionTrend: parseInt(v) })}
