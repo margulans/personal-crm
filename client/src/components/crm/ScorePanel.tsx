@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import { CONTRIBUTION_CRITERIA, POTENTIAL_CRITERIA } from "@/lib/constants";
 
 interface ScorePanelProps {
@@ -21,7 +22,13 @@ export function ScorePanel({ type, scores, totalScore, scoreClass }: ScorePanelP
   };
 
   return (
-    <Card data-testid={`score-panel-${type}`}>
+    <Card 
+      className={cn(
+        type === "contribution" && "bg-cyan-50 dark:bg-cyan-950/30 border-cyan-200 dark:border-cyan-800",
+        type === "potential" && "bg-violet-50 dark:bg-violet-950/30 border-violet-200 dark:border-violet-800"
+      )}
+      data-testid={`score-panel-${type}`}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">{title}</CardTitle>
