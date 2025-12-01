@@ -442,19 +442,18 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Важность контакта</Label>
-              <Select
-                value={formData.importanceLevel}
-                onValueChange={(v) => setFormData({ ...formData, importanceLevel: v as "A" | "B" | "C" })}
-              >
-                <SelectTrigger data-testid="select-importance">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="A">A - Высокая</SelectItem>
-                  <SelectItem value="B">B - Средняя</SelectItem>
-                  <SelectItem value="C">C - Низкая</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Badge variant={
+                  formData.importanceLevel === "A" ? "default" :
+                  formData.importanceLevel === "B" ? "secondary" : "outline"
+                } className="text-sm" data-testid="badge-importance">
+                  {formData.importanceLevel === "A" ? "A - Высокая" :
+                   formData.importanceLevel === "B" ? "B - Средняя" : "C - Низкая"}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  (рассчитывается из категории)
+                </span>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Желаемая частота контакта (дней)</Label>

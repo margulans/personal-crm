@@ -45,6 +45,15 @@ function calculateScoresAndClass(details: {
   return { score, scoreClass };
 }
 
+function calculateImportanceFromCategory(contributionClass: string, potentialClass: string): "A" | "B" | "C" {
+  const classPoints: Record<string, number> = { A: 4, B: 3, C: 2, D: 1 };
+  const sum = (classPoints[contributionClass] || 1) + (classPoints[potentialClass] || 1);
+  
+  if (sum >= 7) return "A";
+  if (sum >= 5) return "B";
+  return "C";
+}
+
 export class DatabaseStorage implements IStorage {
   async getContacts(): Promise<Contact[]> {
     return await db.select().from(contacts).orderBy(desc(contacts.heatIndex));
@@ -73,6 +82,8 @@ export class DatabaseStorage implements IStorage {
       insertContact.attentionTrend ?? 0
     );
 
+    const importanceLevel = calculateImportanceFromCategory(contribution.scoreClass, potential.scoreClass);
+
     const [contact] = await db.insert(contacts).values({
       ...insertContact,
       contributionScore: contribution.score,
@@ -80,6 +91,7 @@ export class DatabaseStorage implements IStorage {
       potentialScore: potential.score,
       potentialClass: potential.scoreClass,
       valueCategory: `${contribution.scoreClass}${potential.scoreClass}`,
+      importanceLevel,
       heatIndex,
       heatStatus,
     }).returning();
@@ -148,6 +160,8 @@ export class DatabaseStorage implements IStorage {
       updateData.attentionTrend ?? existing.attentionTrend
     );
 
+    const importanceLevel = calculateImportanceFromCategory(contribution.scoreClass, potential.scoreClass);
+
     const [updated] = await db.update(contacts)
       .set({
         ...updateData,
@@ -158,6 +172,7 @@ export class DatabaseStorage implements IStorage {
         potentialScore: potential.score,
         potentialClass: potential.scoreClass,
         valueCategory: `${contribution.scoreClass}${potential.scoreClass}`,
+        importanceLevel,
         heatIndex,
         heatStatus,
         updatedAt: new Date(),

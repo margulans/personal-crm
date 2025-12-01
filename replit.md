@@ -6,7 +6,8 @@ A single-user personal CRM (Customer Relationship Management) web application de
 
 **Key Features:**
 - Contact management with role-based categorization
-- Contribution and potential scoring (0-15 scale, classified A-D)
+- Contribution scoring (0-9 scale: Financial, Network, Trust) and Potential scoring (0-15 scale), classified A-D
+- **Automatic importance calculation** from Value Category (sum of class points: A=4, B=3, C=2, D=1)
 - 10-level attention system for relationship prioritization
 - Heat index analytics (green/yellow/red status) based on interaction frequency
 - Interaction tracking with meaningful engagement flags
@@ -88,11 +89,13 @@ Single-user application with no authentication system. All data belongs to one u
 
 **Business Logic:**
 The core algorithm calculates contact priority through:
-1. **Contribution Score** (0-15): Financial value, network help, tactical support, strategic influence, loyalty
+1. **Contribution Score** (0-9): Financial (0-3), Network help (0-3), Trust & reputation (0-3)
 2. **Potential Score** (0-15): Personal growth potential, resources, network, synergy, system role
 3. **Value Category**: Combination of contribution class + potential class (e.g., "AA", "AB", "BC")
-4. **Heat Index**: Formula based on days since last meaningful interaction vs. desired frequency
-5. **Heat Status**: Green (healthy), Yellow (attention needed), Red (urgent)
+4. **Importance Level**: Auto-calculated from Value Category (A=4, B=3, C=2, D=1 points per class):
+   - Sum 7-8 points → A (high), Sum 5-6 → B (medium), Sum 2-4 → C (low)
+5. **Heat Index**: Formula based on days since last meaningful interaction vs. desired frequency
+6. **Heat Status**: Green (healthy), Yellow (attention needed), Red (urgent)
 
 ### Data Layer
 
@@ -148,6 +151,13 @@ Where:
 - Force GREEN if `daysSinceLastContact <= 0.5 × desiredFrequencyDays` AND `relationshipEnergy >= 4` AND `responseQuality >= 2` (excellent recent engagement)
 
 **Score Classification:**
+Contribution (max 9):
+- 7-9 points: Class A (high value)
+- 5-6 points: Class B (medium value)
+- 2-4 points: Class C (developing value)
+- 0-1 points: Class D (low value)
+
+Potential (max 15):
 - 12-15 points: Class A (high value)
 - 8-11 points: Class B (medium value)
 - 4-7 points: Class C (developing value)
