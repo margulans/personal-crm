@@ -45,12 +45,18 @@ export function RoleManagement({ contacts }: RoleManagementProps) {
   const [contactSearch, setContactSearch] = useState("");
   const { toast } = useToast();
 
-  const filteredContacts = contacts.filter((contact) =>
-    contact.fullName.toLowerCase().includes(contactSearch.toLowerCase()) ||
-    contact.shortName?.toLowerCase().includes(contactSearch.toLowerCase()) ||
-    contact.tags?.some((tag) => tag.toLowerCase().includes(contactSearch.toLowerCase())) ||
-    contact.roleTags?.some((tag) => tag.toLowerCase().includes(contactSearch.toLowerCase()))
-  );
+  const filteredContacts = contacts.filter((contact) => {
+    const matchesSearch = !contactSearch || 
+      contact.fullName.toLowerCase().includes(contactSearch.toLowerCase()) ||
+      contact.shortName?.toLowerCase().includes(contactSearch.toLowerCase()) ||
+      contact.tags?.some((tag) => tag.toLowerCase().includes(contactSearch.toLowerCase())) ||
+      contact.roleTags?.some((tag) => tag.toLowerCase().includes(contactSearch.toLowerCase()));
+    
+    const matchesRoles = selectedRoles.size === 0 || 
+      contact.roleTags?.some((role) => selectedRoles.has(role));
+    
+    return matchesSearch && matchesRoles;
+  });
 
   const allRoles = Array.from(
     new Set(contacts.flatMap((c) => c.roleTags || []))
