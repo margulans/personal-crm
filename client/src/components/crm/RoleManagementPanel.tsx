@@ -9,8 +9,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { RoleManagement } from "./RoleManagement";
-import { Briefcase, Loader2 } from "lucide-react";
+import { Briefcase, Loader2, HelpCircle } from "lucide-react";
 import type { Contact } from "@/lib/types";
 
 export function RoleManagementPanel() {
@@ -37,7 +42,23 @@ export function RoleManagementPanel() {
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Управление ролями</SheetTitle>
+          <SheetTitle className="flex items-center gap-2">
+            Управление ролями
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="text-muted-foreground hover:text-foreground transition-colors" data-testid="help-roles">
+                  <HelpCircle className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm">
+                <p className="font-semibold mb-1">Что такое роли?</p>
+                <p>Роли — это функции, которые контакт выполняет в вашей сети (например: "Инвестор", "Подрядчик", "Ментор", "Клиент").</p>
+                <p className="mt-2 text-muted-foreground">
+                  <span className="font-medium text-foreground">Отличие от тегов:</span> Роли показывают что человек делает для вас, а теги — кто он по характеристикам (национальность, профессия, интересы).
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </SheetTitle>
         </SheetHeader>
         <div className="mt-6">
           {isLoading ? (
