@@ -1073,6 +1073,196 @@ export async function registerRoutes(
     }
   });
 
+  // ============= TEAM-WIDE AI ENDPOINTS =============
+
+  // Generate daily dashboard with AI priorities
+  app.get("/api/ai/dashboard", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const teamId = await getCurrentTeamId(req);
+      const forceRefresh = req.query.refresh === "true";
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "No team found" });
+      }
+      
+      // Check cache first (valid for 4 hours)
+      if (!forceRefresh) {
+        const now = new Date();
+        const cached = await db.select()
+          .from(aiInsightsCache)
+          .where(
+            and(
+              eq(aiInsightsCache.teamId, teamId),
+              eq(aiInsightsCache.insightType, "dashboard"),
+              gt(aiInsightsCache.expiresAt, now)
+            )
+          )
+          .limit(1);
+        
+        if (cached.length > 0) {
+          const cachedData = cached[0].data as Record<string, unknown>;
+          return res.json({ 
+            ...cachedData, 
+            cached: true, 
+            cachedAt: cached[0].createdAt,
+            model: cached[0].modelUsed
+          });
+        }
+      }
+      
+      // Get all contacts for the team
+      const contacts = await storage.getContacts(teamId);
+      
+      // Build contact summaries
+      const today = new Date();
+      const contactSummaries = contacts.map(c => {
+        const lastContact = c.lastContactDate ? new Date(c.lastContactDate) : null;
+        const daysSince = lastContact 
+          ? Math.floor((today.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24))
+          : c.desiredFrequencyDays;
+        
+        return {
+          fullName: c.fullName,
+          company: c.company,
+          heatStatus: c.heatStatus,
+          heatIndex: c.heatIndex,
+          importanceLevel: c.importanceLevel,
+          valueCategory: c.valueCategory,
+          lastContactDate: c.lastContactDate,
+          desiredFrequencyDays: c.desiredFrequencyDays,
+          daysOverdue: Math.max(0, daysSince - c.desiredFrequencyDays),
+        };
+      });
+      
+      // Generate dashboard
+      const { generateDailyDashboard } = await import("./services/ai");
+      const dashboard = await generateDailyDashboard(contactSummaries);
+      const modelInfo = getAIModelInfo();
+      
+      // Cache the result (expires in 4 hours)
+      const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000);
+      
+      // Delete old cache entries for this team's dashboard
+      await db.delete(aiInsightsCache)
+        .where(
+          and(
+            eq(aiInsightsCache.teamId, teamId),
+            eq(aiInsightsCache.insightType, "dashboard")
+          )
+        );
+      
+      // Insert new cache entry
+      await db.insert(aiInsightsCache).values({
+        contactId: null,
+        teamId,
+        insightType: "dashboard",
+        data: dashboard,
+        modelUsed: modelInfo.model,
+        expiresAt,
+      });
+      
+      res.json({ ...dashboard, cached: false, model: modelInfo.model });
+    } catch (error) {
+      console.error("Error generating AI dashboard:", error);
+      res.status(500).json({ error: "Failed to generate dashboard" });
+    }
+  });
+
+  // Generate team analytics summary
+  app.get("/api/ai/analytics", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const teamId = await getCurrentTeamId(req);
+      const forceRefresh = req.query.refresh === "true";
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "No team found" });
+      }
+      
+      // Check cache first (valid for 12 hours)
+      if (!forceRefresh) {
+        const now = new Date();
+        const cached = await db.select()
+          .from(aiInsightsCache)
+          .where(
+            and(
+              eq(aiInsightsCache.teamId, teamId),
+              eq(aiInsightsCache.insightType, "analytics"),
+              gt(aiInsightsCache.expiresAt, now)
+            )
+          )
+          .limit(1);
+        
+        if (cached.length > 0) {
+          const cachedData = cached[0].data as Record<string, unknown>;
+          return res.json({ 
+            ...cachedData, 
+            cached: true, 
+            cachedAt: cached[0].createdAt,
+            model: cached[0].modelUsed
+          });
+        }
+      }
+      
+      // Get all contacts for the team
+      const contacts = await storage.getContacts(teamId);
+      
+      // Build contact summaries
+      const today = new Date();
+      const contactSummaries = contacts.map(c => {
+        const lastContact = c.lastContactDate ? new Date(c.lastContactDate) : null;
+        const daysSince = lastContact 
+          ? Math.floor((today.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24))
+          : c.desiredFrequencyDays;
+        
+        return {
+          fullName: c.fullName,
+          company: c.company,
+          heatStatus: c.heatStatus,
+          heatIndex: c.heatIndex,
+          importanceLevel: c.importanceLevel,
+          valueCategory: c.valueCategory,
+          lastContactDate: c.lastContactDate,
+          desiredFrequencyDays: c.desiredFrequencyDays,
+          daysOverdue: Math.max(0, daysSince - c.desiredFrequencyDays),
+        };
+      });
+      
+      // Generate analytics
+      const { generateTeamAnalytics } = await import("./services/ai");
+      const analytics = await generateTeamAnalytics(contactSummaries);
+      const modelInfo = getAIModelInfo();
+      
+      // Cache the result (expires in 12 hours)
+      const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000);
+      
+      // Delete old cache entries for this team's analytics
+      await db.delete(aiInsightsCache)
+        .where(
+          and(
+            eq(aiInsightsCache.teamId, teamId),
+            eq(aiInsightsCache.insightType, "analytics")
+          )
+        );
+      
+      // Insert new cache entry
+      await db.insert(aiInsightsCache).values({
+        contactId: null,
+        teamId,
+        insightType: "analytics",
+        data: analytics,
+        modelUsed: modelInfo.model,
+        expiresAt,
+      });
+      
+      res.json({ ...analytics, cached: false, model: modelInfo.model });
+    } catch (error) {
+      console.error("Error generating AI analytics:", error);
+      res.status(500).json({ error: "Failed to generate analytics" });
+    }
+  });
+
   // ============= END AI ENDPOINTS =============
 
   // Endpoint for scheduled backup (can be called by cron/scheduled deployment)

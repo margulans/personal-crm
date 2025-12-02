@@ -44,7 +44,7 @@ import {
   Gift,
 } from "lucide-react";
 
-import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus } from "@/lib/types";
+import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, AIInsight, AIRecommendation } from "@/lib/types";
 
 const BLOCK_DESCRIPTIONS = {
   contact: {
@@ -76,30 +76,6 @@ const BLOCK_DESCRIPTIONS = {
     description: "Искусственный интеллект анализирует контакт и даёт рекомендации по поддержанию отношений. Использует модель GPT-5.1."
   }
 };
-
-interface AIInsight {
-  summary: string;
-  keyPoints: string[];
-  relationshipStrength: string;
-  riskFactors: string[];
-  opportunities: string[];
-  cached?: boolean;
-  model?: string;
-}
-
-interface AIRecommendation {
-  nextActions: Array<{
-    action: string;
-    priority: "high" | "medium" | "low";
-    reason: string;
-    suggestedDate?: string;
-  }>;
-  conversationStarters: string[];
-  giftIdeas?: string[];
-  warningSignals?: string[];
-  cached?: boolean;
-  model?: string;
-}
 
 function InfoPopover({ blockKey }: { blockKey: keyof typeof BLOCK_DESCRIPTIONS }) {
   const info = BLOCK_DESCRIPTIONS[blockKey];

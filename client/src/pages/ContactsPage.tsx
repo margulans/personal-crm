@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ContactCard } from "@/components/crm/ContactCard";
 import { ContactFilters } from "@/components/crm/ContactFilters";
 import { ContactDetail } from "@/components/crm/ContactDetail";
@@ -9,7 +11,26 @@ import { ContactForm } from "@/components/crm/ContactForm";
 import { BulkActionsBar } from "@/components/crm/BulkActionsBar";
 import { contactsApi, interactionsApi, bulkApi, invalidateContacts, invalidateInteractions } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, LayoutGrid, List, Loader2, CheckSquare, ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { 
+  Plus, 
+  LayoutGrid, 
+  List, 
+  Loader2, 
+  CheckSquare, 
+  ArrowLeft,
+  Sparkles,
+  Brain,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb,
+  AlertTriangle,
+  Activity,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -34,7 +55,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { Contact, Interaction, InsertContact } from "@/lib/types";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import type { Contact, Interaction, InsertContact, AIDashboard } from "@/lib/types";
 
 export default function ContactsPage() {
   const [, setLocation] = useLocation();
@@ -55,11 +81,29 @@ export default function ContactsPage() {
     heatStatus: "",
   });
   const [cameFromAnalytics, setCameFromAnalytics] = useState(false);
+  const [showAIDashboard, setShowAIDashboard] = useState(true);
+  const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   const { toast } = useToast();
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
   });
+
+  // AI Dashboard query with proper cache key segmentation
+  const { data: aiDashboard, isLoading: dashboardLoading, refetch: refetchDashboard } = useQuery<AIDashboard>({
+    queryKey: ["/api/ai/dashboard", { refresh: dashboardRefreshKey }],
+    queryFn: async () => {
+      const url = dashboardRefreshKey > 0 ? "/api/ai/dashboard?refresh=true" : "/api/ai/dashboard";
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch AI dashboard");
+      return res.json();
+    },
+    enabled: contacts.length > 0,
+  });
+
+  const handleRefreshDashboard = () => {
+    setDashboardRefreshKey(prev => prev + 1);
+  };
 
   // Read URL params and apply filters
   useEffect(() => {
@@ -412,7 +456,125 @@ export default function ContactsPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto p-4 space-y-4">
+        {/* AI Dashboard Widget */}
+        {contacts.length > 0 && (
+          <Collapsible open={showAIDashboard} onOpenChange={setShowAIDashboard}>
+            <Card className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 border-violet-200 dark:border-violet-700">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-violet-500" />
+                    AI Ассистент
+                    {aiDashboard?.cached && (
+                      <Badge variant="outline" className="text-xs">кэш</Badge>
+                    )}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    {showAIDashboard && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleRefreshDashboard}
+                        disabled={dashboardLoading}
+                        data-testid="button-refresh-dashboard"
+                      >
+                        <RefreshCw className={cn("h-4 w-4", dashboardLoading && "animate-spin")} />
+                      </Button>
+                    )}
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-toggle-dashboard">
+                        {showAIDashboard ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                </div>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent className="pt-2">
+                  {dashboardLoading ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+                      <span className="ml-2 text-sm text-muted-foreground">Анализирую...</span>
+                    </div>
+                  ) : aiDashboard ? (
+                    <div className="space-y-4" data-testid="ai-dashboard-content">
+                      {/* Greeting and Health */}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <p className="text-lg font-medium" data-testid="text-ai-greeting">{aiDashboard.greeting}</p>
+                        <div className="flex items-center gap-2" data-testid="ai-network-health">
+                          <Activity className={cn(
+                            "h-4 w-4",
+                            aiDashboard.networkHealth.score >= 70 ? "text-emerald-500" :
+                            aiDashboard.networkHealth.score >= 40 ? "text-amber-500" : "text-red-500"
+                          )} />
+                          <span className="text-sm font-mono" data-testid="text-health-score">{aiDashboard.networkHealth.score}%</span>
+                          <Badge variant={
+                            aiDashboard.networkHealth.score >= 70 ? "default" :
+                            aiDashboard.networkHealth.score >= 40 ? "secondary" : "destructive"
+                          } data-testid="badge-health-status">
+                            {aiDashboard.networkHealth.status}
+                          </Badge>
+                          {aiDashboard.networkHealth.trend === "up" && <TrendingUp className="h-4 w-4 text-emerald-500" data-testid="icon-trend-up" />}
+                          {aiDashboard.networkHealth.trend === "down" && <TrendingDown className="h-4 w-4 text-red-500" data-testid="icon-trend-down" />}
+                          {aiDashboard.networkHealth.trend === "stable" && <Minus className="h-4 w-4 text-muted-foreground" data-testid="icon-trend-stable" />}
+                        </div>
+                      </div>
+
+                      {/* Top Priorities */}
+                      {aiDashboard.topPriorities && aiDashboard.topPriorities.length > 0 && (
+                        <div className="space-y-2" data-testid="ai-priorities-section">
+                          <h4 className="text-sm font-medium flex items-center gap-1">
+                            <Brain className="h-4 w-4 text-violet-500" />
+                            Приоритеты на сегодня
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {aiDashboard.topPriorities.map((priority, i) => (
+                              <div 
+                                key={i} 
+                                data-testid={`card-priority-${i}`}
+                                className={cn(
+                                  "p-2 rounded-md border",
+                                  priority.urgency === "critical" && "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800",
+                                  priority.urgency === "high" && "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800",
+                                  priority.urgency === "medium" && "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800"
+                                )}
+                              >
+                                <div className="flex items-start gap-2">
+                                  {priority.urgency === "critical" && <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />}
+                                  {priority.urgency === "high" && <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />}
+                                  {priority.urgency === "medium" && <Activity className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />}
+                                  <div>
+                                    <p className="text-sm font-medium" data-testid={`text-priority-name-${i}`}>{priority.contactName}</p>
+                                    <p className="text-xs text-muted-foreground" data-testid={`text-priority-action-${i}`}>{priority.action}</p>
+                                    <p className="text-xs text-muted-foreground/70">{priority.reason}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Daily Tip */}
+                      {aiDashboard.dailyTip && (
+                        <div className="flex items-start gap-2 p-2 bg-white/50 dark:bg-black/20 rounded-md" data-testid="ai-daily-tip">
+                          <Lightbulb className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm" data-testid="text-daily-tip">{aiDashboard.dailyTip}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Не удалось загрузить рекомендации
+                    </p>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
+
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

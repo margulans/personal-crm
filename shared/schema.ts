@@ -211,9 +211,9 @@ export const interactions = pgTable("interactions", {
 // AI Insights cache table for offline/PWA support
 export const aiInsightsCache = pgTable("ai_insights_cache", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  contactId: varchar("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  contactId: varchar("contact_id").references(() => contacts.id, { onDelete: "cascade" }), // nullable for team-wide cache
   teamId: varchar("team_id").references(() => teams.id, { onDelete: "cascade" }),
-  insightType: varchar("insight_type", { length: 30 }).notNull(), // 'insights', 'recommendations', 'summary'
+  insightType: varchar("insight_type", { length: 30 }).notNull(), // 'insights', 'recommendations', 'summary', 'dashboard', 'analytics'
   data: jsonb("data").notNull(),
   modelUsed: varchar("model_used", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),

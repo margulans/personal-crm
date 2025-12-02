@@ -149,3 +149,67 @@ export interface InsertInteraction {
 }
 
 export type { PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, FamilyMember, FamilyEvent, StaffMember, StaffPhone, StaffMessenger } from "@shared/schema";
+
+// AI Types
+export interface AIInsight {
+  summary: string;
+  keyPoints: string[];
+  relationshipStrength: string;
+  riskFactors: string[];
+  opportunities: string[];
+  cached?: boolean;
+  cachedAt?: string;
+  model?: string;
+}
+
+export interface AIRecommendation {
+  nextActions: Array<{
+    action: string;
+    priority: "high" | "medium" | "low";
+    reason: string;
+    suggestedDate?: string;
+  }>;
+  conversationStarters: string[];
+  giftIdeas?: string[];
+  warningSignals?: string[];
+  cached?: boolean;
+  model?: string;
+}
+
+export interface AIDashboard {
+  greeting: string;
+  topPriorities: Array<{
+    contactName: string;
+    action: string;
+    reason: string;
+    urgency: "critical" | "high" | "medium";
+  }>;
+  dailyTip: string;
+  networkHealth: {
+    status: string;
+    score: number;
+    trend: string;
+  };
+  cached?: boolean;
+  model?: string;
+}
+
+export interface AIAnalytics {
+  summary: string;
+  keyTrends: Array<{
+    observation: string;
+    implication: string;
+    direction: "positive" | "negative" | "neutral";
+  }>;
+  strengths: string[];
+  weaknesses: string[];
+  strategicRecommendations: Array<{
+    recommendation: string;
+    priority: "high" | "medium" | "low";
+    timeframe: string;
+    expectedOutcome: string;
+  }>;
+  focusAreas: string[];
+  cached?: boolean;
+  model?: string;
+}

@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +13,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { AnalyticsMatrix } from "@/components/crm/AnalyticsMatrix";
 import { PriorityList } from "@/components/crm/PriorityList";
 import { ContactDetail } from "@/components/crm/ContactDetail";
@@ -25,9 +32,24 @@ import {
 } from "@/components/crm/AnalyticsCharts";
 import { contactsApi, interactionsApi, invalidateContacts, invalidateInteractions } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Users, TrendingUp, TrendingDown, Activity, Loader2 } from "lucide-react";
+import { 
+  Users, 
+  TrendingUp, 
+  TrendingDown, 
+  Activity, 
+  Loader2, 
+  Sparkles, 
+  Brain, 
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle,
+  AlertTriangle,
+  Target,
+  Lightbulb,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Contact, Interaction, InsertContact } from "@/lib/types";
+import type { Contact, Interaction, InsertContact, AIAnalytics } from "@/lib/types";
 
 const STATUS_LABELS: Record<string, string> = {
   green: "Зелёный",
@@ -41,11 +63,29 @@ export default function AnalyticsPage() {
   const [matrixFilter, setMatrixFilter] = useState<{ importance: string; status: string } | null>(null);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [editingTab, setEditingTab] = useState<"basic" | "priority" | "contribution" | "potential">("basic");
+  const [showAIAnalytics, setShowAIAnalytics] = useState(true);
+  const [analyticsRefreshKey, setAnalyticsRefreshKey] = useState(0);
   const { toast } = useToast();
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
   });
+
+  // AI Analytics query with proper cache key segmentation
+  const { data: aiAnalytics, isLoading: analyticsLoading } = useQuery<AIAnalytics>({
+    queryKey: ["/api/ai/analytics", { refresh: analyticsRefreshKey }],
+    queryFn: async () => {
+      const url = analyticsRefreshKey > 0 ? "/api/ai/analytics?refresh=true" : "/api/ai/analytics";
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch AI analytics");
+      return res.json();
+    },
+    enabled: contacts.length > 0,
+  });
+
+  const handleRefreshAnalytics = () => {
+    setAnalyticsRefreshKey(prev => prev + 1);
+  };
 
   const { data: interactions = [] } = useQuery<Interaction[]>({
     queryKey: ["/api/contacts", selectedContactId, "interactions"],
@@ -192,6 +232,195 @@ export default function AnalyticsPage() {
             Обзор состояния вашей сети контактов
           </p>
         </div>
+
+        {/* AI Analytics Panel */}
+        {contacts.length > 0 && (
+          <Collapsible open={showAIAnalytics} onOpenChange={setShowAIAnalytics}>
+            <Card className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 border-violet-200 dark:border-violet-700">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-violet-500" />
+                    AI Аналитика сети
+                    {aiAnalytics?.cached && (
+                      <Badge variant="outline" className="text-xs">кэш</Badge>
+                    )}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    {showAIAnalytics && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleRefreshAnalytics}
+                        disabled={analyticsLoading}
+                        data-testid="button-refresh-analytics"
+                      >
+                        <RefreshCw className={cn("h-4 w-4", analyticsLoading && "animate-spin")} />
+                      </Button>
+                    )}
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-toggle-analytics">
+                        {showAIAnalytics ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                </div>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent className="pt-2">
+                  {analyticsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+                      <span className="ml-2 text-sm text-muted-foreground">Анализирую сеть...</span>
+                    </div>
+                  ) : aiAnalytics ? (
+                    <div className="space-y-6" data-testid="ai-analytics-content">
+                      {/* Summary */}
+                      <p className="text-base" data-testid="text-ai-summary">{aiAnalytics.summary}</p>
+
+                      {/* Key Trends */}
+                      {aiAnalytics.keyTrends && aiAnalytics.keyTrends.length > 0 && (
+                        <div className="space-y-3" data-testid="ai-trends-section">
+                          <h4 className="text-sm font-medium flex items-center gap-1">
+                            <TrendingUp className="h-4 w-4 text-violet-500" />
+                            Ключевые тенденции
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {aiAnalytics.keyTrends.map((trend, i) => (
+                              <div 
+                                key={i} 
+                                data-testid={`card-trend-${i}`}
+                                className={cn(
+                                  "p-3 rounded-md border flex items-start gap-3",
+                                  trend.direction === "positive" && "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800",
+                                  trend.direction === "negative" && "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800",
+                                  trend.direction === "neutral" && "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800"
+                                )}
+                              >
+                                {trend.direction === "positive" && <TrendingUp className="h-5 w-5 text-emerald-500 flex-shrink-0" />}
+                                {trend.direction === "negative" && <TrendingDown className="h-5 w-5 text-red-500 flex-shrink-0" />}
+                                {trend.direction === "neutral" && <Activity className="h-5 w-5 text-blue-500 flex-shrink-0" />}
+                                <div>
+                                  <p className="text-sm font-medium" data-testid={`text-trend-observation-${i}`}>{trend.observation}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">{trend.implication}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <Separator />
+
+                      {/* Strengths and Weaknesses */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Strengths */}
+                        {aiAnalytics.strengths && aiAnalytics.strengths.length > 0 && (
+                          <div className="space-y-2" data-testid="ai-strengths-section">
+                            <h4 className="text-sm font-medium flex items-center gap-1">
+                              <CheckCircle className="h-4 w-4 text-emerald-500" />
+                              Сильные стороны
+                            </h4>
+                            <ul className="space-y-1">
+                              {aiAnalytics.strengths.map((item, i) => (
+                                <li key={i} className="text-sm text-muted-foreground flex items-start gap-2" data-testid={`text-strength-${i}`}>
+                                  <span className="text-emerald-500">•</span>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Weaknesses */}
+                        {aiAnalytics.weaknesses && aiAnalytics.weaknesses.length > 0 && (
+                          <div className="space-y-2" data-testid="ai-weaknesses-section">
+                            <h4 className="text-sm font-medium flex items-center gap-1">
+                              <AlertTriangle className="h-4 w-4 text-amber-500" />
+                              Зоны развития
+                            </h4>
+                            <ul className="space-y-1">
+                              {aiAnalytics.weaknesses.map((item, i) => (
+                                <li key={i} className="text-sm text-muted-foreground flex items-start gap-2" data-testid={`text-weakness-${i}`}>
+                                  <span className="text-amber-500">•</span>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Strategic Recommendations */}
+                      {aiAnalytics.strategicRecommendations && aiAnalytics.strategicRecommendations.length > 0 && (
+                        <>
+                          <Separator />
+                          <div className="space-y-3" data-testid="ai-recommendations-section">
+                            <h4 className="text-sm font-medium flex items-center gap-1">
+                              <Target className="h-4 w-4 text-violet-500" />
+                              Стратегические рекомендации
+                            </h4>
+                            <div className="space-y-2">
+                              {aiAnalytics.strategicRecommendations.map((rec, i) => (
+                                <div 
+                                  key={i} 
+                                  data-testid={`card-recommendation-${i}`}
+                                  className={cn(
+                                    "p-3 rounded-md border",
+                                    rec.priority === "high" && "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800",
+                                    rec.priority === "medium" && "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800",
+                                    rec.priority === "low" && "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge variant={
+                                      rec.priority === "high" ? "destructive" :
+                                      rec.priority === "medium" ? "secondary" : "outline"
+                                    }>
+                                      {rec.priority === "high" ? "Высокий" :
+                                       rec.priority === "medium" ? "Средний" : "Низкий"}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      {rec.timeframe}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm font-medium">{rec.recommendation}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">{rec.expectedOutcome}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Focus Areas */}
+                      {aiAnalytics.focusAreas && aiAnalytics.focusAreas.length > 0 && (
+                        <>
+                          <Separator />
+                          <div className="flex items-start gap-2 p-3 bg-white/50 dark:bg-black/20 rounded-md" data-testid="ai-focus-areas">
+                            <Lightbulb className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium mb-1">Фокус на этой неделе:</p>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {aiAnalytics.focusAreas.map((area, i) => (
+                                  <li key={i} data-testid={`text-focus-${i}`}>• {area}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Не удалось загрузить AI аналитику
+                    </p>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card
