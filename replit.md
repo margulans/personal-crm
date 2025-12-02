@@ -113,13 +113,19 @@ The core algorithm calculates contact priority through:
 Two main tables:
 
 1. **contacts** - Core entity with fields:
-   - Basic info: fullName, shortName, phone, email, socialLinks
+   - Name (Russian format): firstName, lastName, patronymic, fullName (computed), shortName
+   - Company info: company, companyRole
+   - Legacy contact: phone (single), email
+   - Structured contact: phones (JSONB array with type), messengers (JSONB array with platform/username), socialAccounts (JSONB array with platform/url)
+   - Legacy links: socialLinks (text array for backwards compatibility)
+   - Family: familyStatus (JSONB object with maritalStatus, members array, events array, notes)
    - Categorization: tags, roleTags
    - Scoring: contributionScore, potentialScore, contributionClass, potentialClass, valueCategory
    - Details: contributionDetails (JSON), potentialDetails (JSON)
    - Prioritization: importanceLevel (A/B/C), attentionLevel (1-10), desiredFrequencyDays
    - Relationship metrics: lastContactDate, responseQuality, relationshipEnergy, attentionTrend
    - Heat metrics: heatIndex, heatStatus
+   - Tracking: teamId, createdBy, updatedBy
    - Timestamps: createdAt, updatedAt
 
 2. **interactions** - Tracks all contact touchpoints:
