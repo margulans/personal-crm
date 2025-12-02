@@ -214,11 +214,11 @@ export function SectionAttachments({
                 data-testid={`attachment-${attachment.id}`}
               >
                 {isImage ? (
-                  <div className="aspect-square relative">
+                  <div className="aspect-square relative bg-black/5 dark:bg-white/5 flex items-center justify-center">
                     <img
                       src={attachment.storagePath}
                       alt={attachment.originalName}
-                      className="w-full h-full object-cover"
+                      className="max-w-full max-h-full object-contain"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = "none";
                       }}
