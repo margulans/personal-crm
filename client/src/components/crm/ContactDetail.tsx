@@ -59,7 +59,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, FamilyMember, AIInsight, AIRecommendation } from "@/lib/types";
+import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, FamilyMember, StaffMember, StaffPhone, StaffMessenger, AIInsight, AIRecommendation } from "@/lib/types";
 import { SectionAttachments } from "./SectionAttachments";
 
 const BLOCK_DESCRIPTIONS = {
@@ -1138,13 +1138,348 @@ export function ContactDetail({
                     Команда
                     <InfoPopover blockKey="team" />
                   </CardTitle>
+                  {editingSection === "team" ? <SaveCancelButtons /> : <EditButton section="team" />}
                 </CardHeader>
-                <CardContent>
-                  <SectionAttachments 
-                    contactId={contact.id} 
-                    category="team" 
-                    label="Персонал (водители, помощники)"
-                  />
+                <CardContent className="space-y-4">
+                  {editingSection === "team" ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="flex items-center gap-1">
+                          <Users className="h-3 w-3" /> Персонал
+                        </Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const current = (getFieldValue("staffMembers") as StaffMember[]) || [];
+                            updateField("staffMembers", [
+                              ...current,
+                              { name: "", role: "assistant" as const, phones: [], messengers: [] }
+                            ]);
+                          }}
+                          data-testid="button-add-staff-member"
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Добавить
+                        </Button>
+                      </div>
+                      
+                      {((getFieldValue("staffMembers") as StaffMember[]) || []).map((staff, index) => (
+                        <div key={index} className="flex items-start gap-2 p-3 border rounded-md bg-background">
+                          <div className="flex-1 space-y-3">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <Label className="text-xs">Роль</Label>
+                                <Select
+                                  value={staff.role}
+                                  onValueChange={v => {
+                                    const current = [...(getFieldValue("staffMembers") as StaffMember[])];
+                                    current[index] = { ...current[index], role: v as StaffMember["role"] };
+                                    updateField("staffMembers", current);
+                                  }}
+                                >
+                                  <SelectTrigger data-testid={`select-staff-role-${index}`}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="assistant">Помощник</SelectItem>
+                                    <SelectItem value="driver">Водитель</SelectItem>
+                                    <SelectItem value="secretary">Секретарь</SelectItem>
+                                    <SelectItem value="manager">Менеджер</SelectItem>
+                                    <SelectItem value="security">Охрана</SelectItem>
+                                    <SelectItem value="other">Другое</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label className="text-xs">Имя</Label>
+                                <Input
+                                  value={staff.name}
+                                  onChange={e => {
+                                    const current = [...(getFieldValue("staffMembers") as StaffMember[])];
+                                    current[index] = { ...current[index], name: e.target.value };
+                                    updateField("staffMembers", current);
+                                  }}
+                                  placeholder="Имя сотрудника"
+                                  data-testid={`input-staff-name-${index}`}
+                                />
+                              </div>
+                            </div>
+                            
+                            {staff.role === "other" && (
+                              <div>
+                                <Label className="text-xs">Своя роль</Label>
+                                <Input
+                                  value={staff.roleCustom || ""}
+                                  onChange={e => {
+                                    const current = [...(getFieldValue("staffMembers") as StaffMember[])];
+                                    current[index] = { ...current[index], roleCustom: e.target.value };
+                                    updateField("staffMembers", current);
+                                  }}
+                                  placeholder="Укажите роль..."
+                                  data-testid={`input-staff-role-custom-${index}`}
+                                />
+                              </div>
+                            )}
+                            
+                            {/* Телефоны сотрудника */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs flex items-center gap-1">
+                                  <Phone className="h-3 w-3" /> Телефоны
+                                </Label>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-xs"
+                                  onClick={() => {
+                                    const current = [...(getFieldValue("staffMembers") as StaffMember[])];
+                                    current[index] = {
+                                      ...current[index],
+                                      phones: [...(current[index].phones || []), { type: "mobile" as const, number: "" }]
+                                    };
+                                    updateField("staffMembers", current);
+                                  }}
+                                  data-testid={`button-add-staff-phone-${index}`}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              {(staff.phones || []).map((phone, phoneIdx) => (
+                                <div key={phoneIdx} className="flex items-center gap-2">
+                                  <Select
+                                    value={phone.type}
+                                    onValueChange={v => {
+                                      const current = [...(getFieldValue("staffMembers") as StaffMember[])];
+                                      const phones = [...(current[index].phones || [])];
+                                      phones[phoneIdx] = { ...phones[phoneIdx], type: v as StaffPhone["type"] };
+                                      current[index] = { ...current[index], phones };
+                                      updateField("staffMembers", current);
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-24" data-testid={`select-staff-phone-type-${index}-${phoneIdx}`}>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="mobile">Мобильный</SelectItem>
+                                      <SelectItem value="work">Рабочий</SelectItem>
+                                      <SelectItem value="other">Другой</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Input
+                                    value={phone.number}
+                                    onChange={e => {
+                                      const current = [...(getFieldValue("staffMembers") as StaffMember[])];
+                                      const phones = [...(current[index].phones || [])];
+                                      phones[phoneIdx] = { ...phones[phoneIdx], number: e.target.value };
+                                      current[index] = { ...current[index], phones };
+                                      updateField("staffMembers", current);
+                                    }}
+                                    placeholder="+7 ..."
+                                    className="flex-1"
+                                    data-testid={`input-staff-phone-${index}-${phoneIdx}`}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => {
+                                      const current = [...(getFieldValue("staffMembers") as StaffMember[])];
+                                      current[index] = {
+                                        ...current[index],
+                                        phones: (current[index].phones || []).filter((_, i) => i !== phoneIdx)
+                                      };
+                                      updateField("staffMembers", current);
+                                    }}
+                                    data-testid={`button-remove-staff-phone-${index}-${phoneIdx}`}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            {/* Мессенджеры сотрудника */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs flex items-center gap-1">
+                                  <MessageCircle className="h-3 w-3" /> Мессенджеры
+                                </Label>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-xs"
+                                  onClick={() => {
+                                    const current = [...(getFieldValue("staffMembers") as StaffMember[])];
+                                    current[index] = {
+                                      ...current[index],
+                                      messengers: [...(current[index].messengers || []), { platform: "telegram" as const, username: "" }]
+                                    };
+                                    updateField("staffMembers", current);
+                                  }}
+                                  data-testid={`button-add-staff-messenger-${index}`}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              {(staff.messengers || []).map((msg, msgIdx) => (
+                                <div key={msgIdx} className="flex items-center gap-2">
+                                  <Select
+                                    value={msg.platform}
+                                    onValueChange={v => {
+                                      const current = [...(getFieldValue("staffMembers") as StaffMember[])];
+                                      const messengers = [...(current[index].messengers || [])];
+                                      messengers[msgIdx] = { ...messengers[msgIdx], platform: v as StaffMessenger["platform"] };
+                                      current[index] = { ...current[index], messengers };
+                                      updateField("staffMembers", current);
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-28" data-testid={`select-staff-messenger-platform-${index}-${msgIdx}`}>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="telegram">Telegram</SelectItem>
+                                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                                      <SelectItem value="viber">Viber</SelectItem>
+                                      <SelectItem value="other">Другой</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Input
+                                    value={msg.username}
+                                    onChange={e => {
+                                      const current = [...(getFieldValue("staffMembers") as StaffMember[])];
+                                      const messengers = [...(current[index].messengers || [])];
+                                      messengers[msgIdx] = { ...messengers[msgIdx], username: e.target.value };
+                                      current[index] = { ...current[index], messengers };
+                                      updateField("staffMembers", current);
+                                    }}
+                                    placeholder="@username или номер"
+                                    className="flex-1"
+                                    data-testid={`input-staff-messenger-${index}-${msgIdx}`}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => {
+                                      const current = [...(getFieldValue("staffMembers") as StaffMember[])];
+                                      current[index] = {
+                                        ...current[index],
+                                        messengers: (current[index].messengers || []).filter((_, i) => i !== msgIdx)
+                                      };
+                                      updateField("staffMembers", current);
+                                    }}
+                                    data-testid={`button-remove-staff-messenger-${index}-${msgIdx}`}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            {/* Заметки о сотруднике */}
+                            <div>
+                              <Label className="text-xs">Заметка</Label>
+                              <Input
+                                value={staff.notes || ""}
+                                onChange={e => {
+                                  const current = [...(getFieldValue("staffMembers") as StaffMember[])];
+                                  current[index] = { ...current[index], notes: e.target.value };
+                                  updateField("staffMembers", current);
+                                }}
+                                placeholder="Заметки о сотруднике..."
+                                data-testid={`input-staff-notes-${index}`}
+                              />
+                            </div>
+                          </div>
+                          
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const current = (getFieldValue("staffMembers") as StaffMember[]).filter((_, i) => i !== index);
+                              updateField("staffMembers", current);
+                            }}
+                            data-testid={`button-remove-staff-${index}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                      
+                      {((getFieldValue("staffMembers") as StaffMember[]) || []).length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-2">
+                          Нажмите "Добавить" чтобы добавить члена команды
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      {(contact.staffMembers && (contact.staffMembers as StaffMember[]).length > 0) ? (
+                        <div className="space-y-3">
+                          {(contact.staffMembers as StaffMember[]).map((staff, i) => (
+                            <div key={i} className="p-3 border rounded-md bg-background/50 space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {staff.role === "assistant" && "Помощник"}
+                                  {staff.role === "driver" && "Водитель"}
+                                  {staff.role === "secretary" && "Секретарь"}
+                                  {staff.role === "manager" && "Менеджер"}
+                                  {staff.role === "security" && "Охрана"}
+                                  {staff.role === "other" && (staff.roleCustom || "Другое")}
+                                </Badge>
+                                <span className="font-medium">{staff.name || "Без имени"}</span>
+                              </div>
+                              
+                              {(staff.phones && staff.phones.length > 0) && (
+                                <div className="flex flex-wrap gap-2">
+                                  {staff.phones.map((phone, pi) => (
+                                    <a
+                                      key={pi}
+                                      href={`tel:${phone.number}`}
+                                      className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                                    >
+                                      <Phone className="h-3 w-3" />
+                                      {phone.number}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {(staff.messengers && staff.messengers.length > 0) && (
+                                <div className="flex flex-wrap gap-2">
+                                  {staff.messengers.map((msg, mi) => (
+                                    <span key={mi} className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                                      <MessageCircle className="h-3 w-3" />
+                                      {msg.platform}: {msg.username}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {staff.notes && (
+                                <p className="text-sm text-muted-foreground">{staff.notes}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Персонал не добавлен</p>
+                      )}
+                      
+                      <SectionAttachments 
+                        contactId={contact.id} 
+                        category="team" 
+                        label="Фото персонала"
+                        compact
+                      />
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
