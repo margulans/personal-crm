@@ -46,16 +46,16 @@ export const interactionsApi = {
   },
 };
 
-export const invalidateContacts = () => {
-  queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+export const invalidateContacts = async () => {
+  await queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
 };
 
-export const invalidateContact = (id: string) => {
-  queryClient.invalidateQueries({ queryKey: ["/api/contacts", id] });
+export const invalidateContact = async (id: string) => {
+  await queryClient.invalidateQueries({ queryKey: ["/api/contacts", id] });
 };
 
-export const invalidateInteractions = (contactId: string) => {
-  queryClient.invalidateQueries({ queryKey: ["/api/contacts", contactId, "interactions"] });
+export const invalidateInteractions = async (contactId: string) => {
+  await queryClient.invalidateQueries({ queryKey: ["/api/contacts", contactId, "interactions"] });
 };
 
 export const bulkApi = {

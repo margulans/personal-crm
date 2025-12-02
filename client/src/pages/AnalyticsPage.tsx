@@ -71,8 +71,8 @@ export default function AnalyticsPage() {
   const updateContactMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<InsertContact> }) =>
       contactsApi.update(id, data),
-    onSuccess: () => {
-      invalidateContacts();
+    onSuccess: async () => {
+      await invalidateContacts();
       setEditingContact(null);
       toast({ title: "Контакт обновлён" });
     },
