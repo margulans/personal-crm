@@ -176,8 +176,25 @@ export function ContactDetail({
 
   const startEditing = useCallback((section: EditingSection) => {
     setEditingSection(section);
-    setFormData({});
-  }, []);
+    if (section === "contacts") {
+      setFormData({
+        email: contact.email || "",
+        phones: (contact.phones as PhoneEntry[]) || [],
+        messengers: (contact.messengers as MessengerEntry[]) || [],
+        socialAccounts: (contact.socialAccounts as SocialAccountEntry[]) || [],
+      });
+    } else if (section === "contribution") {
+      setFormData({
+        contributionDetails: contact.contributionDetails || { financial: 0, network: 0, trust: 0 },
+      });
+    } else if (section === "potential") {
+      setFormData({
+        potentialDetails: contact.potentialDetails || { personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 },
+      });
+    } else {
+      setFormData({});
+    }
+  }, [contact]);
 
   const cancelEditing = useCallback(() => {
     setEditingSection(null);
@@ -466,7 +483,8 @@ export function ContactDetail({
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {editingSection === "contacts" ? (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
+                      {/* Email */}
                       <div className="grid gap-2">
                         <Label>Email</Label>
                         <Input 
@@ -476,13 +494,209 @@ export function ContactDetail({
                           data-testid="input-email"
                         />
                       </div>
-                      <div className="grid gap-2">
-                        <Label>Телефон</Label>
-                        <Input 
-                          value={getFieldValue("phone") || ""} 
-                          onChange={e => updateField("phone", e.target.value)}
-                          data-testid="input-phone"
-                        />
+                      
+                      {/* Телефоны */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label>Телефоны</Label>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const currentPhones = (getFieldValue("phones") as PhoneEntry[]) || [];
+                              updateField("phones", [...currentPhones, { number: "", type: "mobile" }]);
+                            }}
+                            data-testid="button-add-phone"
+                          >
+                            <Plus className="h-3 w-3 mr-1" /> Добавить
+                          </Button>
+                        </div>
+                        {((getFieldValue("phones") as PhoneEntry[]) || []).map((phone, idx) => (
+                          <div key={idx} className="flex gap-2 items-start">
+                            <Input 
+                              value={phone.number}
+                              onChange={e => {
+                                const phones = [...((getFieldValue("phones") as PhoneEntry[]) || [])];
+                                phones[idx] = { ...phones[idx], number: e.target.value };
+                                updateField("phones", phones);
+                              }}
+                              placeholder="+7 999 123-45-67"
+                              className="flex-1"
+                              data-testid={`input-phone-${idx}`}
+                            />
+                            <Select 
+                              value={phone.type}
+                              onValueChange={v => {
+                                const phones = [...((getFieldValue("phones") as PhoneEntry[]) || [])];
+                                phones[idx] = { ...phones[idx], type: v as PhoneEntry["type"] };
+                                updateField("phones", phones);
+                              }}
+                            >
+                              <SelectTrigger className="w-28" data-testid={`select-phone-type-${idx}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="mobile">Мобильный</SelectItem>
+                                <SelectItem value="work">Рабочий</SelectItem>
+                                <SelectItem value="home">Домашний</SelectItem>
+                                <SelectItem value="other">Другой</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                const phones = ((getFieldValue("phones") as PhoneEntry[]) || []).filter((_, i) => i !== idx);
+                                updateField("phones", phones);
+                              }}
+                              data-testid={`button-remove-phone-${idx}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        {((getFieldValue("phones") as PhoneEntry[]) || []).length === 0 && (
+                          <p className="text-sm text-muted-foreground">Нет телефонов</p>
+                        )}
+                      </div>
+                      
+                      {/* Мессенджеры */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label>Мессенджеры</Label>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const currentMessengers = (getFieldValue("messengers") as MessengerEntry[]) || [];
+                              updateField("messengers", [...currentMessengers, { platform: "telegram", username: "" }]);
+                            }}
+                            data-testid="button-add-messenger"
+                          >
+                            <Plus className="h-3 w-3 mr-1" /> Добавить
+                          </Button>
+                        </div>
+                        {((getFieldValue("messengers") as MessengerEntry[]) || []).map((msg, idx) => (
+                          <div key={idx} className="flex gap-2 items-start">
+                            <Select 
+                              value={msg.platform}
+                              onValueChange={v => {
+                                const messengers = [...((getFieldValue("messengers") as MessengerEntry[]) || [])];
+                                messengers[idx] = { ...messengers[idx], platform: v as MessengerEntry["platform"] };
+                                updateField("messengers", messengers);
+                              }}
+                            >
+                              <SelectTrigger className="w-32" data-testid={`select-messenger-platform-${idx}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="telegram">Telegram</SelectItem>
+                                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                                <SelectItem value="viber">Viber</SelectItem>
+                                <SelectItem value="signal">Signal</SelectItem>
+                                <SelectItem value="other">Другой</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Input 
+                              value={msg.username}
+                              onChange={e => {
+                                const messengers = [...((getFieldValue("messengers") as MessengerEntry[]) || [])];
+                                messengers[idx] = { ...messengers[idx], username: e.target.value };
+                                updateField("messengers", messengers);
+                              }}
+                              placeholder="@username или номер"
+                              className="flex-1"
+                              data-testid={`input-messenger-username-${idx}`}
+                            />
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                const messengers = ((getFieldValue("messengers") as MessengerEntry[]) || []).filter((_, i) => i !== idx);
+                                updateField("messengers", messengers);
+                              }}
+                              data-testid={`button-remove-messenger-${idx}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        {((getFieldValue("messengers") as MessengerEntry[]) || []).length === 0 && (
+                          <p className="text-sm text-muted-foreground">Нет мессенджеров</p>
+                        )}
+                      </div>
+                      
+                      {/* Соц. сети */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label>Социальные сети</Label>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const currentSocial = (getFieldValue("socialAccounts") as SocialAccountEntry[]) || [];
+                              updateField("socialAccounts", [...currentSocial, { platform: "instagram", url: "" }]);
+                            }}
+                            data-testid="button-add-social"
+                          >
+                            <Plus className="h-3 w-3 mr-1" /> Добавить
+                          </Button>
+                        </div>
+                        {((getFieldValue("socialAccounts") as SocialAccountEntry[]) || []).map((acc, idx) => (
+                          <div key={idx} className="flex gap-2 items-start">
+                            <Select 
+                              value={acc.platform}
+                              onValueChange={v => {
+                                const accounts = [...((getFieldValue("socialAccounts") as SocialAccountEntry[]) || [])];
+                                accounts[idx] = { ...accounts[idx], platform: v as SocialAccountEntry["platform"] };
+                                updateField("socialAccounts", accounts);
+                              }}
+                            >
+                              <SelectTrigger className="w-32" data-testid={`select-social-platform-${idx}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="instagram">Instagram</SelectItem>
+                                <SelectItem value="facebook">Facebook</SelectItem>
+                                <SelectItem value="linkedin">LinkedIn</SelectItem>
+                                <SelectItem value="twitter">X/Twitter</SelectItem>
+                                <SelectItem value="vk">ВКонтакте</SelectItem>
+                                <SelectItem value="other">Другой</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Input 
+                              value={acc.url}
+                              onChange={e => {
+                                const accounts = [...((getFieldValue("socialAccounts") as SocialAccountEntry[]) || [])];
+                                accounts[idx] = { ...accounts[idx], url: e.target.value };
+                                updateField("socialAccounts", accounts);
+                              }}
+                              placeholder="URL профиля"
+                              className="flex-1"
+                              data-testid={`input-social-url-${idx}`}
+                            />
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                const accounts = ((getFieldValue("socialAccounts") as SocialAccountEntry[]) || []).filter((_, i) => i !== idx);
+                                updateField("socialAccounts", accounts);
+                              }}
+                              data-testid={`button-remove-social-${idx}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        {((getFieldValue("socialAccounts") as SocialAccountEntry[]) || []).length === 0 && (
+                          <p className="text-sm text-muted-foreground">Нет соц. сетей</p>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -676,7 +890,7 @@ export function ContactDetail({
                           onValueChange={v => updateField("familyStatus", { 
                             ...(contact.familyStatus as FamilyStatus || {}), 
                             ...(formData.familyStatus as FamilyStatus || {}),
-                            maritalStatus: v 
+                            maritalStatus: v as FamilyStatus["maritalStatus"]
                           })}
                         >
                           <SelectTrigger data-testid="select-marital">
