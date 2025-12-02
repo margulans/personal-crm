@@ -244,35 +244,36 @@ export function SectionAttachments({
                   </div>
                 )}
 
-                <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    className="h-6 w-6"
-                    onClick={() => handleDownload(attachment)}
-                    data-testid="button-download"
-                  >
-                    <Download className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="destructive"
-                    className="h-6 w-6"
-                    onClick={() => deleteMutation.mutate(attachment.id)}
-                    disabled={deleteMutation.isPending}
-                    data-testid="button-delete-attachment"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-
-                <div className="px-2 py-1 border-t bg-background/50">
-                  <p className="text-xs truncate" title={attachment.originalName}>
+                <div className="px-2 py-1.5 border-t bg-background/80">
+                  <p className="text-xs truncate font-medium" title={attachment.originalName}>
                     {attachment.originalName}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatFileSize(attachment.fileSize)}
-                  </p>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-muted-foreground">
+                      {formatFileSize(attachment.fileSize)}
+                    </span>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        onClick={() => handleDownload(attachment)}
+                        data-testid="button-download"
+                      >
+                        <Download className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => deleteMutation.mutate(attachment.id)}
+                        disabled={deleteMutation.isPending}
+                        data-testid="button-delete-attachment"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
