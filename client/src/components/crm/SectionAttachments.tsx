@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Document, Page, pdfjs } from "react-pdf";
 
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
+pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
 interface SectionAttachmentsProps {
   contactId: string;
