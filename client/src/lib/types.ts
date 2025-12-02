@@ -31,6 +31,12 @@ export interface Contact {
   familyStatus: FamilyStatus;
   staffMembers: StaffMember[];
   
+  hobbies?: string | null;
+  preferences?: string | null;
+  importantDates?: string | null;
+  giftPreferences?: string | null;
+  otherInterests?: string | null;
+  
   tags: string[];
   roleTags: string[];
   
@@ -101,6 +107,12 @@ export interface InsertContact {
   
   familyStatus?: FamilyStatus;
   staffMembers?: StaffMember[];
+  
+  hobbies?: string | null;
+  preferences?: string | null;
+  importantDates?: string | null;
+  giftPreferences?: string | null;
+  otherInterests?: string | null;
   
   tags?: string[];
   roleTags?: string[];

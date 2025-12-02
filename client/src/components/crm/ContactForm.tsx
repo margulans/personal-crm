@@ -25,7 +25,7 @@ interface ContactFormProps {
   isLoading?: boolean;
   allTags?: string[];
   allRoles?: string[];
-  initialTab?: "basic" | "contacts" | "family" | "team" | "priority" | "contribution" | "potential";
+  initialTab?: "basic" | "contacts" | "interests" | "family" | "team" | "priority" | "contribution" | "potential";
 }
 
 function computeFullName(firstName?: string, lastName?: string, patronymic?: string): string {
@@ -472,6 +472,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
         <TabsList className="flex flex-wrap gap-1 h-auto p-1 w-full">
           <TabsTrigger value="basic" className="text-xs sm:text-sm px-2 sm:px-3">ФИО</TabsTrigger>
           <TabsTrigger value="contacts" className="text-xs sm:text-sm px-2 sm:px-3">Контакты</TabsTrigger>
+          <TabsTrigger value="interests" className="text-xs sm:text-sm px-2 sm:px-3">Интересы</TabsTrigger>
           <TabsTrigger value="family" className="text-xs sm:text-sm px-2 sm:px-3">Семья</TabsTrigger>
           <TabsTrigger value="team" className="text-xs sm:text-sm px-2 sm:px-3">Команда</TabsTrigger>
           <TabsTrigger value="priority" className="text-xs sm:text-sm px-2 sm:px-3">Статус</TabsTrigger>
@@ -831,6 +832,68 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
             {(formData.socialAccounts || []).length === 0 && (
               <p className="text-sm text-muted-foreground">Нет добавленных аккаунтов</p>
             )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="interests" className="space-y-4 mt-4 min-h-[300px]">
+          <div className="space-y-2">
+            <Label>Хобби и увлечения</Label>
+            <Textarea
+              value={formData.hobbies || ""}
+              onChange={(e) => setFormData({ ...formData, hobbies: e.target.value })}
+              placeholder="Спорт, музыка, путешествия..."
+              className="resize-none"
+              rows={3}
+              data-testid="textarea-hobbies"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Любимая еда и напитки</Label>
+            <Textarea
+              value={formData.preferences || ""}
+              onChange={(e) => setFormData({ ...formData, preferences: e.target.value })}
+              placeholder="Предпочтения в еде, любимые рестораны, напитки..."
+              className="resize-none"
+              rows={3}
+              data-testid="textarea-preferences"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Важные даты и события</Label>
+            <Textarea
+              value={formData.importantDates || ""}
+              onChange={(e) => setFormData({ ...formData, importantDates: e.target.value })}
+              placeholder="Даты рождения, годовщины, важные мероприятия..."
+              className="resize-none"
+              rows={3}
+              data-testid="textarea-important-dates"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Подарки и предпочтения</Label>
+            <Textarea
+              value={formData.giftPreferences || ""}
+              onChange={(e) => setFormData({ ...formData, giftPreferences: e.target.value })}
+              placeholder="Что любит получать в подарок, что не любит..."
+              className="resize-none"
+              rows={3}
+              data-testid="textarea-gift-preferences"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Другие заметки</Label>
+            <Textarea
+              value={formData.otherInterests || ""}
+              onChange={(e) => setFormData({ ...formData, otherInterests: e.target.value })}
+              placeholder="Любая другая полезная информация..."
+              className="resize-none"
+              rows={3}
+              data-testid="textarea-other-interests"
+            />
           </div>
         </TabsContent>
 

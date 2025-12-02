@@ -147,6 +147,13 @@ export const contacts = pgTable("contacts", {
   // Staff/Team (assistants, drivers, etc.)
   staffMembers: jsonb("staff_members").$type<StaffMember[]>().default([]),
   
+  // Interests
+  hobbies: text("hobbies"),
+  preferences: text("preferences"),
+  importantDates: text("important_dates"),
+  giftPreferences: text("gift_preferences"),
+  otherInterests: text("other_interests"),
+  
   // Tags
   tags: jsonb("tags").$type<string[]>().default([]),
   roleTags: jsonb("role_tags").$type<string[]>().default([]),
