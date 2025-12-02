@@ -1,4 +1,4 @@
-# Design Guidelines: Personal CRM Application
+# Design Guidelines: PRIMA CRM Application
 
 ## Design Approach
 
@@ -14,6 +14,26 @@
 2. **Scannable Hierarchy**: Strong visual hierarchy enables quick information scanning
 3. **Functional Color**: Color serves data visualization (heat status, priority levels) not decoration
 4. **Consistent Density**: Balanced information density - neither sparse nor overwhelming
+5. **Subtle Depth**: Use shadows and transitions to create visual hierarchy without overwhelming
+
+---
+
+## Color Palette
+
+**Primary Colors**:
+- Light mode primary: hsl(221, 83%, 53%) - warm, sophisticated blue
+- Dark mode primary: hsl(217, 91%, 60%) - slightly lighter for visibility
+
+**Semantic Colors**:
+- Heat Green: bg-emerald-500 - healthy relationships
+- Heat Yellow: bg-amber-500 - needs attention
+- Heat Red: bg-red-500 - urgent attention required
+
+**AI Section Styling**:
+- Special gradient backgrounds for AI-powered content
+- Light mode: violet-to-indigo gradient at 70% saturation, 96-97% lightness
+- Dark mode: same hues at 40% saturation, 12-13% lightness
+- These gradients visually distinguish AI recommendations from regular content
 
 ---
 
@@ -57,8 +77,11 @@
 ### Data Display
 
 **Contact Cards**:
-- Bordered cards with p-6, rounded-lg, hover:shadow-md transition
+- Bordered cards with p-6, rounded-lg
+- Hover: shadow-md with subtle lift (-translate-y-0.5)
+- Smooth transitions (transition-all duration-200)
 - Header: Name + heat status indicator (prominent colored dot)
+- Avatar: gradient background for visual interest
 - Metadata grid: 2-column layout showing key metrics
 - Quick actions: Icon buttons aligned right
 
@@ -69,9 +92,17 @@
 - Sortable columns with subtle arrow indicators
 
 **Heat Status Indicators**:
-- Large prominent circles (w-4 h-4 or larger for emphasis)
+- Sizes: sm (w-2.5 h-2.5), md (w-3.5 h-3.5), lg (w-5 h-5)
+- Simple solid fills for maximum clarity and quick scanning
 - Green: bg-emerald-500, Yellow: bg-amber-500, Red: bg-red-500
-- Always paired with numerical HeatIndex display
+- Always paired with numerical HeatIndex display (2 decimal places)
+
+**Importance Badges**:
+- Subtle outline styling with semantic backgrounds
+- A-level: bg-primary/10 text-primary border-primary/20
+- B-level: bg-muted text-muted-foreground
+- C-level: bg-muted/50 text-muted-foreground/70
+- Font: font-semibold (not bold) to stay secondary in hierarchy
 
 **Metrics Display**:
 - Label + Value pairs in grid layout
