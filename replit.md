@@ -129,6 +129,33 @@ Two main tables:
    - isMeaningful (boolean flag for significant interactions)
    - createdAt timestamp
 
+3. **backups** - Stores team data snapshots for recovery:
+   - teamId (foreign key)
+   - createdBy (user who created)
+   - description (backup label)
+   - data (JSONB with contacts + interactions)
+   - contactsCount, interactionsCount
+   - createdAt timestamp
+
+### Backup System
+
+**Features:**
+- Manual backup creation by team owner/admin
+- Automatic daily backups via `/api/backups/auto` endpoint (requires BACKUP_SECRET)
+- Restore from any backup (creates safety backup first)
+- Backups stored for 30 days (max 30 per team)
+- Only owner/admin can restore or delete backups
+
+**API Endpoints:**
+- `GET /api/backups` - List backups for current team
+- `POST /api/backups` - Create manual backup
+- `POST /api/backups/:id/restore` - Restore from backup
+- `DELETE /api/backups/:id` - Delete backup
+- `POST /api/backups/auto` - Auto backup endpoint (cron, requires secret)
+
+**Environment Variables:**
+- `BACKUP_SECRET` - Required for automated backup endpoint
+
 **Storage Pattern:**
 - Repository pattern via `IStorage` interface in `server/storage.ts`
 - `DatabaseStorage` class implements all CRUD operations

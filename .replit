@@ -16,6 +16,10 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 35329
+externalPort = 6800
+
+[[ports]]
 localPort = 35963
 externalPort = 3003
 
@@ -73,3 +77,8 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_database:1.0.0", "github:1.0.0", "javascript_log_in_with_replit:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+BACKUP_SECRET = "d85ff270942959adc435e7aa6c8200f225df4aa30a47b165b4418e3cc102484f"
