@@ -1,12 +1,37 @@
+import type { 
+  PhoneEntry, 
+  MessengerEntry, 
+  SocialAccountEntry, 
+  FamilyStatus 
+} from "@shared/schema";
+
 export interface Contact {
   id: string;
+  teamId?: string | null;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+  
+  firstName?: string | null;
+  lastName?: string | null;
+  patronymic?: string | null;
   fullName: string;
   shortName: string | null;
+  
+  company?: string | null;
+  companyRole?: string | null;
+  
   phone: string | null;
   email: string | null;
+  phones: PhoneEntry[];
+  messengers: MessengerEntry[];
+  socialAccounts: SocialAccountEntry[];
   socialLinks: string[];
+  
+  familyStatus: FamilyStatus;
+  
   tags: string[];
   roleTags: string[];
+  
   contributionScore: number;
   potentialScore: number;
   contributionClass: string;
@@ -41,6 +66,7 @@ export interface Contact {
 export interface Interaction {
   id: string;
   contactId: string;
+  createdBy?: string | null;
   date: string;
   type: string;
   channel: string;
@@ -51,13 +77,31 @@ export interface Interaction {
 }
 
 export interface InsertContact {
+  teamId?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  
+  firstName?: string | null;
+  lastName?: string | null;
+  patronymic?: string | null;
   fullName: string;
   shortName?: string | null;
+  
+  company?: string | null;
+  companyRole?: string | null;
+  
   phone?: string | null;
   email?: string | null;
+  phones?: PhoneEntry[];
+  messengers?: MessengerEntry[];
+  socialAccounts?: SocialAccountEntry[];
   socialLinks?: string[];
+  
+  familyStatus?: FamilyStatus;
+  
   tags?: string[];
   roleTags?: string[];
+  
   contributionDetails?: {
     financial: number;
     network: number;
@@ -80,9 +124,13 @@ export interface InsertContact {
 }
 
 export interface InsertInteraction {
+  contactId?: string;
+  createdBy?: string;
   date: string;
   type: string;
   channel: string;
   note?: string;
   isMeaningful: boolean;
 }
+
+export type { PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, FamilyMember, FamilyEvent } from "@shared/schema";

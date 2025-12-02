@@ -27,9 +27,14 @@ import {
   Minus,
   Lightbulb,
   Info,
+  Building2,
+  MessageCircle,
+  Users,
+  Calendar,
+  Heart,
 } from "lucide-react";
 
-import type { Contact, Interaction } from "@/lib/types";
+import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus } from "@/lib/types";
 
 const BLOCK_DESCRIPTIONS = {
   contact: {
@@ -251,43 +256,203 @@ export function ContactDetail({
                     <InfoPopover blockKey="contact" />
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {contact.phone && (
+                <CardContent className="space-y-4">
+                  {(contact.company || contact.companyRole) && (
                     <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <a href={`tel:${contact.phone}`} className="hover:underline">
-                        {contact.phone}
-                      </a>
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <span>
+                        {contact.companyRole && <span className="font-medium">{contact.companyRole}</span>}
+                        {contact.companyRole && contact.company && " в "}
+                        {contact.company && <span>{contact.company}</span>}
+                      </span>
                     </div>
                   )}
-                  {contact.email && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <a href={`mailto:${contact.email}`} className="hover:underline">
-                        {contact.email}
-                      </a>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {contact.email && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <a href={`mailto:${contact.email}`} className="hover:underline">
+                          {contact.email}
+                        </a>
+                      </div>
+                    )}
+                    
+                    {((contact.phones as PhoneEntry[]) || []).map((phone, i) => (
+                      <div key={`phone-${i}`} className="flex items-center gap-2 text-sm">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <a href={`tel:${phone.number}`} className="hover:underline">
+                          {phone.number}
+                        </a>
+                        <Badge variant="outline" className="text-xs">
+                          {phone.type === "mobile" ? "Моб" : phone.type === "work" ? "Раб" : phone.type === "home" ? "Дом" : "Др"}
+                        </Badge>
+                      </div>
+                    ))}
+                    
+                    {contact.phone && (!contact.phones || (contact.phones as PhoneEntry[]).length === 0) && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <a href={`tel:${contact.phone}`} className="hover:underline">
+                          {contact.phone}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {((contact.messengers as MessengerEntry[]) || []).length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Мессенджеры</div>
+                      <div className="flex flex-wrap gap-2">
+                        {((contact.messengers as MessengerEntry[]) || []).map((msg, i) => (
+                          <Badge key={`msg-${i}`} variant="secondary" className="gap-1">
+                            <MessageCircle className="h-3 w-3" />
+                            {msg.platform === "telegram" ? "TG" : 
+                             msg.platform === "whatsapp" ? "WA" : 
+                             msg.platform === "viber" ? "Vb" : 
+                             msg.platform === "signal" ? "Sg" : 
+                             msg.platform === "wechat" ? "WC" : msg.platform}: {msg.username}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  {contact.socialLinks?.map((link, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm">
-                      <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                      <a
-                        href={link.startsWith("http") ? link : `https://${link}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline text-primary"
-                      >
-                        {link}
-                      </a>
+                  
+                  {((contact.socialAccounts as SocialAccountEntry[]) || []).length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Соц. сети</div>
+                      <div className="flex flex-wrap gap-2">
+                        {((contact.socialAccounts as SocialAccountEntry[]) || []).map((acc, i) => (
+                          <a 
+                            key={`social-${i}`}
+                            href={acc.url.startsWith("http") ? acc.url : `https://${acc.url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Badge variant="outline" className="gap-1 hover:bg-accent cursor-pointer">
+                              <LinkIcon className="h-3 w-3" />
+                              {acc.platform === "instagram" ? "IG" :
+                               acc.platform === "facebook" ? "FB" :
+                               acc.platform === "linkedin" ? "LI" :
+                               acc.platform === "twitter" ? "X" :
+                               acc.platform === "vk" ? "VK" :
+                               acc.platform === "youtube" ? "YT" :
+                               acc.platform === "tiktok" ? "TT" : acc.platform}
+                            </Badge>
+                          </a>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                  {!contact.phone && !contact.email && (!contact.socialLinks || contact.socialLinks.length === 0) && (
-                    <p className="text-sm text-muted-foreground col-span-2">
+                  )}
+                  
+                  {contact.socialLinks && contact.socialLinks.length > 0 && (!contact.socialAccounts || (contact.socialAccounts as SocialAccountEntry[]).length === 0) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {contact.socialLinks.map((link, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                          <a
+                            href={link.startsWith("http") ? link : `https://${link}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline text-primary"
+                          >
+                            {link}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {!contact.phone && !contact.email && 
+                   (!contact.phones || (contact.phones as PhoneEntry[]).length === 0) &&
+                   (!contact.messengers || (contact.messengers as MessengerEntry[]).length === 0) &&
+                   (!contact.socialAccounts || (contact.socialAccounts as SocialAccountEntry[]).length === 0) &&
+                   (!contact.socialLinks || contact.socialLinks.length === 0) && (
+                    <p className="text-sm text-muted-foreground">
                       Контактные данные не указаны
                     </p>
                   )}
                 </CardContent>
               </Card>
+              
+              {contact.familyStatus && (
+                (contact.familyStatus as FamilyStatus).maritalStatus || 
+                ((contact.familyStatus as FamilyStatus).members?.length || 0) > 0 || 
+                ((contact.familyStatus as FamilyStatus).events?.length || 0) > 0
+              ) && (
+                <Card className="cursor-pointer transition-colors hover:bg-muted/30">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center">
+                      <Heart className="h-4 w-4 mr-2 text-pink-500" />
+                      Семья
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {(contact.familyStatus as FamilyStatus).maritalStatus && (
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Статус: </span>
+                        <span className="font-medium">
+                          {(contact.familyStatus as FamilyStatus).maritalStatus === "single" ? "Не женат/не замужем" :
+                           (contact.familyStatus as FamilyStatus).maritalStatus === "married" ? "В браке" :
+                           (contact.familyStatus as FamilyStatus).maritalStatus === "divorced" ? "В разводе" :
+                           (contact.familyStatus as FamilyStatus).maritalStatus === "widowed" ? "Вдова/вдовец" :
+                           (contact.familyStatus as FamilyStatus).maritalStatus === "partnership" ? "Гражданский брак" : ""}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {((contact.familyStatus as FamilyStatus).members?.length || 0) > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                          <Users className="h-3 w-3" /> Члены семьи
+                        </div>
+                        <div className="space-y-1">
+                          {(contact.familyStatus as FamilyStatus).members?.map((member, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm">
+                              <Badge variant="outline" className="text-xs">
+                                {member.relation === "spouse" ? "Супруг(а)" :
+                                 member.relation === "child" ? "Ребёнок" :
+                                 member.relation === "parent" ? "Родитель" :
+                                 member.relation === "sibling" ? "Брат/сестра" : "Другой"}
+                              </Badge>
+                              <span className="font-medium">{member.name}</span>
+                              {member.birthday && (
+                                <span className="text-muted-foreground text-xs">
+                                  ({new Date(member.birthday).toLocaleDateString('ru-RU')})
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {((contact.familyStatus as FamilyStatus).events?.length || 0) > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                          <Calendar className="h-3 w-3" /> Важные даты
+                        </div>
+                        <div className="space-y-1">
+                          {(contact.familyStatus as FamilyStatus).events?.map((event, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm">
+                              <span className="font-medium">{event.title}</span>
+                              <span className="text-muted-foreground">
+                                {new Date(event.date).toLocaleDateString('ru-RU')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {(contact.familyStatus as FamilyStatus).notes && (
+                      <div className="text-sm text-muted-foreground italic">
+                        {(contact.familyStatus as FamilyStatus).notes}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               <Card 
                 className="bg-slate-100 dark:bg-slate-800/50 border-slate-300 dark:border-slate-600 cursor-pointer transition-colors hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
