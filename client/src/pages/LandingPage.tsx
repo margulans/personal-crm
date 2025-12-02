@@ -1,15 +1,27 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, TrendingUp, Bell, Shield } from "lucide-react";
+import { Users, TrendingUp, Bell, Shield, Loader2 } from "lucide-react";
 
 export default function LandingPage() {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = () => {
+    setIsLoading(true);
+    window.location.href = "/api/login";
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold" data-testid="text-logo">Personal CRM</h1>
-          <Button asChild data-testid="button-login">
-            <a href="/api/login">Войти</a>
+          <Button 
+            onClick={handleLogin} 
+            disabled={isLoading}
+            data-testid="button-login"
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Войти"}
           </Button>
         </div>
       </header>
@@ -24,8 +36,20 @@ export default function LandingPage() {
               Персональная CRM для тех, кто ценит свою сеть контактов. 
               Отслеживайте связи, получайте напоминания и развивайте важные отношения.
             </p>
-            <Button size="lg" asChild data-testid="button-get-started">
-              <a href="/api/login">Начать бесплатно</a>
+            <Button 
+              size="lg" 
+              onClick={handleLogin}
+              disabled={isLoading}
+              data-testid="button-get-started"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Загрузка...
+                </>
+              ) : (
+                "Начать бесплатно"
+              )}
             </Button>
           </div>
         </section>
@@ -95,8 +119,20 @@ export default function LandingPage() {
             <p className="text-muted-foreground mb-8">
               Войдите через Replit и начните отслеживать свои контакты уже сегодня.
             </p>
-            <Button size="lg" asChild data-testid="button-cta-login">
-              <a href="/api/login">Войти через Replit</a>
+            <Button 
+              size="lg" 
+              onClick={handleLogin}
+              disabled={isLoading}
+              data-testid="button-cta-login"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Загрузка...
+                </>
+              ) : (
+                "Войти через Replit"
+              )}
             </Button>
           </div>
         </section>
