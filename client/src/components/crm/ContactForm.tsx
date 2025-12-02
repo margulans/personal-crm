@@ -839,33 +839,42 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="flex gap-1">
-                    <Input
-                      type="date"
-                      value={member.birthday || ""}
-                      onChange={(e) => updateFamilyMember(index, 'birthday', e.target.value)}
-                      placeholder="Дата рождения"
-                      className="flex-1"
-                      data-testid={`input-family-birthday-${index}`}
-                    />
-                    {member.birthday && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => updateFamilyMember(index, 'birthday', '')}
-                        data-testid={`button-clear-birthday-${index}`}
-                        title="Сбросить дату"
-                      >
-                        <X className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    )}
+                <div className="space-y-2">
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">День рождения</span>
+                    <div className="flex gap-1 items-center">
+                      <Input
+                        type="date"
+                        value={member.birthday || ""}
+                        onChange={(e) => updateFamilyMember(index, 'birthday', e.target.value)}
+                        className="w-[150px]"
+                        data-testid={`input-family-birthday-${index}`}
+                      />
+                      {member.birthday && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => updateFamilyMember(index, 'birthday', '')}
+                          data-testid={`button-clear-birthday-${index}`}
+                          title="Сбросить дату"
+                        >
+                          <X className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <Input
+                  <Textarea
                     value={member.notes || ""}
                     onChange={(e) => updateFamilyMember(index, 'notes', e.target.value)}
                     placeholder="Заметки"
+                    className="min-h-[38px] resize-none overflow-hidden"
+                    rows={1}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = target.scrollHeight + 'px';
+                    }}
                     data-testid={`input-family-notes-${index}`}
                   />
                 </div>
