@@ -1,10 +1,63 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, real, boolean, date, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, real, boolean, date, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Session storage table (required for Replit Auth)
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// Users table (required for Replit Auth)
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
+
+// Teams table
+export const teams = pgTable("teams", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull(),
+  inviteCode: varchar("invite_code", { length: 20 }).notNull().unique(),
+  ownerId: varchar("owner_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type Team = typeof teams.$inferSelect;
+export type InsertTeam = typeof teams.$inferInsert;
+
+// Team members table
+export const teamMembers = pgTable("team_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: varchar("role", { length: 20 }).notNull().default("member"), // owner, admin, member
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+});
+
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = typeof teamMembers.$inferInsert;
+
 export const contacts = pgTable("contacts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").references(() => teams.id, { onDelete: "cascade" }),
+  createdBy: varchar("created_by").references(() => users.id),
+  updatedBy: varchar("updated_by").references(() => users.id),
   fullName: text("full_name").notNull(),
   shortName: text("short_name"),
   phone: text("phone"),
@@ -53,6 +106,7 @@ export const contacts = pgTable("contacts", {
 export const interactions = pgTable("interactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   contactId: varchar("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  createdBy: varchar("created_by").references(() => users.id),
   date: date("date").notNull(),
   type: varchar("type", { length: 20 }).notNull(),
   channel: varchar("channel", { length: 20 }).notNull(),
@@ -76,6 +130,26 @@ const potentialDetailsSchema = z.object({
   systemRole: z.number().min(0).max(3).default(0),
 });
 
+// Team schemas
+export const insertTeamSchema = createInsertSchema(teams).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  name: z.string().min(1, "Название команды обязательно"),
+  inviteCode: z.string().min(6, "Код должен быть минимум 6 символов"),
+  ownerId: z.string().min(1),
+});
+
+export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({
+  id: true,
+  joinedAt: true,
+}).extend({
+  teamId: z.string().min(1),
+  userId: z.string().min(1),
+  role: z.enum(["owner", "admin", "member"]).default("member"),
+});
+
 export const insertContactSchema = createInsertSchema(contacts).omit({
   id: true,
   contributionScore: true,
@@ -89,6 +163,9 @@ export const insertContactSchema = createInsertSchema(contacts).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
+  teamId: z.string().optional(),
+  createdBy: z.string().optional(),
+  updatedBy: z.string().optional(),
   fullName: z.string().min(1, "Имя обязательно"),
   socialLinks: z.array(z.string()).default([]),
   tags: z.array(z.string()).default([]),
@@ -110,6 +187,7 @@ export const insertInteractionSchema = createInsertSchema(interactions).omit({
   updatedAt: true,
 }).extend({
   contactId: z.string().min(1),
+  createdBy: z.string().optional(),
   date: z.string().min(1),
   type: z.enum(["call", "meeting", "message", "event", "gift", "intro", "other"]),
   channel: z.enum(["phone", "telegram", "whatsapp", "email", "offline", "other"]),
