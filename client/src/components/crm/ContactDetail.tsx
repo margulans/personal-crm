@@ -1011,12 +1011,6 @@ export function ContactDetail({
                     <Separator />
                     <SectionAttachments 
                       contactId={contact.id} 
-                      category="family" 
-                      label="Семья"
-                    />
-                    <Separator />
-                    <SectionAttachments 
-                      contactId={contact.id} 
                       category="team" 
                       label="Персонал (фото водителей, помощников)"
                     />
