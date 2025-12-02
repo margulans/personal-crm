@@ -179,17 +179,17 @@ export function ContactDetail({
     if (section === "contacts") {
       setFormData({
         email: contact.email || "",
-        phones: (contact.phones as PhoneEntry[]) || [],
-        messengers: (contact.messengers as MessengerEntry[]) || [],
-        socialAccounts: (contact.socialAccounts as SocialAccountEntry[]) || [],
+        phones: ((contact.phones as PhoneEntry[]) || []).map(p => ({ ...p })),
+        messengers: ((contact.messengers as MessengerEntry[]) || []).map(m => ({ ...m })),
+        socialAccounts: ((contact.socialAccounts as SocialAccountEntry[]) || []).map(s => ({ ...s })),
       });
     } else if (section === "contribution") {
       setFormData({
-        contributionDetails: contact.contributionDetails || { financial: 0, network: 0, trust: 0 },
+        contributionDetails: { ...(contact.contributionDetails as { financial: number; network: number; trust: number } || { financial: 0, network: 0, trust: 0 }) },
       });
     } else if (section === "potential") {
       setFormData({
-        potentialDetails: contact.potentialDetails || { personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 },
+        potentialDetails: { ...(contact.potentialDetails as { personal: number; resources: number; network: number; synergy: number; systemRole: number } || { personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 }) },
       });
     } else {
       setFormData({});
