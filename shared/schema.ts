@@ -53,16 +53,78 @@ export const teamMembers = pgTable("team_members", {
 export type TeamMember = typeof teamMembers.$inferSelect;
 export type InsertTeamMember = typeof teamMembers.$inferInsert;
 
+// Type definitions for structured contact data
+export type PhoneEntry = {
+  type: "mobile" | "work" | "home" | "other";
+  number: string;
+  label?: string;
+};
+
+export type MessengerEntry = {
+  platform: "telegram" | "whatsapp" | "viber" | "signal" | "wechat" | "other";
+  username: string;
+  label?: string;
+};
+
+export type SocialAccountEntry = {
+  platform: "instagram" | "facebook" | "linkedin" | "twitter" | "vk" | "youtube" | "tiktok" | "other";
+  url: string;
+  label?: string;
+};
+
+export type FamilyMember = {
+  name: string;
+  relation: "spouse" | "child" | "parent" | "sibling" | "other";
+  birthday?: string;
+  notes?: string;
+};
+
+export type FamilyEvent = {
+  title: string;
+  date: string;
+  notes?: string;
+};
+
+export type FamilyStatus = {
+  maritalStatus?: "single" | "married" | "divorced" | "widowed" | "partnership";
+  members: FamilyMember[];
+  events: FamilyEvent[];
+  notes?: string;
+};
+
 export const contacts = pgTable("contacts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   teamId: varchar("team_id").references(() => teams.id, { onDelete: "cascade" }),
   createdBy: varchar("created_by").references(() => users.id),
   updatedBy: varchar("updated_by").references(() => users.id),
-  fullName: text("full_name").notNull(),
+  
+  // Name fields
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  patronymic: text("patronymic"),
+  fullName: text("full_name").notNull(), // Computed: lastName + firstName + patronymic
   shortName: text("short_name"),
+  
+  // Company info
+  company: text("company"),
+  companyRole: text("company_role"),
+  
+  // Contact methods (legacy single fields kept for backwards compatibility)
   phone: text("phone"),
   email: text("email"),
+  
+  // Structured contact methods
+  phones: jsonb("phones").$type<PhoneEntry[]>().default([]),
+  messengers: jsonb("messengers").$type<MessengerEntry[]>().default([]),
+  socialAccounts: jsonb("social_accounts").$type<SocialAccountEntry[]>().default([]),
+  
+  // Legacy field (deprecated, use socialAccounts instead)
   socialLinks: jsonb("social_links").$type<string[]>().default([]),
+  
+  // Family information
+  familyStatus: jsonb("family_status").$type<FamilyStatus>().default({ members: [], events: [] }),
+  
+  // Tags
   tags: jsonb("tags").$type<string[]>().default([]),
   roleTags: jsonb("role_tags").$type<string[]>().default([]),
   
@@ -148,6 +210,44 @@ const potentialDetailsSchema = z.object({
   systemRole: z.number().min(0).max(3).default(0),
 });
 
+const phoneEntrySchema = z.object({
+  type: z.enum(["mobile", "work", "home", "other"]),
+  number: z.string(),
+  label: z.string().optional(),
+});
+
+const messengerEntrySchema = z.object({
+  platform: z.enum(["telegram", "whatsapp", "viber", "signal", "wechat", "other"]),
+  username: z.string(),
+  label: z.string().optional(),
+});
+
+const socialAccountEntrySchema = z.object({
+  platform: z.enum(["instagram", "facebook", "linkedin", "twitter", "vk", "youtube", "tiktok", "other"]),
+  url: z.string(),
+  label: z.string().optional(),
+});
+
+const familyMemberSchema = z.object({
+  name: z.string(),
+  relation: z.enum(["spouse", "child", "parent", "sibling", "other"]),
+  birthday: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const familyEventSchema = z.object({
+  title: z.string(),
+  date: z.string(),
+  notes: z.string().optional(),
+});
+
+const familyStatusSchema = z.object({
+  maritalStatus: z.enum(["single", "married", "divorced", "widowed", "partnership"]).optional(),
+  members: z.array(familyMemberSchema).default([]),
+  events: z.array(familyEventSchema).default([]),
+  notes: z.string().optional(),
+});
+
 // Team schemas
 export const insertTeamSchema = createInsertSchema(teams).omit({
   id: true,
@@ -184,10 +284,34 @@ export const insertContactSchema = createInsertSchema(contacts).omit({
   teamId: z.string().optional(),
   createdBy: z.string().optional(),
   updatedBy: z.string().optional(),
+  
+  // Name fields
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  patronymic: z.string().optional(),
   fullName: z.string().min(1, "Имя обязательно"),
+  shortName: z.string().optional().nullable(),
+  
+  // Company info
+  company: z.string().optional().nullable(),
+  companyRole: z.string().optional().nullable(),
+  
+  // Contact methods
+  phone: z.string().optional().nullable(),
+  email: z.string().optional().nullable(),
+  phones: z.array(phoneEntrySchema).default([]),
+  messengers: z.array(messengerEntrySchema).default([]),
+  socialAccounts: z.array(socialAccountEntrySchema).default([]),
   socialLinks: z.array(z.string()).default([]),
+  
+  // Family info
+  familyStatus: familyStatusSchema.default({ members: [], events: [] }),
+  
+  // Tags
   tags: z.array(z.string()).default([]),
   roleTags: z.array(z.string()).default([]),
+  
+  // Scoring
   contributionDetails: contributionDetailsSchema.default({ financial: 0, network: 0, trust: 0 }),
   potentialDetails: potentialDetailsSchema.default({ personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 }),
   importanceLevel: z.enum(["A", "B", "C"]).default("C"),
