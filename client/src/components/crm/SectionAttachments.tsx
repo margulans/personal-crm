@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { ObjectUploader } from "./ObjectUploader";
 import { Button } from "@/components/ui/button";
@@ -88,6 +88,7 @@ export function SectionAttachments({
   const { toast } = useToast();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<string>("");
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
   const { data: attachments = [], isLoading } = useQuery<Attachment[]>({
     queryKey: ["/api/contacts", contactId, "attachments", category],
@@ -103,6 +104,45 @@ export function SectionAttachments({
   const filteredAttachments = subCategory
     ? attachments.filter((a) => a.subCategory === subCategory)
     : attachments;
+
+  useEffect(() => {
+    const fetchSignedUrls = async () => {
+      const newUrls: Record<string, string> = {};
+      
+      for (const attachment of filteredAttachments) {
+        if (signedUrls[attachment.id]) continue;
+        
+        if (attachment.storagePath.startsWith("http://") || attachment.storagePath.startsWith("https://")) {
+          newUrls[attachment.id] = attachment.storagePath;
+          continue;
+        }
+        
+        try {
+          const res = await fetch(`/api/attachments/${attachment.id}/url`, {
+            credentials: "include",
+          });
+          if (res.ok) {
+            const { url } = await res.json();
+            newUrls[attachment.id] = url;
+          }
+        } catch (err) {
+          console.error("Failed to get signed URL:", err);
+        }
+      }
+      
+      if (Object.keys(newUrls).length > 0) {
+        setSignedUrls(prev => ({ ...prev, ...newUrls }));
+      }
+    };
+    
+    if (filteredAttachments.length > 0) {
+      fetchSignedUrls();
+    }
+  }, [filteredAttachments, signedUrls]);
+
+  const getDisplayUrl = (attachment: Attachment): string | undefined => {
+    return signedUrls[attachment.id];
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -148,20 +188,27 @@ export function SectionAttachments({
       }
     }
 
+    setSignedUrls({});
     queryClient.invalidateQueries({ queryKey: ["/api/contacts", contactId, "attachments", category] });
     toast({ title: "Файл загружен" });
   };
 
-  const handlePreview = (attachment: Attachment) => {
+  const handlePreview = async (attachment: Attachment) => {
     if (isImageFile(attachment.fileType, attachment.originalName)) {
-      setPreviewUrl(attachment.storagePath);
-      setPreviewType(attachment.fileType);
+      const url = getDisplayUrl(attachment);
+      if (url) {
+        setPreviewUrl(url);
+        setPreviewType(attachment.fileType);
+      }
     }
   };
 
-  const handleDownload = (attachment: Attachment) => {
+  const handleDownload = async (attachment: Attachment) => {
+    const url = getDisplayUrl(attachment);
+    if (!url) return;
+    
     const link = document.createElement("a");
-    link.href = attachment.storagePath;
+    link.href = url;
     link.download = attachment.originalName;
     link.target = "_blank";
     document.body.appendChild(link);
@@ -228,6 +275,7 @@ export function SectionAttachments({
           {filteredAttachments.map((attachment) => {
             const FileIcon = getFileIcon(attachment.fileType, attachment.originalName);
             const isImage = isImageFile(attachment.fileType, attachment.originalName);
+            const displayUrl = getDisplayUrl(attachment);
 
             return (
               <div
@@ -237,14 +285,18 @@ export function SectionAttachments({
               >
                 {isImage ? (
                   <div className="aspect-square relative bg-black/5 dark:bg-white/5 flex items-center justify-center">
-                    <img
-                      src={attachment.storagePath}
-                      alt={attachment.originalName}
-                      className="max-w-full max-h-full object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
+                    {displayUrl ? (
+                      <img
+                        src={displayUrl}
+                        alt={attachment.originalName}
+                        className="max-w-full max-h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    )}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                       <Button
                         size="icon"

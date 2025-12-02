@@ -1284,6 +1284,43 @@ export async function registerRoutes(
 
   // ============= ATTACHMENT ENDPOINTS =============
   
+  // Get signed download URL for an attachment
+  app.get("/api/attachments/:id/url", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+
+      const attachment = await storage.getAttachment(req.params.id);
+      if (!attachment) {
+        return res.status(404).json({ error: "Attachment not found" });
+      }
+
+      // Verify team access
+      if (attachment.teamId !== teamId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // If it's an external URL, return it directly
+      if (attachment.storagePath.startsWith("http://") || attachment.storagePath.startsWith("https://")) {
+        return res.json({ url: attachment.storagePath, expires: null });
+      }
+
+      // Generate signed URL for object storage files
+      const objectStorageService = new ObjectStorageService();
+      const signedUrl = await objectStorageService.getSignedDownloadURL(attachment.storagePath, 3600);
+      
+      res.json({ 
+        url: signedUrl, 
+        expires: new Date(Date.now() + 3600 * 1000).toISOString() 
+      });
+    } catch (error) {
+      console.error("Error getting signed URL:", error);
+      res.status(500).json({ error: "Failed to get download URL" });
+    }
+  });
+
   // Get upload URL for file
   app.post("/api/objects/upload", isAuthenticated, async (req: Request, res: Response) => {
     try {
