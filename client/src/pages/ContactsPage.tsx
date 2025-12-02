@@ -414,10 +414,10 @@ export default function ContactsPage() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             )}
-            <h1 className="text-xl sm:text-2xl font-semibold">
+            <h1 className="text-xl sm:text-2xl font-bold">
               Контакты
-              <span className="ml-2 text-base font-normal text-muted-foreground">
-                ({contacts.length})
+              <span className="ml-2 text-sm font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                {contacts.length}
               </span>
             </h1>
           </div>

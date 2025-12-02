@@ -149,10 +149,10 @@ export function ContactCard({ contact, onClick, onDelete, selectionMode, isSelec
 
       <Card
         className={cn(
-          "cursor-pointer transition-all duration-200 ease-out",
-          "hover:shadow-md hover:-translate-y-0.5",
+          "cursor-pointer transition-all duration-300 ease-out",
+          "hover:shadow-lg hover:-translate-y-1 hover:border-primary/30",
           isSelected && "ring-2 ring-primary bg-primary/5",
-          "relative bg-card"
+          "relative bg-card border-border/50"
         )}
         onClick={handleClick}
         style={{ 
@@ -172,8 +172,8 @@ export function ContactCard({ contact, onClick, onDelete, selectionMode, isSelec
                 data-testid={`checkbox-contact-${contact.id}`}
               />
             )}
-            <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-background shadow-sm">
-              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-sm font-semibold">
+            <Avatar className="h-11 w-11 flex-shrink-0 ring-2 ring-primary/20 shadow-md">
+              <AvatarFallback className="bg-gradient-to-br from-violet-500/20 via-primary/20 to-indigo-500/20 text-primary text-sm font-bold">
                 {initials}
               </AvatarFallback>
             </Avatar>
