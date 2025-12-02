@@ -435,18 +435,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="shortName">Короткое имя (как обращаться)</Label>
-            <Input
-              id="shortName"
-              value={formData.shortName || ""}
-              onChange={(e) => setFormData({ ...formData, shortName: e.target.value })}
-              placeholder="Ваня"
-              data-testid="input-shortName"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="company">Компания</Label>
               <Input
