@@ -392,13 +392,13 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Tabs defaultValue={initialTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="basic">ФИО</TabsTrigger>
-          <TabsTrigger value="contacts">Контакты</TabsTrigger>
-          <TabsTrigger value="family">Семья</TabsTrigger>
-          <TabsTrigger value="priority">Приоритеты</TabsTrigger>
-          <TabsTrigger value="contribution">Вклад</TabsTrigger>
-          <TabsTrigger value="potential">Потенциал</TabsTrigger>
+        <TabsList className="flex flex-wrap gap-1 h-auto p-1 w-full">
+          <TabsTrigger value="basic" className="text-xs sm:text-sm px-2 sm:px-3">ФИО</TabsTrigger>
+          <TabsTrigger value="contacts" className="text-xs sm:text-sm px-2 sm:px-3">Контакты</TabsTrigger>
+          <TabsTrigger value="family" className="text-xs sm:text-sm px-2 sm:px-3">Семья</TabsTrigger>
+          <TabsTrigger value="priority" className="text-xs sm:text-sm px-2 sm:px-3">Приоритеты</TabsTrigger>
+          <TabsTrigger value="contribution" className="text-xs sm:text-sm px-2 sm:px-3">Вклад</TabsTrigger>
+          <TabsTrigger value="potential" className="text-xs sm:text-sm px-2 sm:px-3">Потенциал</TabsTrigger>
         </TabsList>
 
         <TabsContent value="basic" className="space-y-4 mt-4">
@@ -839,24 +839,35 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
-                <div className="flex gap-2">
-                  <div className="flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="flex gap-1">
                     <Input
                       type="date"
                       value={member.birthday || ""}
                       onChange={(e) => updateFamilyMember(index, 'birthday', e.target.value)}
                       placeholder="Дата рождения"
+                      className="flex-1"
                       data-testid={`input-family-birthday-${index}`}
                     />
+                    {member.birthday && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => updateFamilyMember(index, 'birthday', '')}
+                        data-testid={`button-clear-birthday-${index}`}
+                        title="Сбросить дату"
+                      >
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    )}
                   </div>
-                  <div className="flex-1">
-                    <Input
-                      value={member.notes || ""}
-                      onChange={(e) => updateFamilyMember(index, 'notes', e.target.value)}
-                      placeholder="Заметки"
-                      data-testid={`input-family-notes-${index}`}
-                    />
-                  </div>
+                  <Input
+                    value={member.notes || ""}
+                    onChange={(e) => updateFamilyMember(index, 'notes', e.target.value)}
+                    placeholder="Заметки"
+                    data-testid={`input-family-notes-${index}`}
+                  />
                 </div>
               </div>
             ))}
@@ -873,30 +884,31 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
               </Button>
             </div>
             {(formData.familyStatus?.events || []).map((event, index) => (
-              <div key={index} className="flex gap-2 items-center">
-                <Input
-                  value={event.title}
-                  onChange={(e) => updateFamilyEvent(index, 'title', e.target.value)}
-                  placeholder="Название (годовщина, др и т.д.)"
-                  className="flex-1"
-                  data-testid={`input-event-title-${index}`}
-                />
+              <div key={index} className="p-3 border rounded-md space-y-2 bg-muted/30">
+                <div className="flex gap-2 items-center">
+                  <Input
+                    value={event.title}
+                    onChange={(e) => updateFamilyEvent(index, 'title', e.target.value)}
+                    placeholder="Название (годовщина, др и т.д.)"
+                    className="flex-1"
+                    data-testid={`input-event-title-${index}`}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => removeFamilyEvent(index)}
+                    data-testid={`button-remove-event-${index}`}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
                 <Input
                   type="date"
                   value={event.date}
                   onChange={(e) => updateFamilyEvent(index, 'date', e.target.value)}
-                  className="w-[160px]"
                   data-testid={`input-event-date-${index}`}
                 />
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => removeFamilyEvent(index)}
-                  data-testid={`button-remove-event-${index}`}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
               </div>
             ))}
             {(formData.familyStatus?.events || []).length === 0 && (
