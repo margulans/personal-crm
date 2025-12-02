@@ -28,21 +28,39 @@ import { Document, Page, pdfjs } from "react-pdf";
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
+type AttachmentCategory = 
+  | "personal" 
+  | "family" 
+  | "team" 
+  | "work" 
+  | "documents" 
+  | "other"
+  | "hobbies"
+  | "gifts"
+  | "preferences"
+  | "dates"
+  | "notes";
+
 interface SectionAttachmentsProps {
   contactId: string;
-  category: "personal" | "family" | "team" | "work" | "documents" | "other";
+  category: AttachmentCategory;
   subCategory?: string;
   label?: string;
   compact?: boolean;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
+const CATEGORY_LABELS: Record<AttachmentCategory, string> = {
   personal: "Личные файлы",
   family: "Семья",
   team: "Команда",
   work: "Работа",
   documents: "Документы",
   other: "Прочее",
+  hobbies: "Хобби и увлечения",
+  gifts: "Идеи подарков",
+  preferences: "Предпочтения",
+  dates: "Важные даты",
+  notes: "Заметки",
 };
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.ico', '.heic', '.heif'];

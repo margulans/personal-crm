@@ -489,6 +489,101 @@ export function ContactDetail({
                         {(contact.familyStatus as FamilyStatus).notes}
                       </div>
                     )}
+                    
+                    <Separator />
+                    <SectionAttachments 
+                      contactId={contact.id} 
+                      category="family" 
+                      label="Фото семьи"
+                      compact
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Interests Section */}
+              {(contact.hobbies || contact.preferences || contact.importantDates || contact.giftPreferences || contact.otherInterests) && (
+                <Card className="bg-purple-50/50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center">
+                      <Sparkles className="h-4 w-4 mr-2 text-purple-500" />
+                      Интересы и предпочтения
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {contact.hobbies && (
+                      <div className="space-y-2">
+                        <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                          Хобби и увлечения
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{contact.hobbies}</p>
+                        <SectionAttachments 
+                          contactId={contact.id} 
+                          category="hobbies" 
+                          compact
+                        />
+                      </div>
+                    )}
+                    
+                    {contact.preferences && (
+                      <div className="space-y-2">
+                        <Separator />
+                        <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                          Любимая еда и напитки
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{contact.preferences}</p>
+                        <SectionAttachments 
+                          contactId={contact.id} 
+                          category="preferences" 
+                          compact
+                        />
+                      </div>
+                    )}
+                    
+                    {contact.importantDates && (
+                      <div className="space-y-2">
+                        <Separator />
+                        <div className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                          <Calendar className="h-3 w-3" /> Важные даты
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{contact.importantDates}</p>
+                        <SectionAttachments 
+                          contactId={contact.id} 
+                          category="dates" 
+                          compact
+                        />
+                      </div>
+                    )}
+                    
+                    {contact.giftPreferences && (
+                      <div className="space-y-2">
+                        <Separator />
+                        <div className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                          <Gift className="h-3 w-3" /> Идеи подарков
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{contact.giftPreferences}</p>
+                        <SectionAttachments 
+                          contactId={contact.id} 
+                          category="gifts" 
+                          compact
+                        />
+                      </div>
+                    )}
+                    
+                    {contact.otherInterests && (
+                      <div className="space-y-2">
+                        <Separator />
+                        <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                          Другие заметки
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{contact.otherInterests}</p>
+                        <SectionAttachments 
+                          contactId={contact.id} 
+                          category="notes" 
+                          compact
+                        />
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
