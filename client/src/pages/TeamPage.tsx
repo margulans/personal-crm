@@ -48,7 +48,7 @@ export default function TeamPage() {
 
   const createTeamMutation = useMutation({
     mutationFn: async (name: string) => {
-      return await apiRequest("/api/teams", "POST", { name });
+      return await apiRequest("POST", "/api/teams", { name });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -64,7 +64,7 @@ export default function TeamPage() {
 
   const joinTeamMutation = useMutation({
     mutationFn: async (code: string) => {
-      return await apiRequest("/api/teams/join", "POST", { inviteCode: code });
+      return await apiRequest("POST", "/api/teams/join", { inviteCode: code });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -80,7 +80,7 @@ export default function TeamPage() {
 
   const regenerateCodeMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest(`/api/teams/${currentTeamId}/regenerate-code`, "POST");
+      return await apiRequest("POST", `/api/teams/${currentTeamId}/regenerate-code`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/teams", currentTeamId] });
@@ -93,7 +93,7 @@ export default function TeamPage() {
 
   const removeMemberMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/teams/${currentTeamId}/members/${userId}`, "DELETE");
+      return await apiRequest("DELETE", `/api/teams/${currentTeamId}/members/${userId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/teams", currentTeamId] });
