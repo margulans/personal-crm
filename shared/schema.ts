@@ -241,6 +241,47 @@ export const backups = pgTable("backups", {
 export type Backup = typeof backups.$inferSelect;
 export type InsertBackup = typeof backups.$inferInsert;
 
+// Attachments table for file uploads
+export const attachments = pgTable("attachments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contactId: varchar("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  teamId: varchar("team_id").references(() => teams.id, { onDelete: "cascade" }),
+  uploadedBy: varchar("uploaded_by").references(() => users.id),
+  
+  category: varchar("category", { length: 30 }).notNull(), // personal, family, team, work, documents, other
+  subCategory: varchar("sub_category", { length: 50 }), // e.g., "child_photo", "driver_photo", "contract"
+  
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  originalName: varchar("original_name", { length: 255 }).notNull(),
+  fileType: varchar("file_type", { length: 100 }).notNull(), // MIME type
+  fileSize: integer("file_size").notNull(), // in bytes
+  storagePath: varchar("storage_path", { length: 500 }).notNull(), // path in object storage
+  
+  description: text("description"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Attachment = typeof attachments.$inferSelect;
+export type InsertAttachment = typeof attachments.$inferInsert;
+
+export const insertAttachmentSchema = createInsertSchema(attachments).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  contactId: z.string().min(1),
+  teamId: z.string().optional(),
+  uploadedBy: z.string().optional(),
+  category: z.enum(["personal", "family", "team", "work", "documents", "other"]),
+  subCategory: z.string().optional(),
+  fileName: z.string().min(1),
+  originalName: z.string().min(1),
+  fileType: z.string().min(1),
+  fileSize: z.number().min(1),
+  storagePath: z.string().min(1),
+  description: z.string().optional(),
+});
+
 const contributionDetailsSchema = z.object({
   financial: z.number().min(0).max(3).default(0),
   network: z.number().min(0).max(3).default(0),

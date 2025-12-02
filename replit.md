@@ -24,8 +24,14 @@ PRIMA is a multi-user collaborative application with team-based access control. 
 
 ### Data Layer
 - **Database**: PostgreSQL via Neon serverless, utilizing Drizzle ORM for type-safe queries.
-- **Data Model**: Key tables include `contacts` (comprehensive contact details, scoring, and relationship metrics), `interactions` (tracking touchpoints), and `backups` (team data snapshots).
+- **Data Model**: Key tables include `contacts` (comprehensive contact details, scoring, and relationship metrics), `interactions` (tracking touchpoints), `attachments` (file uploads organized by category), and `backups` (team data snapshots).
 - **Backup System**: Supports manual and automatic daily backups, with restoration capabilities and retention policies.
+
+### File Attachments
+- **Object Storage**: Uses Replit Object Storage (Google Cloud Storage) for file uploads with team-based access control.
+- **Categories**: Files organized by context - personal, family, team (staff photos), work, documents.
+- **Security**: Multi-tenant isolation with team-based ACL policies, verified team membership on all operations, path validation to prevent traversal attacks.
+- **Components**: ObjectUploader (file upload), SectionAttachments (category-based display in contact detail).
 
 ### File Structure
 The project adopts a monorepo structure, separating client (React components, pages, utilities) and server (API routes, storage, database setup) with shared schema definitions for type safety.

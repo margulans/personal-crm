@@ -11,12 +11,15 @@ import {
   type InsertTeamMember,
   type Backup,
   type InsertBackup,
+  type Attachment,
+  type InsertAttachment,
   contacts, 
   interactions,
   users,
   teams,
   teamMembers,
   backups,
+  attachments,
   getClassFromScore,
   calculateHeatIndex,
   getRecommendedAttentionLevel,
@@ -69,6 +72,13 @@ export interface IStorage {
   restoreBackup(backupId: string): Promise<boolean>;
   deleteBackup(id: string): Promise<boolean>;
   deleteOldBackups(teamId: string, keepCount: number): Promise<number>;
+  
+  // Attachment operations
+  getAttachments(contactId: string): Promise<Attachment[]>;
+  getAttachmentsByCategory(contactId: string, category: string): Promise<Attachment[]>;
+  getAttachment(id: string): Promise<Attachment | undefined>;
+  createAttachment(attachment: InsertAttachment): Promise<Attachment>;
+  deleteAttachment(id: string): Promise<boolean>;
 }
 
 function calculateScoresAndClass(details: { 
@@ -530,6 +540,37 @@ export class DatabaseStorage implements IStorage {
     }
 
     return deletedCount;
+  }
+
+  // Attachment operations
+  async getAttachments(contactId: string): Promise<Attachment[]> {
+    return db.select().from(attachments)
+      .where(eq(attachments.contactId, contactId))
+      .orderBy(desc(attachments.createdAt));
+  }
+
+  async getAttachmentsByCategory(contactId: string, category: string): Promise<Attachment[]> {
+    return db.select().from(attachments)
+      .where(and(
+        eq(attachments.contactId, contactId),
+        eq(attachments.category, category)
+      ))
+      .orderBy(desc(attachments.createdAt));
+  }
+
+  async getAttachment(id: string): Promise<Attachment | undefined> {
+    const [attachment] = await db.select().from(attachments).where(eq(attachments.id, id));
+    return attachment;
+  }
+
+  async createAttachment(attachment: InsertAttachment): Promise<Attachment> {
+    const [created] = await db.insert(attachments).values(attachment).returning();
+    return created;
+  }
+
+  async deleteAttachment(id: string): Promise<boolean> {
+    const result = await db.delete(attachments).where(eq(attachments.id, id)).returning();
+    return result.length > 0;
   }
 }
 

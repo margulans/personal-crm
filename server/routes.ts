@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { insertContactSchema, insertInteractionSchema, insertTeamSchema, teams, aiInsightsCache } from "@shared/schema";
+import { insertContactSchema, insertInteractionSchema, insertTeamSchema, insertAttachmentSchema, teams, aiInsightsCache } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -13,6 +13,8 @@ import {
   getAIModelInfo,
   type ContactContext 
 } from "./services/ai";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { ObjectPermission } from "./objectAcl";
 import { eq, and, gt } from "drizzle-orm";
 
 declare global {
@@ -48,6 +50,21 @@ async function getCurrentTeamId(req: Request): Promise<string | null> {
   
   const teams = await storage.getUserTeams(userId);
   return teams.length > 0 ? teams[0].id : null;
+}
+
+// Strict team ID validation for secure endpoints (attachments, etc.)
+// Returns teamId only if user has verified membership, null otherwise
+async function getVerifiedTeamId(req: Request): Promise<string | null> {
+  const userId = getUserId(req);
+  if (!userId) return null;
+  
+  // Get teamId from header or default
+  const teamId = await getCurrentTeamId(req);
+  if (!teamId) return null;
+  
+  // Always verify current membership
+  const member = await storage.getTeamMember(teamId, userId);
+  return member ? teamId : null;
 }
 
 function generateInviteCode(): string {
@@ -1264,6 +1281,232 @@ export async function registerRoutes(
   });
 
   // ============= END AI ENDPOINTS =============
+
+  // ============= ATTACHMENT ENDPOINTS =============
+  
+  // Get upload URL for file
+  app.post("/api/objects/upload", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  // Serve uploaded objects with team-based access control
+  app.get("/objects/:objectPath(*)", isAuthenticated, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
+    // Use verified team ID with membership check
+    const teamId = await getVerifiedTeamId(req);
+    const objectStorageService = new ObjectStorageService();
+    
+    try {
+      const storagePath = req.path;
+      
+      // Validate storage path format (security: prevent path traversal)
+      if (!storagePath.startsWith("/objects/uploads/") || 
+          !/^\/objects\/uploads\/[a-f0-9-]{36}$/i.test(storagePath)) {
+        return res.sendStatus(404);
+      }
+      
+      // Find the attachment by storage path
+      const { attachments: attachmentsTable } = await import("@shared/schema");
+      const [attachment] = await db.select().from(attachmentsTable)
+        .where(eq(attachmentsTable.storagePath, storagePath));
+      
+      if (!attachment) {
+        return res.sendStatus(404);
+      }
+      
+      // Require valid teamId on both attachment and request
+      if (!attachment.teamId || !teamId) {
+        return res.sendStatus(403);
+      }
+      
+      // Verify team membership - attachment must belong to user's team
+      if (attachment.teamId !== teamId) {
+        return res.sendStatus(403);
+      }
+      
+      // Re-verify team membership by checking the contact still belongs to user's team
+      const contact = await storage.getContact(attachment.contactId, teamId);
+      if (!contact) {
+        return res.sendStatus(403);
+      }
+      
+      const objectFile = await objectStorageService.getObjectEntityFile(storagePath);
+      
+      // Check file-level ACL with team-based access
+      const canAccess = await objectStorageService.canAccessObjectEntity({
+        objectFile,
+        userId: userId,
+        teamId: teamId,
+        requestedPermission: ObjectPermission.READ,
+      });
+      
+      // Deny access if ACL check fails
+      if (!canAccess) {
+        return res.sendStatus(403);
+      }
+      
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving object:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
+  // Get all attachments for a contact
+  app.get("/api/contacts/:contactId/attachments", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // Use verified team ID with membership check
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const contact = await storage.getContact(req.params.contactId, teamId);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      const attachmentsList = await storage.getAttachments(req.params.contactId);
+      res.json(attachmentsList);
+    } catch (error) {
+      console.error("Error fetching attachments:", error);
+      res.status(500).json({ error: "Failed to fetch attachments" });
+    }
+  });
+
+  // Get attachments by category
+  app.get("/api/contacts/:contactId/attachments/:category", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // Use verified team ID with membership check
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const contact = await storage.getContact(req.params.contactId, teamId);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      const attachmentsList = await storage.getAttachmentsByCategory(req.params.contactId, req.params.category);
+      res.json(attachmentsList);
+    } catch (error) {
+      console.error("Error fetching attachments:", error);
+      res.status(500).json({ error: "Failed to fetch attachments" });
+    }
+  });
+
+  // Create attachment record after upload
+  app.post("/api/contacts/:contactId/attachments", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      // Use verified team ID with membership check
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const contact = await storage.getContact(req.params.contactId, teamId);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      
+      // Validate and set ACL policy for the uploaded file with team-based access
+      const storagePath = await objectStorageService.trySetObjectEntityAclPolicy(
+        req.body.uploadURL,
+        {
+          owner: userId,
+          teamId: teamId || undefined,
+          visibility: "private",
+        }
+      );
+      
+      // Reject invalid storage paths (security: prevent path injection)
+      if (!storagePath) {
+        return res.status(400).json({ error: "Invalid upload URL format" });
+      }
+
+      const data = insertAttachmentSchema.parse({
+        contactId: req.params.contactId,
+        teamId,
+        uploadedBy: userId,
+        category: req.body.category,
+        subCategory: req.body.subCategory,
+        fileName: req.body.fileName,
+        originalName: req.body.originalName,
+        fileType: req.body.fileType,
+        fileSize: req.body.fileSize,
+        storagePath,
+        description: req.body.description,
+      });
+
+      const attachment = await storage.createAttachment(data);
+      res.status(201).json(attachment);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ error: validationError.message });
+      }
+      console.error("Error creating attachment:", error);
+      res.status(500).json({ error: "Failed to create attachment" });
+    }
+  });
+
+  // Delete attachment
+  app.delete("/api/attachments/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // Use verified team ID with membership check
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const attachment = await storage.getAttachment(req.params.id);
+      if (!attachment) {
+        return res.status(404).json({ error: "Attachment not found" });
+      }
+      
+      // Verify team access - attachment must belong to user's team
+      if (attachment.teamId !== teamId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      // Double-check by verifying contact belongs to team
+      const contact = await storage.getContact(attachment.contactId, teamId);
+      if (!contact) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Delete from object storage
+      const objectStorageService = new ObjectStorageService();
+      try {
+        await objectStorageService.deleteObject(attachment.storagePath);
+      } catch (err) {
+        console.error("Error deleting from storage:", err);
+      }
+
+      // Delete attachment record
+      await storage.deleteAttachment(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting attachment:", error);
+      res.status(500).json({ error: "Failed to delete attachment" });
+    }
+  });
+
+  // ============= END ATTACHMENT ENDPOINTS =============
 
   // Endpoint for scheduled backup (can be called by cron/scheduled deployment)
   app.post("/api/backups/auto", async (req: Request, res: Response) => {

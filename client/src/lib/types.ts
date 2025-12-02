@@ -213,3 +213,5 @@ export interface AIAnalytics {
   cached?: boolean;
   model?: string;
 }
+
+export type { Attachment } from "@shared/schema";

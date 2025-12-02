@@ -42,9 +42,12 @@ import {
   Target,
   MessageSquare,
   Gift,
+  Paperclip,
+  FileArchive,
 } from "lucide-react";
 
 import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, AIInsight, AIRecommendation } from "@/lib/types";
+import { SectionAttachments } from "./SectionAttachments";
 
 const BLOCK_DESCRIPTIONS = {
   contact: {
@@ -74,6 +77,10 @@ const BLOCK_DESCRIPTIONS = {
   ai: {
     title: "AI Ассистент",
     description: "Искусственный интеллект анализирует контакт и даёт рекомендации по поддержанию отношений. Использует модель GPT-5.1."
+  },
+  attachments: {
+    title: "Файлы и документы",
+    description: "Прикрепляйте файлы к контакту: личные фото, семейные документы, рабочие материалы, фото водителей и персонала. Файлы организованы по категориям."
   }
 };
 
@@ -889,6 +896,49 @@ export function ContactDetail({
                     )}
                   </CardContent>
                 )}
+              </Card>
+
+              <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-900/10">
+                <CardHeader className="flex-row items-center justify-between space-y-0 gap-2 pb-3">
+                  <CardTitle className="text-base flex items-center">
+                    <Paperclip className="h-4 w-4 mr-2 text-blue-500" />
+                    Файлы и документы
+                    <InfoPopover blockKey="attachments" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-4">
+                    <SectionAttachments 
+                      contactId={contact.id} 
+                      category="personal" 
+                      label="Личные фото и файлы"
+                    />
+                    <Separator />
+                    <SectionAttachments 
+                      contactId={contact.id} 
+                      category="family" 
+                      label="Семья"
+                    />
+                    <Separator />
+                    <SectionAttachments 
+                      contactId={contact.id} 
+                      category="team" 
+                      label="Персонал (фото водителей, помощников)"
+                    />
+                    <Separator />
+                    <SectionAttachments 
+                      contactId={contact.id} 
+                      category="work" 
+                      label="Рабочие материалы"
+                    />
+                    <Separator />
+                    <SectionAttachments 
+                      contactId={contact.id} 
+                      category="documents" 
+                      label="Документы"
+                    />
+                  </div>
+                </CardContent>
               </Card>
 
               <Card className="bg-slate-100 dark:bg-slate-800/50 border-slate-300 dark:border-slate-600">
