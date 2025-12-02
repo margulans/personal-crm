@@ -42,10 +42,32 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "Прочее",
 };
 
-function getFileIcon(fileType: string) {
-  if (fileType.startsWith("image/")) return Image;
-  if (fileType.startsWith("video/")) return FileVideo;
-  if (fileType.startsWith("audio/")) return FileAudio;
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.ico', '.heic', '.heif'];
+const VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
+const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'];
+
+function isImageFile(fileType: string, fileName: string): boolean {
+  if (fileType.startsWith("image/")) return true;
+  const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
+  return IMAGE_EXTENSIONS.includes(ext);
+}
+
+function isVideoFile(fileType: string, fileName: string): boolean {
+  if (fileType.startsWith("video/")) return true;
+  const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
+  return VIDEO_EXTENSIONS.includes(ext);
+}
+
+function isAudioFile(fileType: string, fileName: string): boolean {
+  if (fileType.startsWith("audio/")) return true;
+  const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
+  return AUDIO_EXTENSIONS.includes(ext);
+}
+
+function getFileIcon(fileType: string, fileName: string = "") {
+  if (isImageFile(fileType, fileName)) return Image;
+  if (isVideoFile(fileType, fileName)) return FileVideo;
+  if (isAudioFile(fileType, fileName)) return FileAudio;
   if (fileType.includes("pdf") || fileType.includes("document") || fileType.includes("text")) return FileText;
   return File;
 }
@@ -131,7 +153,7 @@ export function SectionAttachments({
   };
 
   const handlePreview = (attachment: Attachment) => {
-    if (attachment.fileType.startsWith("image/")) {
+    if (isImageFile(attachment.fileType, attachment.originalName)) {
       setPreviewUrl(attachment.storagePath);
       setPreviewType(attachment.fileType);
     }
@@ -204,8 +226,8 @@ export function SectionAttachments({
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
           {filteredAttachments.map((attachment) => {
-            const FileIcon = getFileIcon(attachment.fileType);
-            const isImage = attachment.fileType.startsWith("image/");
+            const FileIcon = getFileIcon(attachment.fileType, attachment.originalName);
+            const isImage = isImageFile(attachment.fileType, attachment.originalName);
 
             return (
               <div
