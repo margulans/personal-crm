@@ -11,6 +11,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ const menuItems = [
 
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
+  const { setOpenMobile, isMobile } = useSidebar();
   
   const { data: contacts = [] } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
@@ -86,7 +88,12 @@ export function AppSidebar() {
                     isActive={location === item.url}
                     data-testid={`nav-${item.title.toLowerCase()}`}
                   >
-                    <button onClick={() => setLocation(item.url)}>
+                    <button onClick={() => {
+                      setLocation(item.url);
+                      if (isMobile) {
+                        setOpenMobile(false);
+                      }
+                    }}>
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>
                       {item.title === "Контакты" && contactCount > 0 && (
