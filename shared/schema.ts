@@ -208,6 +208,21 @@ export const interactions = pgTable("interactions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// AI Insights cache table for offline/PWA support
+export const aiInsightsCache = pgTable("ai_insights_cache", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contactId: varchar("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  teamId: varchar("team_id").references(() => teams.id, { onDelete: "cascade" }),
+  insightType: varchar("insight_type", { length: 30 }).notNull(), // 'insights', 'recommendations', 'summary'
+  data: jsonb("data").notNull(),
+  modelUsed: varchar("model_used", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"), // When the cache should be invalidated
+});
+
+export type AIInsightsCache = typeof aiInsightsCache.$inferSelect;
+export type InsertAIInsightsCache = typeof aiInsightsCache.$inferInsert;
+
 // Backups table for daily automatic backups
 export const backups = pgTable("backups", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

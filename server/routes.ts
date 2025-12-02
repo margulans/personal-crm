@@ -2,10 +2,18 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { insertContactSchema, insertInteractionSchema, insertTeamSchema, teams } from "@shared/schema";
+import { insertContactSchema, insertInteractionSchema, insertTeamSchema, teams, aiInsightsCache } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { 
+  generateContactInsights, 
+  generateContactRecommendations, 
+  summarizeInteractions, 
+  getAIModelInfo,
+  type ContactContext 
+} from "./services/ai";
+import { eq, and, gt } from "drizzle-orm";
 
 declare global {
   namespace Express {
@@ -727,6 +735,345 @@ export async function registerRoutes(
       res.status(500).json({ error: "Failed to delete backup" });
     }
   });
+
+  // ============= AI ENDPOINTS =============
+  
+  // Get AI model info
+  app.get("/api/ai/info", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      res.json(getAIModelInfo());
+    } catch (error) {
+      console.error("Error fetching AI info:", error);
+      res.status(500).json({ error: "Failed to fetch AI info" });
+    }
+  });
+
+  // Generate AI insights for a contact
+  app.get("/api/ai/insights/:contactId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const teamId = await getCurrentTeamId(req);
+      const contactId = req.params.contactId;
+      const forceRefresh = req.query.refresh === "true";
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "No team found" });
+      }
+      
+      // Verify contact belongs to user's team
+      const contact = await storage.getContact(contactId);
+      if (!contact || contact.teamId !== teamId) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      // Check cache first (valid for 24 hours)
+      if (!forceRefresh) {
+        const now = new Date();
+        const cached = await db.select()
+          .from(aiInsightsCache)
+          .where(
+            and(
+              eq(aiInsightsCache.contactId, contactId),
+              eq(aiInsightsCache.insightType, "insights"),
+              gt(aiInsightsCache.expiresAt, now)
+            )
+          )
+          .limit(1);
+        
+        if (cached.length > 0) {
+          const cachedData = cached[0].data as Record<string, unknown>;
+          return res.json({ 
+            ...cachedData, 
+            cached: true, 
+            cachedAt: cached[0].createdAt,
+            model: cached[0].modelUsed
+          });
+        }
+      }
+      
+      // Get interactions for context
+      const interactions = await storage.getInteractions(contactId);
+      
+      // Build contact context
+      const contactContext: ContactContext = {
+        fullName: contact.fullName,
+        company: contact.company,
+        companyRole: contact.companyRole,
+        tags: contact.tags || [],
+        roleTags: contact.roleTags || [],
+        valueCategory: contact.valueCategory,
+        importanceLevel: contact.importanceLevel,
+        attentionLevel: contact.attentionLevel,
+        heatStatus: contact.heatStatus,
+        heatIndex: contact.heatIndex,
+        lastContactDate: contact.lastContactDate,
+        desiredFrequencyDays: contact.desiredFrequencyDays,
+        hobbies: contact.hobbies,
+        preferences: contact.preferences,
+        giftPreferences: contact.giftPreferences,
+        familyNotes: (contact.familyStatus as any)?.notes,
+        interactionHistory: interactions.map(i => ({
+          date: i.date,
+          type: i.type,
+          channel: i.channel,
+          note: i.note,
+          isMeaningful: i.isMeaningful,
+        })),
+      };
+      
+      // Generate new insights
+      const insights = await generateContactInsights(contactContext);
+      const modelInfo = getAIModelInfo();
+      
+      // Cache the result (expires in 24 hours)
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      
+      // Delete old cache entries for this contact/type
+      await db.delete(aiInsightsCache)
+        .where(
+          and(
+            eq(aiInsightsCache.contactId, contactId),
+            eq(aiInsightsCache.insightType, "insights")
+          )
+        );
+      
+      // Insert new cache entry
+      await db.insert(aiInsightsCache).values({
+        contactId,
+        teamId,
+        insightType: "insights",
+        data: insights,
+        modelUsed: modelInfo.model,
+        expiresAt,
+      });
+      
+      res.json({ ...insights, cached: false, model: modelInfo.model });
+    } catch (error) {
+      console.error("Error generating AI insights:", error);
+      res.status(500).json({ error: "Failed to generate insights" });
+    }
+  });
+
+  // Generate AI recommendations for a contact
+  app.get("/api/ai/recommendations/:contactId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const teamId = await getCurrentTeamId(req);
+      const contactId = req.params.contactId;
+      const forceRefresh = req.query.refresh === "true";
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "No team found" });
+      }
+      
+      // Verify contact belongs to user's team
+      const contact = await storage.getContact(contactId);
+      if (!contact || contact.teamId !== teamId) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      // Check cache first (valid for 12 hours for recommendations)
+      if (!forceRefresh) {
+        const now = new Date();
+        const cached = await db.select()
+          .from(aiInsightsCache)
+          .where(
+            and(
+              eq(aiInsightsCache.contactId, contactId),
+              eq(aiInsightsCache.insightType, "recommendations"),
+              gt(aiInsightsCache.expiresAt, now)
+            )
+          )
+          .limit(1);
+        
+        if (cached.length > 0) {
+          const cachedData = cached[0].data as Record<string, unknown>;
+          return res.json({ 
+            ...cachedData, 
+            cached: true, 
+            cachedAt: cached[0].createdAt,
+            model: cached[0].modelUsed
+          });
+        }
+      }
+      
+      // Get interactions for context
+      const interactions = await storage.getInteractions(contactId);
+      
+      // Build contact context
+      const contactContext: ContactContext = {
+        fullName: contact.fullName,
+        company: contact.company,
+        companyRole: contact.companyRole,
+        tags: contact.tags || [],
+        roleTags: contact.roleTags || [],
+        heatStatus: contact.heatStatus,
+        lastContactDate: contact.lastContactDate,
+        desiredFrequencyDays: contact.desiredFrequencyDays,
+        hobbies: contact.hobbies,
+        preferences: contact.preferences,
+        giftPreferences: contact.giftPreferences,
+        interactionHistory: interactions.slice(0, 10).map(i => ({
+          date: i.date,
+          type: i.type,
+          channel: i.channel,
+          note: i.note,
+          isMeaningful: i.isMeaningful,
+        })),
+      };
+      
+      // Generate recommendations
+      const recommendations = await generateContactRecommendations(contactContext);
+      const modelInfo = getAIModelInfo();
+      
+      // Cache the result (expires in 12 hours)
+      const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000);
+      
+      // Delete old cache entries
+      await db.delete(aiInsightsCache)
+        .where(
+          and(
+            eq(aiInsightsCache.contactId, contactId),
+            eq(aiInsightsCache.insightType, "recommendations")
+          )
+        );
+      
+      // Insert new cache entry
+      await db.insert(aiInsightsCache).values({
+        contactId,
+        teamId,
+        insightType: "recommendations",
+        data: recommendations,
+        modelUsed: modelInfo.model,
+        expiresAt,
+      });
+      
+      res.json({ ...recommendations, cached: false, model: modelInfo.model });
+    } catch (error) {
+      console.error("Error generating AI recommendations:", error);
+      res.status(500).json({ error: "Failed to generate recommendations" });
+    }
+  });
+
+  // Summarize interaction history
+  app.get("/api/ai/summary/:contactId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const teamId = await getCurrentTeamId(req);
+      const contactId = req.params.contactId;
+      const forceRefresh = req.query.refresh === "true";
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "No team found" });
+      }
+      
+      // Verify contact belongs to user's team
+      const contact = await storage.getContact(contactId);
+      if (!contact || contact.teamId !== teamId) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      // Check cache first (valid for 48 hours for summaries)
+      if (!forceRefresh) {
+        const now = new Date();
+        const cached = await db.select()
+          .from(aiInsightsCache)
+          .where(
+            and(
+              eq(aiInsightsCache.contactId, contactId),
+              eq(aiInsightsCache.insightType, "summary"),
+              gt(aiInsightsCache.expiresAt, now)
+            )
+          )
+          .limit(1);
+        
+        if (cached.length > 0) {
+          return res.json({ 
+            summary: (cached[0].data as any).summary, 
+            cached: true, 
+            cachedAt: cached[0].createdAt,
+            model: cached[0].modelUsed
+          });
+        }
+      }
+      
+      // Get interactions for summary
+      const interactions = await storage.getInteractions(contactId);
+      
+      // Build contact context
+      const contactContext: ContactContext = {
+        fullName: contact.fullName,
+        interactionHistory: interactions.map(i => ({
+          date: i.date,
+          type: i.type,
+          channel: i.channel,
+          note: i.note,
+          isMeaningful: i.isMeaningful,
+        })),
+      };
+      
+      // Generate summary
+      const summary = await summarizeInteractions(contactContext);
+      const modelInfo = getAIModelInfo();
+      
+      // Cache the result (expires in 48 hours)
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+      
+      // Delete old cache entries
+      await db.delete(aiInsightsCache)
+        .where(
+          and(
+            eq(aiInsightsCache.contactId, contactId),
+            eq(aiInsightsCache.insightType, "summary")
+          )
+        );
+      
+      // Insert new cache entry
+      await db.insert(aiInsightsCache).values({
+        contactId,
+        teamId,
+        insightType: "summary",
+        data: { summary },
+        modelUsed: modelInfo.model,
+        expiresAt,
+      });
+      
+      res.json({ summary, cached: false, model: modelInfo.model });
+    } catch (error) {
+      console.error("Error generating AI summary:", error);
+      res.status(500).json({ error: "Failed to generate summary" });
+    }
+  });
+
+  // Invalidate AI cache for a contact (called when contact or interactions are updated)
+  app.delete("/api/ai/cache/:contactId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const teamId = await getCurrentTeamId(req);
+      const contactId = req.params.contactId;
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "No team found" });
+      }
+      
+      // Verify contact belongs to user's team
+      const contact = await storage.getContact(contactId);
+      if (!contact || contact.teamId !== teamId) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      // Delete all cache entries for this contact
+      await db.delete(aiInsightsCache)
+        .where(eq(aiInsightsCache.contactId, contactId));
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error clearing AI cache:", error);
+      res.status(500).json({ error: "Failed to clear cache" });
+    }
+  });
+
+  // ============= END AI ENDPOINTS =============
 
   // Endpoint for scheduled backup (can be called by cron/scheduled deployment)
   app.post("/api/backups/auto", async (req: Request, res: Response) => {

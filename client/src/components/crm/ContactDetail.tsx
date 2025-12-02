@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,15 @@ import {
   Users,
   Calendar,
   Heart,
+  Sparkles,
+  Brain,
+  RefreshCw,
+  Loader2,
+  AlertTriangle,
+  CheckCircle,
+  Target,
+  MessageSquare,
+  Gift,
 } from "lucide-react";
 
 import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus } from "@/lib/types";
@@ -60,8 +70,36 @@ const BLOCK_DESCRIPTIONS = {
   interactions: {
     title: "Взаимодействия",
     description: "История всех контактов с этим человеком. Отмечайте значимые взаимодействия — они влияют на Heat Index и помогают отслеживать динамику отношений."
+  },
+  ai: {
+    title: "AI Ассистент",
+    description: "Искусственный интеллект анализирует контакт и даёт рекомендации по поддержанию отношений. Использует модель GPT-5.1."
   }
 };
+
+interface AIInsight {
+  summary: string;
+  keyPoints: string[];
+  relationshipStrength: string;
+  riskFactors: string[];
+  opportunities: string[];
+  cached?: boolean;
+  model?: string;
+}
+
+interface AIRecommendation {
+  nextActions: Array<{
+    action: string;
+    priority: "high" | "medium" | "low";
+    reason: string;
+    suggestedDate?: string;
+  }>;
+  conversationStarters: string[];
+  giftIdeas?: string[];
+  warningSignals?: string[];
+  cached?: boolean;
+  model?: string;
+}
 
 function InfoPopover({ blockKey }: { blockKey: keyof typeof BLOCK_DESCRIPTIONS }) {
   const info = BLOCK_DESCRIPTIONS[blockKey];
@@ -109,6 +147,24 @@ export function ContactDetail({
 }: ContactDetailProps) {
   const [showInteractionForm, setShowInteractionForm] = useState(false);
   const [lastTapTime, setLastTapTime] = useState<Record<string, number>>({});
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [forceRefreshAI, setForceRefreshAI] = useState(0);
+
+  // AI Insights query - uses proper URL with contact ID
+  const { data: aiInsights, isLoading: insightsLoading, refetch: refetchInsights } = useQuery<AIInsight>({
+    queryKey: [`/api/ai/insights/${contact.id}${forceRefreshAI > 0 ? '?refresh=true' : ''}`],
+    enabled: showAIPanel,
+  });
+
+  // AI Recommendations query - uses proper URL with contact ID
+  const { data: aiRecommendations, isLoading: recommendationsLoading, refetch: refetchRecommendations } = useQuery<AIRecommendation>({
+    queryKey: [`/api/ai/recommendations/${contact.id}${forceRefreshAI > 0 ? '?refresh=true' : ''}`],
+    enabled: showAIPanel,
+  });
+
+  const handleRefreshAI = () => {
+    setForceRefreshAI(prev => prev + 1);
+  };
 
   const handleDoubleTap = (blockId: string, tab: EditTab) => {
     const now = Date.now();
@@ -658,6 +714,207 @@ export function ContactDetail({
             </div>
 
             <div className="space-y-4">
+              {/* AI Assistant Panel */}
+              <Card className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 border-violet-200 dark:border-violet-700">
+                <CardHeader className="flex-row items-center justify-between space-y-0 gap-2 pb-3">
+                  <CardTitle className="text-base flex items-center">
+                    <Sparkles className="h-5 w-5 mr-2 text-violet-500" />
+                    AI Ассистент
+                    <InfoPopover blockKey="ai" />
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    {showAIPanel && (
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={handleRefreshAI}
+                        disabled={insightsLoading || recommendationsLoading}
+                        data-testid="button-refresh-ai"
+                      >
+                        <RefreshCw className={cn("h-4 w-4", (insightsLoading || recommendationsLoading) && "animate-spin")} />
+                      </Button>
+                    )}
+                    <Button 
+                      size="sm" 
+                      variant={showAIPanel ? "secondary" : "default"}
+                      onClick={() => setShowAIPanel(!showAIPanel)}
+                      data-testid="button-toggle-ai"
+                    >
+                      <Brain className="h-4 w-4 mr-1" />
+                      {showAIPanel ? "Скрыть" : "Анализ"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                {showAIPanel && (
+                  <CardContent className="space-y-4">
+                    {(insightsLoading || recommendationsLoading) ? (
+                      <div className="flex flex-col items-center justify-center py-8 space-y-3">
+                        <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+                        <p className="text-sm text-muted-foreground">Анализирую контакт...</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Insights Section */}
+                        {aiInsights && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Brain className="h-4 w-4 text-violet-500" />
+                              <h4 className="font-medium">Анализ отношений</h4>
+                              {aiInsights.cached && (
+                                <Badge variant="outline" className="text-xs">кэш</Badge>
+                              )}
+                            </div>
+                            
+                            <p className="text-sm">{aiInsights.summary}</p>
+                            
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">Крепость отношений:</span>
+                              <Badge variant={
+                                aiInsights.relationshipStrength === "Крепкие" ? "default" :
+                                aiInsights.relationshipStrength === "Умеренные" ? "secondary" :
+                                aiInsights.relationshipStrength === "Слабые" ? "outline" : "destructive"
+                              }>
+                                {aiInsights.relationshipStrength}
+                              </Badge>
+                            </div>
+
+                            {aiInsights.keyPoints && aiInsights.keyPoints.length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground">Ключевые факты:</span>
+                                <ul className="text-sm space-y-1">
+                                  {aiInsights.keyPoints.map((point, i) => (
+                                    <li key={i} className="flex items-start gap-2">
+                                      <CheckCircle className="h-3.5 w-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                                      <span>{point}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {aiInsights.riskFactors && aiInsights.riskFactors.length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground">Риски:</span>
+                                <ul className="text-sm space-y-1">
+                                  {aiInsights.riskFactors.map((risk, i) => (
+                                    <li key={i} className="flex items-start gap-2">
+                                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
+                                      <span>{risk}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {aiInsights.opportunities && aiInsights.opportunities.length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground">Возможности:</span>
+                                <ul className="text-sm space-y-1">
+                                  {aiInsights.opportunities.map((opp, i) => (
+                                    <li key={i} className="flex items-start gap-2">
+                                      <Lightbulb className="h-3.5 w-3.5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                                      <span>{opp}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <Separator />
+
+                        {/* Recommendations Section */}
+                        {aiRecommendations && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Target className="h-4 w-4 text-indigo-500" />
+                              <h4 className="font-medium">Рекомендации</h4>
+                            </div>
+
+                            {aiRecommendations.nextActions && aiRecommendations.nextActions.length > 0 && (
+                              <div className="space-y-2">
+                                <span className="text-xs text-muted-foreground">Следующие шаги:</span>
+                                {aiRecommendations.nextActions.map((action, i) => (
+                                  <div key={i} className="p-2 bg-white/50 dark:bg-black/20 rounded-md">
+                                    <div className="flex items-start gap-2">
+                                      <Badge 
+                                        variant={action.priority === "high" ? "destructive" : action.priority === "medium" ? "default" : "secondary"}
+                                        className="text-xs flex-shrink-0"
+                                      >
+                                        {action.priority === "high" ? "Важно" : action.priority === "medium" ? "Средне" : "Низкий"}
+                                      </Badge>
+                                      <div>
+                                        <p className="text-sm font-medium">{action.action}</p>
+                                        <p className="text-xs text-muted-foreground">{action.reason}</p>
+                                        {action.suggestedDate && (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            <Calendar className="h-3 w-3 inline mr-1" />
+                                            {action.suggestedDate}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {aiRecommendations.conversationStarters && aiRecommendations.conversationStarters.length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <MessageSquare className="h-3 w-3" /> Темы для разговора:
+                                </span>
+                                <ul className="text-sm space-y-1 pl-4">
+                                  {aiRecommendations.conversationStarters.map((topic, i) => (
+                                    <li key={i} className="list-disc">{topic}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {aiRecommendations.giftIdeas && aiRecommendations.giftIdeas.length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Gift className="h-3 w-3" /> Идеи подарков:
+                                </span>
+                                <ul className="text-sm space-y-1 pl-4">
+                                  {aiRecommendations.giftIdeas.map((gift, i) => (
+                                    <li key={i} className="list-disc">{gift}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {aiRecommendations.warningSignals && aiRecommendations.warningSignals.length > 0 && (
+                              <div className="space-y-1 p-2 bg-red-50 dark:bg-red-900/20 rounded-md">
+                                <span className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" /> Предупреждения:
+                                </span>
+                                <ul className="text-sm space-y-1 text-red-700 dark:text-red-300">
+                                  {aiRecommendations.warningSignals.map((warning, i) => (
+                                    <li key={i} className="flex items-start gap-2">
+                                      <span>•</span>
+                                      <span>{warning}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {aiInsights?.model && (
+                          <p className="text-xs text-muted-foreground text-right">
+                            Модель: {aiInsights.model}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                )}
+              </Card>
+
               <Card className="bg-slate-100 dark:bg-slate-800/50 border-slate-300 dark:border-slate-600">
                 <CardHeader className="flex-row items-center justify-between space-y-0 gap-2 pb-3">
                   <CardTitle className="text-base flex items-center">
