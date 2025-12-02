@@ -81,7 +81,7 @@ export default function ContactsPage() {
     heatStatus: "",
   });
   const [cameFromAnalytics, setCameFromAnalytics] = useState(false);
-  const [showAIDashboard, setShowAIDashboard] = useState(true);
+  const [showAIDashboard, setShowAIDashboard] = useState(false);
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   const { toast } = useToast();
 

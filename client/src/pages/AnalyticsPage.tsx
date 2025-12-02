@@ -63,7 +63,7 @@ export default function AnalyticsPage() {
   const [matrixFilter, setMatrixFilter] = useState<{ importance: string; status: string } | null>(null);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [editingTab, setEditingTab] = useState<"basic" | "priority" | "contribution" | "potential">("basic");
-  const [showAIAnalytics, setShowAIAnalytics] = useState(true);
+  const [showAIAnalytics, setShowAIAnalytics] = useState(false);
   const [analyticsRefreshKey, setAnalyticsRefreshKey] = useState(0);
   const { toast } = useToast();
 
