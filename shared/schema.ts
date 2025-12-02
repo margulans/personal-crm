@@ -116,6 +116,24 @@ export const interactions = pgTable("interactions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Backups table for daily automatic backups
+export const backups = pgTable("backups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  createdBy: varchar("created_by").references(() => users.id),
+  description: text("description"),
+  contactsCount: integer("contacts_count").notNull().default(0),
+  interactionsCount: integer("interactions_count").notNull().default(0),
+  data: jsonb("data").$type<{
+    contacts: any[];
+    interactions: any[];
+  }>().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Backup = typeof backups.$inferSelect;
+export type InsertBackup = typeof backups.$inferInsert;
+
 const contributionDetailsSchema = z.object({
   financial: z.number().min(0).max(3).default(0),
   network: z.number().min(0).max(3).default(0),
