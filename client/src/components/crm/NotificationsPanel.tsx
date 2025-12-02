@@ -17,9 +17,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Bell, AlertTriangle, Clock, ChevronRight } from "lucide-react";
+import { Bell, AlertTriangle, Clock, ChevronRight, Brain, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Contact } from "@/lib/types";
+import type { Contact, AIDashboard } from "@/lib/types";
 
 interface NotificationsPanelProps {
   onContactClick?: (contactId: string) => void;
@@ -32,6 +32,12 @@ export function NotificationsPanel({ onContactClick }: NotificationsPanelProps) 
 
   const { data: contacts = [] } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
+  });
+
+  // Fetch AI Dashboard for AI-powered recommendations
+  const { data: aiDashboard } = useQuery<AIDashboard>({
+    queryKey: ["/api/ai/dashboard"],
+    enabled: contacts.length > 0,
   });
 
   const today = new Date();
@@ -57,7 +63,43 @@ export function NotificationsPanel({ onContactClick }: NotificationsPanelProps) 
              (importanceOrder[b.importanceLevel as keyof typeof importanceOrder] || 2);
     });
 
-  const totalNotifications = urgentContacts.length + warningContacts.length;
+  const aiPriorities = aiDashboard?.topPriorities || [];
+  
+  // Normalize name for matching: lowercase, collapse whitespace, trim
+  const normalizeName = (name: string): string => {
+    return name.toLowerCase().replace(/\s+/g, ' ').trim();
+  };
+  
+  // Build index of contacts by normalized full name for matching
+  const contactsByName = new Map<string, Contact>();
+  for (const contact of contacts) {
+    contactsByName.set(normalizeName(contact.fullName), contact);
+  }
+  
+  // Map AI priorities to actual contact IDs (limit to 5 items)
+  const aiPrioritiesWithContacts = aiPriorities.slice(0, 5)
+    .filter(priority => priority.contactName && priority.action) // Validate required fields
+    .map(priority => {
+      const normalizedName = normalizeName(priority.contactName);
+      const matchingContact = contactsByName.get(normalizedName);
+      
+      // Validate urgency value
+      const validUrgency = ["critical", "high", "medium"].includes(priority.urgency) 
+        ? priority.urgency 
+        : "medium";
+      
+      return {
+        ...priority,
+        urgency: validUrgency,
+        contactId: matchingContact?.id || null,
+        matchedName: matchingContact?.fullName || null,
+        isMatched: !!matchingContact
+      };
+    });
+  
+  // Only count matched AI priorities in notification badge
+  const matchedAIPriorities = aiPrioritiesWithContacts.filter(p => p.isMatched);
+  const totalNotifications = urgentContacts.length + warningContacts.length + matchedAIPriorities.length;
 
   const handleContactClick = (contactId: string) => {
     setOpen(false);
@@ -180,6 +222,45 @@ export function NotificationsPanel({ onContactClick }: NotificationsPanelProps) 
                     и ещё {warningContacts.length - 5}...
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* AI-powered Recommendations - only show matched contacts */}
+            {matchedAIPriorities.length > 0 && (
+              <div className="p-2">
+                <div className="flex items-center gap-2 px-2 py-1 text-xs font-medium text-violet-600 dark:text-violet-400">
+                  <Brain className="h-3 w-3" />
+                  AI рекомендации ({matchedAIPriorities.length})
+                </div>
+                {matchedAIPriorities.map((priority) => (
+                  <button
+                    key={priority.contactId}
+                    onClick={() => priority.contactId && handleContactClick(priority.contactId)}
+                    className={cn(
+                      "w-full flex items-start gap-3 p-2 rounded-md text-left transition-colors hover-elevate cursor-pointer",
+                      priority.urgency === "critical" && "bg-red-50/50 dark:bg-red-900/10",
+                      priority.urgency === "high" && "bg-amber-50/50 dark:bg-amber-900/10",
+                      priority.urgency === "medium" && "bg-blue-50/50 dark:bg-blue-900/10"
+                    )}
+                    data-testid={`notification-ai-${priority.contactId}`}
+                  >
+                    <Sparkles className={cn(
+                      "h-3.5 w-3.5 flex-shrink-0 mt-0.5",
+                      priority.urgency === "critical" && "text-red-500",
+                      priority.urgency === "high" && "text-amber-500",
+                      priority.urgency === "medium" && "text-blue-500"
+                    )} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium">
+                        {priority.matchedName}
+                      </div>
+                      <div className="text-xs text-muted-foreground line-clamp-2">
+                        {priority.action}
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  </button>
+                ))}
               </div>
             )}
           </div>

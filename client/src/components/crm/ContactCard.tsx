@@ -8,9 +8,17 @@ import { ImportanceBadge } from "./ImportanceBadge";
 import { AttentionGapIndicator } from "./AttentionGapIndicator";
 import { formatDaysAgo } from "@/lib/constants";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Trash2 } from "lucide-react";
+import { Trash2, Brain } from "lucide-react";
 import type { Contact } from "@/lib/types";
+
+export interface AIContactHint {
+  contactName: string;
+  action: string;
+  reason: string;
+  urgency: "critical" | "high" | "medium";
+}
 
 interface ContactCardProps {
   contact: Contact;
@@ -19,9 +27,10 @@ interface ContactCardProps {
   selectionMode?: boolean;
   isSelected?: boolean;
   onSelect?: (selected: boolean) => void;
+  aiHint?: AIContactHint;
 }
 
-export function ContactCard({ contact, onClick, onDelete, selectionMode, isSelected, onSelect }: ContactCardProps) {
+export function ContactCard({ contact, onClick, onDelete, selectionMode, isSelected, onSelect, aiHint }: ContactCardProps) {
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiped, setIsSwiped] = useState(false);
   const touchStartX = useRef(0);
@@ -174,6 +183,32 @@ export function ContactCard({ contact, onClick, onDelete, selectionMode, isSelec
                   {contact.fullName}
                 </h3>
                 <HeatStatusBadge status={contact.heatStatus} size="sm" />
+                {aiHint && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div 
+                        className={cn(
+                          "flex-shrink-0 p-0.5 rounded-full",
+                          aiHint.urgency === "critical" && "bg-red-100 dark:bg-red-900/30",
+                          aiHint.urgency === "high" && "bg-amber-100 dark:bg-amber-900/30",
+                          aiHint.urgency === "medium" && "bg-blue-100 dark:bg-blue-900/30"
+                        )}
+                        data-testid={`ai-hint-${contact.id}`}
+                      >
+                        <Brain className={cn(
+                          "h-3.5 w-3.5",
+                          aiHint.urgency === "critical" && "text-red-500",
+                          aiHint.urgency === "high" && "text-amber-500",
+                          aiHint.urgency === "medium" && "text-blue-500"
+                        )} />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="font-medium text-sm">{aiHint.action}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{aiHint.reason}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </div>
               
               <div className="flex flex-wrap items-center gap-1.5 mb-2">

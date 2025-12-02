@@ -481,7 +481,7 @@ function buildDashboardPrompt(contacts: TeamContactSummary[], stats: { red: numb
   
   parts.push(`\nВерни JSON с полями:`);
   parts.push(`- greeting: приветствие с учётом времени суток и состояния сети`);
-  parts.push(`- topPriorities: массив из 1-3 приоритетных действий на сегодня (contactName, action, reason, urgency: critical/high/medium)`);
+  parts.push(`- topPriorities: массив из 1-3 приоритетных действий на сегодня. ВАЖНО: используй РЕАЛЬНЫЕ имена контактов из списка выше! Каждый элемент: {contactName: точное имя из списка, action: конкретное действие, reason: почему важно, urgency: critical/high/medium}`);
   parts.push(`- dailyTip: полезный совет на сегодня`);
   parts.push(`- networkHealth: объект {status: строка, score: число 0-100, trend: up/down/stable}`);
   

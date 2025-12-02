@@ -4,7 +4,7 @@ import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ContactCard } from "@/components/crm/ContactCard";
+import { ContactCard, AIContactHint } from "@/components/crm/ContactCard";
 import { ContactFilters } from "@/components/crm/ContactFilters";
 import { ContactDetail } from "@/components/crm/ContactDetail";
 import { ContactForm } from "@/components/crm/ContactForm";
@@ -104,6 +104,48 @@ export default function ContactsPage() {
   const handleRefreshDashboard = () => {
     setDashboardRefreshKey(prev => prev + 1);
   };
+
+  // Normalize name for matching: lowercase, collapse whitespace, trim
+  const normalizeName = (name: string): string => {
+    return name.toLowerCase().replace(/\s+/g, ' ').trim();
+  };
+  
+  // Create mapping of contact IDs to AI hints
+  const aiHintsMap = useMemo(() => {
+    const map = new Map<string, AIContactHint>();
+    if (!aiDashboard?.topPriorities || !contacts.length) return map;
+    
+    // Build index of contacts by normalized full name for matching
+    const contactsByName = new Map<string, Contact>();
+    for (const contact of contacts) {
+      contactsByName.set(normalizeName(contact.fullName), contact);
+    }
+    
+    // Match priority names to actual contacts
+    for (const priority of aiDashboard.topPriorities.slice(0, 5)) {
+      // Validate required fields
+      if (!priority.contactName || !priority.action) continue;
+      
+      const normalizedName = normalizeName(priority.contactName);
+      const matchingContact = contactsByName.get(normalizedName);
+      
+      // Validate urgency value
+      const validUrgency = ["critical", "high", "medium"].includes(priority.urgency) 
+        ? priority.urgency as "critical" | "high" | "medium"
+        : "medium";
+      
+      if (matchingContact) {
+        map.set(matchingContact.id, {
+          contactName: matchingContact.fullName,
+          action: priority.action,
+          reason: priority.reason || "",
+          urgency: validUrgency,
+        });
+      }
+    }
+    
+    return map;
+  }, [aiDashboard?.topPriorities, contacts]);
 
   // Read URL params and apply filters
   useEffect(() => {
@@ -613,6 +655,7 @@ export default function ContactsPage() {
                 selectionMode={selectionMode}
                 isSelected={selectedIds.has(contact.id)}
                 onSelect={(selected) => toggleSelection(contact.id, selected)}
+                aiHint={aiHintsMap.get(contact.id)}
               />
             ))}
           </div>
