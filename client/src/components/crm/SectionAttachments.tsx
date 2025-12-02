@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Document, Page, pdfjs } from "react-pdf";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
 
 interface SectionAttachmentsProps {
   contactId: string;
@@ -71,23 +71,27 @@ function PdfThumbnail({ url, fileName }: { url: string; fileName: string }) {
       <div className="flex flex-col items-center justify-center h-full">
         <FileText className="h-8 w-8 text-muted-foreground mb-1" />
         <span className="text-xs text-muted-foreground text-center truncate w-full px-1">
-          {fileName}
+          PDF
         </span>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center z-10">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
       <Document
         file={url}
-        onLoadSuccess={() => setLoading(false)}
-        onLoadError={() => {
+        onLoadSuccess={() => {
+          console.log("[PDF] Loaded:", fileName);
+          setLoading(false);
+        }}
+        onLoadError={(err) => {
+          console.error("[PDF] Error loading:", fileName, err?.message || err);
           setLoading(false);
           setError(true);
         }}
@@ -99,6 +103,8 @@ function PdfThumbnail({ url, fileName }: { url: string; fileName: string }) {
           width={120}
           renderTextLayer={false}
           renderAnnotationLayer={false}
+          onRenderSuccess={() => console.log("[PDF] Page rendered:", fileName)}
+          onRenderError={(err) => console.error("[PDF] Page render error:", fileName, err)}
         />
       </Document>
     </div>
