@@ -474,7 +474,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
           <TabsTrigger value="contacts" className="text-xs sm:text-sm px-2 sm:px-3">Контакты</TabsTrigger>
           <TabsTrigger value="family" className="text-xs sm:text-sm px-2 sm:px-3">Семья</TabsTrigger>
           <TabsTrigger value="team" className="text-xs sm:text-sm px-2 sm:px-3">Команда</TabsTrigger>
-          <TabsTrigger value="priority" className="text-xs sm:text-sm px-2 sm:px-3">Приоритеты</TabsTrigger>
+          <TabsTrigger value="priority" className="text-xs sm:text-sm px-2 sm:px-3">Статус</TabsTrigger>
           <TabsTrigger value="contribution" className="text-xs sm:text-sm px-2 sm:px-3">Вклад</TabsTrigger>
           <TabsTrigger value="potential" className="text-xs sm:text-sm px-2 sm:px-3">Потенциал</TabsTrigger>
         </TabsList>
