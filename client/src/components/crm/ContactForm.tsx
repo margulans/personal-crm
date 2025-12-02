@@ -1004,7 +1004,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
           </div>
         </TabsContent>
 
-        <TabsContent value="team" className="space-y-4 mt-4">
+        <TabsContent value="team" className="space-y-4 mt-4 min-h-[300px]">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Члены команды (ассистенты, водители и др.)</Label>
