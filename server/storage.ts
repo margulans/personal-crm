@@ -3,8 +3,17 @@ import {
   type InsertContact, 
   type Interaction,
   type InsertInteraction,
+  type User,
+  type UpsertUser,
+  type Team,
+  type InsertTeam,
+  type TeamMember,
+  type InsertTeamMember,
   contacts, 
   interactions,
+  users,
+  teams,
+  teamMembers,
   getClassFromScore,
   calculateHeatIndex,
   getRecommendedAttentionLevel,
@@ -13,17 +22,38 @@ import { db } from "./db";
 import { eq, desc, and, ilike, or, sql } from "drizzle-orm";
 
 export interface IStorage {
-  getContacts(): Promise<Contact[]>;
+  // User operations (required for Replit Auth)
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  
+  // Team operations
+  getTeam(id: string): Promise<Team | undefined>;
+  getTeamByInviteCode(code: string): Promise<Team | undefined>;
+  createTeam(team: InsertTeam): Promise<Team>;
+  updateTeam(id: string, data: Partial<InsertTeam>): Promise<Team | undefined>;
+  deleteTeam(id: string): Promise<boolean>;
+  getUserTeams(userId: string): Promise<(Team & { role: string })[]>;
+  
+  // Team member operations
+  getTeamMembers(teamId: string): Promise<(TeamMember & { user: User })[]>;
+  addTeamMember(member: InsertTeamMember): Promise<TeamMember>;
+  removeTeamMember(teamId: string, userId: string): Promise<boolean>;
+  getTeamMember(teamId: string, userId: string): Promise<TeamMember | undefined>;
+  
+  // Contact operations
+  getContacts(teamId?: string): Promise<Contact[]>;
   getContact(id: string): Promise<Contact | undefined>;
   createContact(contact: InsertContact): Promise<Contact>;
   updateContact(id: string, contact: Partial<InsertContact>): Promise<Contact | undefined>;
   deleteContact(id: string): Promise<boolean>;
   
+  // Interaction operations
   getInteractions(contactId: string): Promise<Interaction[]>;
   getInteraction(id: string): Promise<Interaction | undefined>;
   createInteraction(interaction: InsertInteraction): Promise<Interaction>;
   deleteInteraction(id: string): Promise<boolean>;
   
+  // Utility operations
   recalculateContactMetrics(contactId: string): Promise<Contact | undefined>;
   recalculateAllContactMetrics(): Promise<void>;
   migrateContributionData(): Promise<void>;
@@ -56,7 +86,117 @@ function calculateImportanceFromCategory(contributionClass: string, potentialCla
 }
 
 export class DatabaseStorage implements IStorage {
-  async getContacts(): Promise<Contact[]> {
+  // User operations
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  // Team operations
+  async getTeam(id: string): Promise<Team | undefined> {
+    const [team] = await db.select().from(teams).where(eq(teams.id, id));
+    return team;
+  }
+
+  async getTeamByInviteCode(code: string): Promise<Team | undefined> {
+    const [team] = await db.select().from(teams).where(eq(teams.inviteCode, code));
+    return team;
+  }
+
+  async createTeam(teamData: InsertTeam): Promise<Team> {
+    const [team] = await db.insert(teams).values(teamData).returning();
+    
+    await db.insert(teamMembers).values({
+      teamId: team.id,
+      userId: teamData.ownerId,
+      role: "owner",
+    });
+    
+    return team;
+  }
+
+  async updateTeam(id: string, data: Partial<InsertTeam>): Promise<Team | undefined> {
+    const [team] = await db
+      .update(teams)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(teams.id, id))
+      .returning();
+    return team;
+  }
+
+  async deleteTeam(id: string): Promise<boolean> {
+    const result = await db.delete(teams).where(eq(teams.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getUserTeams(userId: string): Promise<(Team & { role: string })[]> {
+    const memberships = await db
+      .select({
+        team: teams,
+        role: teamMembers.role,
+      })
+      .from(teamMembers)
+      .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+      .where(eq(teamMembers.userId, userId));
+    
+    return memberships.map((m) => ({ ...m.team, role: m.role }));
+  }
+
+  // Team member operations
+  async getTeamMembers(teamId: string): Promise<(TeamMember & { user: User })[]> {
+    const members = await db
+      .select({
+        member: teamMembers,
+        user: users,
+      })
+      .from(teamMembers)
+      .innerJoin(users, eq(teamMembers.userId, users.id))
+      .where(eq(teamMembers.teamId, teamId));
+    
+    return members.map((m) => ({ ...m.member, user: m.user }));
+  }
+
+  async addTeamMember(member: InsertTeamMember): Promise<TeamMember> {
+    const [newMember] = await db.insert(teamMembers).values(member).returning();
+    return newMember;
+  }
+
+  async removeTeamMember(teamId: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(teamMembers)
+      .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getTeamMember(teamId: string, userId: string): Promise<TeamMember | undefined> {
+    const [member] = await db
+      .select()
+      .from(teamMembers)
+      .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)));
+    return member;
+  }
+
+  // Contact operations
+  async getContacts(teamId?: string): Promise<Contact[]> {
+    if (teamId) {
+      return await db.select().from(contacts).where(eq(contacts.teamId, teamId)).orderBy(desc(contacts.heatIndex));
+    }
     return await db.select().from(contacts).orderBy(desc(contacts.heatIndex));
   }
 
