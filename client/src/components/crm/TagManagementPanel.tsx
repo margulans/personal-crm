@@ -10,10 +10,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { TagManagement } from "./TagManagement";
 import { Tags, Loader2, HelpCircle } from "lucide-react";
 import type { Contact } from "@/lib/types";
@@ -44,20 +44,20 @@ export function TagManagementPanel() {
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             Управление тегами
-            <Tooltip>
-              <TooltipTrigger asChild>
+            <Popover>
+              <PopoverTrigger asChild>
                 <button className="text-muted-foreground hover:text-foreground transition-colors" data-testid="help-tags">
                   <HelpCircle className="h-4 w-4" />
                 </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs text-sm">
+              </PopoverTrigger>
+              <PopoverContent side="bottom" className="max-w-xs text-sm">
                 <p className="font-semibold mb-1">Что такое теги?</p>
                 <p>Теги — это характеристики или атрибуты контакта (например: "Казах", "Бизнесмен", "VIP").</p>
                 <p className="mt-2 text-muted-foreground">
                   <span className="font-medium text-foreground">Отличие от ролей:</span> Теги описывают кто человек, а роли — какую функцию он выполняет в вашей сети (Инвестор, Подрядчик, Ментор).
                 </p>
-              </TooltipContent>
-            </Tooltip>
+              </PopoverContent>
+            </Popover>
           </SheetTitle>
         </SheetHeader>
         <div className="mt-6">

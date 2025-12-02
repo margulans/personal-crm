@@ -10,10 +10,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { RoleManagement } from "./RoleManagement";
 import { Briefcase, Loader2, HelpCircle } from "lucide-react";
 import type { Contact } from "@/lib/types";
@@ -44,20 +44,20 @@ export function RoleManagementPanel() {
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             Управление ролями
-            <Tooltip>
-              <TooltipTrigger asChild>
+            <Popover>
+              <PopoverTrigger asChild>
                 <button className="text-muted-foreground hover:text-foreground transition-colors" data-testid="help-roles">
                   <HelpCircle className="h-4 w-4" />
                 </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs text-sm">
+              </PopoverTrigger>
+              <PopoverContent side="bottom" className="max-w-xs text-sm">
                 <p className="font-semibold mb-1">Что такое роли?</p>
                 <p>Роли — это функции, которые контакт выполняет в вашей сети (например: "Инвестор", "Подрядчик", "Ментор", "Клиент").</p>
                 <p className="mt-2 text-muted-foreground">
                   <span className="font-medium text-foreground">Отличие от тегов:</span> Роли показывают что человек делает для вас, а теги — кто он по характеристикам (национальность, профессия, интересы).
                 </p>
-              </TooltipContent>
-            </Tooltip>
+              </PopoverContent>
+            </Popover>
           </SheetTitle>
         </SheetHeader>
         <div className="mt-6">
