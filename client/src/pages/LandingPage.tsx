@@ -15,7 +15,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold" data-testid="text-logo">Personal CRM</h1>
+          <h1 className="text-2xl font-bold" data-testid="text-logo">PRIMA</h1>
           <Button 
             onClick={handleLogin} 
             disabled={isLoading}
@@ -140,7 +140,7 @@ export default function LandingPage() {
 
       <footer className="border-t py-8 px-4">
         <div className="container mx-auto text-center text-sm text-muted-foreground">
-          Personal CRM © 2024
+          PRIMA © 2024
         </div>
       </footer>
     </div>

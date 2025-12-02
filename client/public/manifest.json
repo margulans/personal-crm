@@ -1,7 +1,7 @@
 {
-  "name": "Personal CRM",
-  "short_name": "CRM",
-  "description": "Manage your contacts, track relationships, and prioritize your network with heat index analytics",
+  "name": "PRIMA - Personal Relationship & Information Management Agent",
+  "short_name": "PRIMA",
+  "description": "Умный помощник для управления контактами, отслеживания отношений и приоритизации вашей сети",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0b",

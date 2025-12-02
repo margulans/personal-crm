@@ -1,8 +1,8 @@
-# Personal CRM Application
+# PRIMA - Personal Relationship & Information Management Agent
 
 ## Overview
 
-A **multi-user collaborative CRM** (Customer Relationship Management) web application designed to help teams manage and prioritize personal and professional contacts. The system tracks relationships through a sophisticated scoring mechanism that evaluates contacts based on their contribution and potential, assigns attention levels, and provides a "heat index" to identify which relationships need nurturing.
+**PRIMA** is a multi-user collaborative CRM (Customer Relationship Management) web application designed to help teams manage and prioritize personal and professional contacts. The system tracks relationships through a sophisticated scoring mechanism that evaluates contacts based on their contribution and potential, assigns attention levels, and provides a "heat index" to identify which relationships need nurturing.
 
 **Key Features:**
 - **Team collaboration** with invite codes for joining teams
