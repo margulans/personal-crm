@@ -1287,36 +1287,44 @@ export async function registerRoutes(
   // Get signed download URL for an attachment
   app.get("/api/attachments/:id/url", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      console.log("[SignedURL] Request for attachment:", req.params.id);
+      
       const teamId = await getVerifiedTeamId(req);
       if (!teamId) {
+        console.log("[SignedURL] No team membership");
         return res.status(403).json({ error: "Team membership required" });
       }
 
       const attachment = await storage.getAttachment(req.params.id);
       if (!attachment) {
+        console.log("[SignedURL] Attachment not found:", req.params.id);
         return res.status(404).json({ error: "Attachment not found" });
       }
 
       // Verify team access
       if (attachment.teamId !== teamId) {
+        console.log("[SignedURL] Team mismatch:", attachment.teamId, "!=", teamId);
         return res.status(403).json({ error: "Not authorized" });
       }
 
       // If it's an external URL, return it directly
       if (attachment.storagePath.startsWith("http://") || attachment.storagePath.startsWith("https://")) {
+        console.log("[SignedURL] External URL, returning directly");
         return res.json({ url: attachment.storagePath, expires: null });
       }
 
       // Generate signed URL for object storage files
+      console.log("[SignedURL] Generating signed URL for:", attachment.storagePath);
       const objectStorageService = new ObjectStorageService();
       const signedUrl = await objectStorageService.getSignedDownloadURL(attachment.storagePath, 3600);
+      console.log("[SignedURL] Generated URL:", signedUrl?.substring(0, 100) + "...");
       
       res.json({ 
         url: signedUrl, 
         expires: new Date(Date.now() + 3600 * 1000).toISOString() 
       });
     } catch (error) {
-      console.error("Error getting signed URL:", error);
+      console.error("[SignedURL] Error getting signed URL:", error);
       res.status(500).json({ error: "Failed to get download URL" });
     }
   });

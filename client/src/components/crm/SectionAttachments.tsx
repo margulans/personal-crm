@@ -112,6 +112,8 @@ export function SectionAttachments({
         a => !fetchedIdsRef.current.has(a.id)
       );
       
+      console.log("[SectionAttachments] filteredAttachments:", filteredAttachments.length, "toFetch:", toFetch.length);
+      
       if (toFetch.length === 0) return;
       
       const newUrls: Record<string, string> = {};
@@ -119,26 +121,34 @@ export function SectionAttachments({
       for (const attachment of toFetch) {
         fetchedIdsRef.current.add(attachment.id);
         
+        console.log("[SectionAttachments] Processing attachment:", attachment.id, attachment.storagePath);
+        
         if (attachment.storagePath.startsWith("http://") || attachment.storagePath.startsWith("https://")) {
+          console.log("[SectionAttachments] External URL, using directly");
           newUrls[attachment.id] = attachment.storagePath;
           continue;
         }
         
         try {
+          console.log("[SectionAttachments] Fetching signed URL for:", attachment.id);
           const res = await fetch(`/api/attachments/${attachment.id}/url`, {
             credentials: "include",
           });
+          console.log("[SectionAttachments] Response status:", res.status);
           if (res.ok) {
             const { url } = await res.json();
+            console.log("[SectionAttachments] Got signed URL:", url?.substring(0, 60) + "...");
             newUrls[attachment.id] = url;
           } else {
-            console.error("Failed to get signed URL for", attachment.id, "status:", res.status);
+            const errorText = await res.text();
+            console.error("[SectionAttachments] Failed to get signed URL for", attachment.id, "status:", res.status, "error:", errorText);
           }
         } catch (err) {
-          console.error("Failed to get signed URL:", err);
+          console.error("[SectionAttachments] Exception getting signed URL:", err);
         }
       }
       
+      console.log("[SectionAttachments] New URLs fetched:", Object.keys(newUrls).length);
       if (Object.keys(newUrls).length > 0) {
         setSignedUrls(prev => ({ ...prev, ...newUrls }));
       }
