@@ -1438,6 +1438,34 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid upload URL format" });
       }
 
+      // Detect MIME type from filename if not provided correctly
+      let fileType = req.body.fileType;
+      const originalName = req.body.originalName || req.body.fileName || "";
+      
+      if (!fileType || fileType === "application/octet-stream") {
+        const ext = originalName.toLowerCase().split('.').pop() || "";
+        const mimeTypes: Record<string, string> = {
+          // Images
+          'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+          'gif': 'image/gif', 'webp': 'image/webp', 'bmp': 'image/bmp',
+          'svg': 'image/svg+xml', 'ico': 'image/x-icon', 'heic': 'image/heic',
+          'heif': 'image/heif', 'tiff': 'image/tiff', 'tif': 'image/tiff',
+          // Videos
+          'mp4': 'video/mp4', 'mov': 'video/quicktime', 'avi': 'video/x-msvideo',
+          'mkv': 'video/x-matroska', 'webm': 'video/webm', 'm4v': 'video/x-m4v',
+          // Audio
+          'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'ogg': 'audio/ogg',
+          'm4a': 'audio/mp4', 'aac': 'audio/aac', 'flac': 'audio/flac',
+          // Documents
+          'pdf': 'application/pdf', 'doc': 'application/msword',
+          'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'xls': 'application/vnd.ms-excel',
+          'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'txt': 'text/plain', 'csv': 'text/csv',
+        };
+        fileType = mimeTypes[ext] || "application/octet-stream";
+      }
+
       const data = insertAttachmentSchema.parse({
         contactId: req.params.contactId,
         teamId,
@@ -1445,8 +1473,8 @@ export async function registerRoutes(
         category: req.body.category,
         subCategory: req.body.subCategory,
         fileName: req.body.fileName,
-        originalName: req.body.originalName,
-        fileType: req.body.fileType,
+        originalName: originalName,
+        fileType: fileType,
         fileSize: req.body.fileSize,
         storagePath,
         description: req.body.description,
