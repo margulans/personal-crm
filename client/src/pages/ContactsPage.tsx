@@ -498,18 +498,20 @@ export default function ContactsPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 space-y-4">
+      <div className="flex-1 overflow-auto p-4 space-y-4 scrollbar-thin">
         {/* AI Dashboard Widget */}
         {contacts.length > 0 && (
           <Collapsible open={showAIDashboard} onOpenChange={setShowAIDashboard}>
-            <Card className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 border-violet-200 dark:border-violet-700">
+            <Card className="ai-gradient border-violet-200/50 dark:border-violet-700/50 shadow-sm overflow-hidden">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-violet-500" />
-                    AI Ассистент
+                    <div className="p-1.5 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 shadow-sm">
+                      <Sparkles className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="font-semibold">AI Ассистент</span>
                     {aiDashboard?.cached && (
-                      <Badge variant="outline" className="text-xs">кэш</Badge>
+                      <Badge variant="outline" className="text-xs font-normal">кэш</Badge>
                     )}
                   </CardTitle>
                   <div className="flex items-center gap-2">
@@ -565,31 +567,38 @@ export default function ContactsPage() {
 
                       {/* Top Priorities */}
                       {aiDashboard.topPriorities && aiDashboard.topPriorities.length > 0 && (
-                        <div className="space-y-2" data-testid="ai-priorities-section">
-                          <h4 className="text-sm font-medium flex items-center gap-1">
+                        <div className="space-y-3" data-testid="ai-priorities-section">
+                          <h4 className="text-sm font-semibold flex items-center gap-2">
                             <Brain className="h-4 w-4 text-violet-500" />
                             Приоритеты на сегодня
                           </h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {aiDashboard.topPriorities.map((priority, i) => (
                               <div 
                                 key={i} 
                                 data-testid={`card-priority-${i}`}
                                 className={cn(
-                                  "p-2 rounded-md border",
-                                  priority.urgency === "critical" && "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800",
-                                  priority.urgency === "high" && "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800",
-                                  priority.urgency === "medium" && "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800"
+                                  "p-3 rounded-lg border transition-all duration-200 hover:shadow-sm",
+                                  priority.urgency === "critical" && "bg-red-50/80 border-red-200/70 dark:bg-red-900/30 dark:border-red-700/50",
+                                  priority.urgency === "high" && "bg-amber-50/80 border-amber-200/70 dark:bg-amber-900/30 dark:border-amber-700/50",
+                                  priority.urgency === "medium" && "bg-blue-50/80 border-blue-200/70 dark:bg-blue-900/30 dark:border-blue-700/50"
                                 )}
                               >
-                                <div className="flex items-start gap-2">
-                                  {priority.urgency === "critical" && <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />}
-                                  {priority.urgency === "high" && <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />}
-                                  {priority.urgency === "medium" && <Activity className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />}
-                                  <div>
-                                    <p className="text-sm font-medium" data-testid={`text-priority-name-${i}`}>{priority.contactName}</p>
-                                    <p className="text-xs text-muted-foreground" data-testid={`text-priority-action-${i}`}>{priority.action}</p>
-                                    <p className="text-xs text-muted-foreground/70">{priority.reason}</p>
+                                <div className="flex items-start gap-2.5">
+                                  <div className={cn(
+                                    "p-1 rounded-md",
+                                    priority.urgency === "critical" && "bg-red-100 dark:bg-red-800/50",
+                                    priority.urgency === "high" && "bg-amber-100 dark:bg-amber-800/50",
+                                    priority.urgency === "medium" && "bg-blue-100 dark:bg-blue-800/50"
+                                  )}>
+                                    {priority.urgency === "critical" && <AlertTriangle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />}
+                                    {priority.urgency === "high" && <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />}
+                                    {priority.urgency === "medium" && <Activity className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold truncate" data-testid={`text-priority-name-${i}`}>{priority.contactName}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5" data-testid={`text-priority-action-${i}`}>{priority.action}</p>
+                                    <p className="text-xs text-muted-foreground/70 mt-0.5 line-clamp-2">{priority.reason}</p>
                                   </div>
                                 </div>
                               </div>
@@ -600,9 +609,11 @@ export default function ContactsPage() {
 
                       {/* Daily Tip */}
                       {aiDashboard.dailyTip && (
-                        <div className="flex items-start gap-2 p-2 bg-white/50 dark:bg-black/20 rounded-md" data-testid="ai-daily-tip">
-                          <Lightbulb className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm" data-testid="text-daily-tip">{aiDashboard.dailyTip}</p>
+                        <div className="flex items-start gap-3 p-3 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-lg border border-amber-200/50 dark:border-amber-700/30" data-testid="ai-daily-tip">
+                          <div className="p-1 rounded-md bg-amber-100 dark:bg-amber-800/50">
+                            <Lightbulb className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                          </div>
+                          <p className="text-sm flex-1" data-testid="text-daily-tip">{aiDashboard.dailyTip}</p>
                         </div>
                       )}
                     </div>

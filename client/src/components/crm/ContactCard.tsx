@@ -149,14 +149,15 @@ export function ContactCard({ contact, onClick, onDelete, selectionMode, isSelec
 
       <Card
         className={cn(
-          "hover-elevate cursor-pointer transition-transform duration-200",
+          "cursor-pointer transition-all duration-200 ease-out",
+          "hover:shadow-md hover:-translate-y-0.5",
           isSelected && "ring-2 ring-primary bg-primary/5",
-          "relative bg-background"
+          "relative bg-card"
         )}
         onClick={handleClick}
         style={{ 
           transform: `translateX(${swipeOffset}px)`,
-          transition: swipeOffset === 0 || swipeOffset === -DELETE_THRESHOLD ? 'transform 0.2s ease-out' : 'none'
+          transition: swipeOffset === 0 || swipeOffset === -DELETE_THRESHOLD ? 'all 0.2s ease-out' : 'none'
         }}
         data-testid={`contact-card-${contact.id}`}
       >
@@ -171,8 +172,8 @@ export function ContactCard({ contact, onClick, onDelete, selectionMode, isSelec
                 data-testid={`checkbox-contact-${contact.id}`}
               />
             )}
-            <Avatar className="h-10 w-10 flex-shrink-0">
-              <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+            <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-background shadow-sm">
+              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-sm font-semibold">
                 {initials}
               </AvatarFallback>
             </Avatar>

@@ -236,14 +236,16 @@ export default function AnalyticsPage() {
         {/* AI Analytics Panel */}
         {contacts.length > 0 && (
           <Collapsible open={showAIAnalytics} onOpenChange={setShowAIAnalytics}>
-            <Card className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 border-violet-200 dark:border-violet-700">
+            <Card className="ai-gradient border-violet-200/50 dark:border-violet-700/50 shadow-sm overflow-hidden">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Brain className="h-5 w-5 text-violet-500" />
-                    AI Аналитика сети
+                    <div className="p-1.5 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 shadow-sm">
+                      <Brain className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="font-semibold">AI Аналитика сети</span>
                     {aiAnalytics?.cached && (
-                      <Badge variant="outline" className="text-xs">кэш</Badge>
+                      <Badge variant="outline" className="text-xs font-normal">кэш</Badge>
                     )}
                   </CardTitle>
                   <div className="flex items-center gap-2">
@@ -281,7 +283,7 @@ export default function AnalyticsPage() {
                       {/* Key Trends */}
                       {aiAnalytics.keyTrends && aiAnalytics.keyTrends.length > 0 && (
                         <div className="space-y-3" data-testid="ai-trends-section">
-                          <h4 className="text-sm font-medium flex items-center gap-1">
+                          <h4 className="text-sm font-semibold flex items-center gap-2">
                             <TrendingUp className="h-4 w-4 text-violet-500" />
                             Ключевые тенденции
                           </h4>
@@ -291,17 +293,24 @@ export default function AnalyticsPage() {
                                 key={i} 
                                 data-testid={`card-trend-${i}`}
                                 className={cn(
-                                  "p-3 rounded-md border flex items-start gap-3",
-                                  trend.direction === "positive" && "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800",
-                                  trend.direction === "negative" && "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800",
-                                  trend.direction === "neutral" && "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800"
+                                  "p-3 rounded-lg border flex items-start gap-3 transition-all duration-200 hover:shadow-sm",
+                                  trend.direction === "positive" && "bg-emerald-50/80 border-emerald-200/70 dark:bg-emerald-900/30 dark:border-emerald-700/50",
+                                  trend.direction === "negative" && "bg-red-50/80 border-red-200/70 dark:bg-red-900/30 dark:border-red-700/50",
+                                  trend.direction === "neutral" && "bg-blue-50/80 border-blue-200/70 dark:bg-blue-900/30 dark:border-blue-700/50"
                                 )}
                               >
-                                {trend.direction === "positive" && <TrendingUp className="h-5 w-5 text-emerald-500 flex-shrink-0" />}
-                                {trend.direction === "negative" && <TrendingDown className="h-5 w-5 text-red-500 flex-shrink-0" />}
-                                {trend.direction === "neutral" && <Activity className="h-5 w-5 text-blue-500 flex-shrink-0" />}
-                                <div>
-                                  <p className="text-sm font-medium" data-testid={`text-trend-observation-${i}`}>{trend.observation}</p>
+                                <div className={cn(
+                                  "p-1 rounded-md",
+                                  trend.direction === "positive" && "bg-emerald-100 dark:bg-emerald-800/50",
+                                  trend.direction === "negative" && "bg-red-100 dark:bg-red-800/50",
+                                  trend.direction === "neutral" && "bg-blue-100 dark:bg-blue-800/50"
+                                )}>
+                                  {trend.direction === "positive" && <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+                                  {trend.direction === "negative" && <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />}
+                                  {trend.direction === "neutral" && <Activity className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold" data-testid={`text-trend-observation-${i}`}>{trend.observation}</p>
                                   <p className="text-xs text-muted-foreground mt-1">{trend.implication}</p>
                                 </div>
                               </div>

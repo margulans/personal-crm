@@ -62,12 +62,12 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-sm">
             <Zap className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-semibold text-sm">PRIMA</h1>
+            <h1 className="font-bold text-sm tracking-tight">PRIMA</h1>
             <p className="text-xs text-muted-foreground">
               {contactCount > 0 ? `${contactCount} контактов` : "Управление связями"}
             </p>
