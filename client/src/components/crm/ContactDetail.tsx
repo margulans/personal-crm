@@ -56,9 +56,10 @@ import {
   User,
   Briefcase,
   Star,
+  Trash2,
 } from "lucide-react";
 
-import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, AIInsight, AIRecommendation } from "@/lib/types";
+import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, FamilyMember, AIInsight, AIRecommendation } from "@/lib/types";
 import { SectionAttachments } from "./SectionAttachments";
 
 const BLOCK_DESCRIPTIONS = {
@@ -182,6 +183,16 @@ export function ContactDetail({
         phones: ((contact.phones as PhoneEntry[]) || []).map(p => ({ ...p })),
         messengers: ((contact.messengers as MessengerEntry[]) || []).map(m => ({ ...m })),
         socialAccounts: ((contact.socialAccounts as SocialAccountEntry[]) || []).map(s => ({ ...s })),
+      });
+    } else if (section === "family") {
+      const currentFamily = contact.familyStatus as FamilyStatus || { members: [], events: [] };
+      setFormData({
+        familyStatus: {
+          maritalStatus: currentFamily.maritalStatus,
+          members: (currentFamily.members || []).map(m => ({ ...m })),
+          events: (currentFamily.events || []).map(e => ({ ...e })),
+          notes: currentFamily.notes || "",
+        },
       });
     } else if (section === "contribution") {
       setFormData({
@@ -887,11 +898,13 @@ export function ContactDetail({
                         <Label>Семейный статус</Label>
                         <Select 
                           value={(getFieldValue("familyStatus") as FamilyStatus)?.maritalStatus || ""}
-                          onValueChange={v => updateField("familyStatus", { 
-                            ...(contact.familyStatus as FamilyStatus || {}), 
-                            ...(formData.familyStatus as FamilyStatus || {}),
-                            maritalStatus: v as FamilyStatus["maritalStatus"]
-                          })}
+                          onValueChange={v => {
+                            const current = getFieldValue("familyStatus") as FamilyStatus || { members: [], events: [] };
+                            updateField("familyStatus", { 
+                              ...current,
+                              maritalStatus: v as FamilyStatus["maritalStatus"]
+                            });
+                          }}
                         >
                           <SelectTrigger data-testid="select-marital">
                             <SelectValue placeholder="Выберите статус" />
@@ -905,15 +918,140 @@ export function ContactDetail({
                           </SelectContent>
                         </Select>
                       </div>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="flex items-center gap-1">
+                            <Users className="h-3 w-3" /> Члены семьи
+                          </Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const current = getFieldValue("familyStatus") as FamilyStatus || { members: [], events: [] };
+                              updateField("familyStatus", {
+                                ...current,
+                                members: [...(current.members || []), { name: "", relation: "spouse" as const }]
+                              });
+                            }}
+                            data-testid="button-add-family-member"
+                          >
+                            <Plus className="h-3 w-3 mr-1" /> Добавить
+                          </Button>
+                        </div>
+                        
+                        {((getFieldValue("familyStatus") as FamilyStatus)?.members || []).map((member, index) => (
+                          <div key={index} className="flex items-start gap-2 p-3 border rounded-md bg-background">
+                            <div className="flex-1 grid gap-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Тип</Label>
+                                  <Select
+                                    value={member.relation}
+                                    onValueChange={v => {
+                                      const current = getFieldValue("familyStatus") as FamilyStatus;
+                                      const updatedMembers = [...current.members];
+                                      updatedMembers[index] = { ...updatedMembers[index], relation: v as FamilyMember["relation"] };
+                                      updateField("familyStatus", { ...current, members: updatedMembers });
+                                    }}
+                                  >
+                                    <SelectTrigger data-testid={`select-member-relation-${index}`}>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="spouse">Супруг(а)</SelectItem>
+                                      <SelectItem value="child">Ребёнок</SelectItem>
+                                      <SelectItem value="parent">Родитель</SelectItem>
+                                      <SelectItem value="sibling">Брат/сестра</SelectItem>
+                                      <SelectItem value="other">Другой</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Имя</Label>
+                                  <Input
+                                    value={member.name}
+                                    onChange={e => {
+                                      const current = getFieldValue("familyStatus") as FamilyStatus;
+                                      const updatedMembers = [...current.members];
+                                      updatedMembers[index] = { ...updatedMembers[index], name: e.target.value };
+                                      updateField("familyStatus", { ...current, members: updatedMembers });
+                                    }}
+                                    placeholder="Имя"
+                                    data-testid={`input-member-name-${index}`}
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Дата рождения</Label>
+                                  <Input
+                                    type="date"
+                                    value={member.birthday || ""}
+                                    onChange={e => {
+                                      const current = getFieldValue("familyStatus") as FamilyStatus;
+                                      const updatedMembers = [...current.members];
+                                      updatedMembers[index] = { ...updatedMembers[index], birthday: e.target.value };
+                                      updateField("familyStatus", { ...current, members: updatedMembers });
+                                    }}
+                                    data-testid={`input-member-birthday-${index}`}
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Заметка</Label>
+                                  <Input
+                                    value={member.notes || ""}
+                                    onChange={e => {
+                                      const current = getFieldValue("familyStatus") as FamilyStatus;
+                                      const updatedMembers = [...current.members];
+                                      updatedMembers[index] = { ...updatedMembers[index], notes: e.target.value };
+                                      updateField("familyStatus", { ...current, members: updatedMembers });
+                                    }}
+                                    placeholder="Заметка..."
+                                    data-testid={`input-member-notes-${index}`}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const current = getFieldValue("familyStatus") as FamilyStatus;
+                                const updatedMembers = current.members.filter((_, i) => i !== index);
+                                updateField("familyStatus", { ...current, members: updatedMembers });
+                              }}
+                              data-testid={`button-remove-member-${index}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        ))}
+                        
+                        {((getFieldValue("familyStatus") as FamilyStatus)?.members || []).length === 0 && (
+                          <p className="text-sm text-muted-foreground text-center py-2">
+                            Нажмите "Добавить" чтобы добавить члена семьи
+                          </p>
+                        )}
+                      </div>
+                      
+                      <Separator />
+                      
                       <div className="grid gap-2">
                         <Label>Заметки о семье</Label>
                         <Textarea 
                           value={(getFieldValue("familyStatus") as FamilyStatus)?.notes || ""}
-                          onChange={e => updateField("familyStatus", { 
-                            ...(contact.familyStatus as FamilyStatus || {}), 
-                            ...(formData.familyStatus as FamilyStatus || {}),
-                            notes: e.target.value 
-                          })}
+                          onChange={e => {
+                            const current = getFieldValue("familyStatus") as FamilyStatus || { members: [], events: [] };
+                            updateField("familyStatus", { 
+                              ...current,
+                              notes: e.target.value 
+                            });
+                          }}
                           placeholder="Заметки о семье..."
                           data-testid="input-family-notes"
                         />
