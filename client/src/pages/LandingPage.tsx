@@ -15,7 +15,10 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold" data-testid="text-logo">PRIMA</h1>
+          <div>
+            <h1 className="text-2xl font-bold" data-testid="text-logo">PRIMA</h1>
+            <p className="text-xs text-muted-foreground">Personal Relationship & Interaction Management Assistant</p>
+          </div>
           <Button 
             onClick={handleLogin} 
             disabled={isLoading}
