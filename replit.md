@@ -1,4 +1,4 @@
-# PRIMA - Personal Relationship & Information Management Agent
+# PRIMA - Personal Relationship & Interaction Management Assistant
 
 ## Overview
 
