@@ -107,48 +107,49 @@ export function SectionAttachments({
     : attachments;
 
   useEffect(() => {
+    let isCancelled = false;
+    
     const fetchSignedUrls = async () => {
       const toFetch = filteredAttachments.filter(
         a => !fetchedIdsRef.current.has(a.id)
       );
       
-      console.log("[SectionAttachments] filteredAttachments:", filteredAttachments.length, "toFetch:", toFetch.length);
-      
       if (toFetch.length === 0) return;
       
-      const newUrls: Record<string, string> = {};
+      // Mark all as being fetched to prevent duplicate requests
+      toFetch.forEach(a => fetchedIdsRef.current.add(a.id));
       
-      for (const attachment of toFetch) {
-        fetchedIdsRef.current.add(attachment.id);
-        
-        console.log("[SectionAttachments] Processing attachment:", attachment.id, attachment.storagePath);
-        
-        if (attachment.storagePath.startsWith("http://") || attachment.storagePath.startsWith("https://")) {
-          console.log("[SectionAttachments] External URL, using directly");
-          newUrls[attachment.id] = attachment.storagePath;
-          continue;
-        }
-        
-        try {
-          console.log("[SectionAttachments] Fetching signed URL for:", attachment.id);
-          const res = await fetch(`/api/attachments/${attachment.id}/url`, {
-            credentials: "include",
-          });
-          console.log("[SectionAttachments] Response status:", res.status);
-          if (res.ok) {
-            const { url } = await res.json();
-            console.log("[SectionAttachments] Got signed URL:", url?.substring(0, 60) + "...");
-            newUrls[attachment.id] = url;
-          } else {
-            const errorText = await res.text();
-            console.error("[SectionAttachments] Failed to get signed URL for", attachment.id, "status:", res.status, "error:", errorText);
+      // Fetch all URLs in parallel
+      const results = await Promise.all(
+        toFetch.map(async (attachment) => {
+          if (attachment.storagePath.startsWith("http://") || attachment.storagePath.startsWith("https://")) {
+            return { id: attachment.id, url: attachment.storagePath };
           }
-        } catch (err) {
-          console.error("[SectionAttachments] Exception getting signed URL:", err);
-        }
-      }
+          
+          try {
+            const res = await fetch(`/api/attachments/${attachment.id}/url`, {
+              credentials: "include",
+            });
+            if (res.ok) {
+              const { url } = await res.json();
+              return { id: attachment.id, url };
+            }
+          } catch (err) {
+            console.error("[SectionAttachments] Error fetching signed URL:", err);
+          }
+          return null;
+        })
+      );
       
-      console.log("[SectionAttachments] New URLs fetched:", Object.keys(newUrls).length);
+      if (isCancelled) return;
+      
+      const newUrls: Record<string, string> = {};
+      results.forEach(result => {
+        if (result?.url) {
+          newUrls[result.id] = result.url;
+        }
+      });
+      
       if (Object.keys(newUrls).length > 0) {
         setSignedUrls(prev => ({ ...prev, ...newUrls }));
       }
@@ -157,6 +158,10 @@ export function SectionAttachments({
     if (filteredAttachments.length > 0) {
       fetchSignedUrls();
     }
+    
+    return () => {
+      isCancelled = true;
+    };
   }, [filteredAttachments]);
 
   const getDisplayUrl = (attachment: Attachment): string | undefined => {
