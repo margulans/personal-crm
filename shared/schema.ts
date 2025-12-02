@@ -92,6 +92,26 @@ export type FamilyStatus = {
   notes?: string;
 };
 
+// Staff/Team member types (assistants, drivers, etc.)
+export type StaffPhone = {
+  type: "mobile" | "work" | "other";
+  number: string;
+};
+
+export type StaffMessenger = {
+  platform: "telegram" | "whatsapp" | "viber" | "other";
+  username: string;
+};
+
+export type StaffMember = {
+  name: string;
+  role: "assistant" | "driver" | "secretary" | "manager" | "security" | "other";
+  roleCustom?: string;
+  phones: StaffPhone[];
+  messengers: StaffMessenger[];
+  notes?: string;
+};
+
 export const contacts = pgTable("contacts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   teamId: varchar("team_id").references(() => teams.id, { onDelete: "cascade" }),
@@ -123,6 +143,9 @@ export const contacts = pgTable("contacts", {
   
   // Family information
   familyStatus: jsonb("family_status").$type<FamilyStatus>().default({ members: [], events: [] }),
+  
+  // Staff/Team (assistants, drivers, etc.)
+  staffMembers: jsonb("staff_members").$type<StaffMember[]>().default([]),
   
   // Tags
   tags: jsonb("tags").$type<string[]>().default([]),

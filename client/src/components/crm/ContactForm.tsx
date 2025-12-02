@@ -16,7 +16,7 @@ import {
 import { ATTENTION_LEVELS, ROLE_TAGS, CONTRIBUTION_CRITERIA, POTENTIAL_CRITERIA } from "@/lib/constants";
 import { X, Plus, Loader2, Trash2 } from "lucide-react";
 import type { Contact, InsertContact } from "@/lib/types";
-import type { PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyMember, FamilyEvent, FamilyStatus } from "@shared/schema";
+import type { PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyMember, FamilyEvent, FamilyStatus, StaffMember, StaffPhone, StaffMessenger } from "@shared/schema";
 
 interface ContactFormProps {
   initialData?: Contact;
@@ -25,7 +25,7 @@ interface ContactFormProps {
   isLoading?: boolean;
   allTags?: string[];
   allRoles?: string[];
-  initialTab?: "basic" | "contacts" | "family" | "priority" | "contribution" | "potential";
+  initialTab?: "basic" | "contacts" | "family" | "team" | "priority" | "contribution" | "potential";
 }
 
 function computeFullName(firstName?: string, lastName?: string, patronymic?: string): string {
@@ -49,6 +49,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
     socialAccounts: (initialData?.socialAccounts as SocialAccountEntry[]) || [],
     socialLinks: initialData?.socialLinks || [],
     familyStatus: (initialData?.familyStatus as FamilyStatus) || { members: [], events: [] },
+    staffMembers: (initialData?.staffMembers as StaffMember[]) || [],
     tags: initialData?.tags || [],
     roleTags: initialData?.roleTags || [],
     importanceLevel: initialData?.importanceLevel || "C",
@@ -276,6 +277,82 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
     });
   };
 
+  // Staff member management
+  const addStaffMember = () => {
+    const staffMembers = formData.staffMembers || [];
+    setFormData({
+      ...formData,
+      staffMembers: [...staffMembers, { name: "", role: "assistant", phones: [], messengers: [] }],
+    });
+  };
+
+  const updateStaffMember = (index: number, field: keyof StaffMember, value: unknown) => {
+    const staffMembers = [...(formData.staffMembers || [])];
+    staffMembers[index] = { ...staffMembers[index], [field]: value };
+    setFormData({ ...formData, staffMembers });
+  };
+
+  const removeStaffMember = (index: number) => {
+    setFormData({
+      ...formData,
+      staffMembers: formData.staffMembers?.filter((_, i) => i !== index) || [],
+    });
+  };
+
+  const addStaffPhone = (staffIndex: number) => {
+    const staffMembers = [...(formData.staffMembers || [])];
+    const member = staffMembers[staffIndex];
+    staffMembers[staffIndex] = {
+      ...member,
+      phones: [...member.phones, { type: "mobile", number: "" }],
+    };
+    setFormData({ ...formData, staffMembers });
+  };
+
+  const updateStaffPhone = (staffIndex: number, phoneIndex: number, field: keyof StaffPhone, value: string) => {
+    const staffMembers = [...(formData.staffMembers || [])];
+    const phones = [...staffMembers[staffIndex].phones];
+    phones[phoneIndex] = { ...phones[phoneIndex], [field]: value };
+    staffMembers[staffIndex] = { ...staffMembers[staffIndex], phones };
+    setFormData({ ...formData, staffMembers });
+  };
+
+  const removeStaffPhone = (staffIndex: number, phoneIndex: number) => {
+    const staffMembers = [...(formData.staffMembers || [])];
+    staffMembers[staffIndex] = {
+      ...staffMembers[staffIndex],
+      phones: staffMembers[staffIndex].phones.filter((_, i) => i !== phoneIndex),
+    };
+    setFormData({ ...formData, staffMembers });
+  };
+
+  const addStaffMessenger = (staffIndex: number) => {
+    const staffMembers = [...(formData.staffMembers || [])];
+    const member = staffMembers[staffIndex];
+    staffMembers[staffIndex] = {
+      ...member,
+      messengers: [...member.messengers, { platform: "telegram", username: "" }],
+    };
+    setFormData({ ...formData, staffMembers });
+  };
+
+  const updateStaffMessenger = (staffIndex: number, msgIndex: number, field: keyof StaffMessenger, value: string) => {
+    const staffMembers = [...(formData.staffMembers || [])];
+    const messengers = [...staffMembers[staffIndex].messengers];
+    messengers[msgIndex] = { ...messengers[msgIndex], [field]: value };
+    staffMembers[staffIndex] = { ...staffMembers[staffIndex], messengers };
+    setFormData({ ...formData, staffMembers });
+  };
+
+  const removeStaffMessenger = (staffIndex: number, msgIndex: number) => {
+    const staffMembers = [...(formData.staffMembers || [])];
+    staffMembers[staffIndex] = {
+      ...staffMembers[staffIndex],
+      messengers: staffMembers[staffIndex].messengers.filter((_, i) => i !== msgIndex),
+    };
+    setFormData({ ...formData, staffMembers });
+  };
+
   const addTag = (tagToAdd?: string) => {
     const tag = tagToAdd || newTag.trim();
     if (tag && !formData.tags?.includes(tag)) {
@@ -396,6 +473,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
           <TabsTrigger value="basic" className="text-xs sm:text-sm px-2 sm:px-3">ФИО</TabsTrigger>
           <TabsTrigger value="contacts" className="text-xs sm:text-sm px-2 sm:px-3">Контакты</TabsTrigger>
           <TabsTrigger value="family" className="text-xs sm:text-sm px-2 sm:px-3">Семья</TabsTrigger>
+          <TabsTrigger value="team" className="text-xs sm:text-sm px-2 sm:px-3">Команда</TabsTrigger>
           <TabsTrigger value="priority" className="text-xs sm:text-sm px-2 sm:px-3">Приоритеты</TabsTrigger>
           <TabsTrigger value="contribution" className="text-xs sm:text-sm px-2 sm:px-3">Вклад</TabsTrigger>
           <TabsTrigger value="potential" className="text-xs sm:text-sm px-2 sm:px-3">Потенциал</TabsTrigger>
@@ -923,6 +1001,178 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
               rows={3}
               data-testid="textarea-family-notes"
             />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="team" className="space-y-4 mt-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Члены команды (ассистенты, водители и др.)</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addStaffMember} data-testid="button-add-staff">
+                <Plus className="h-4 w-4 mr-1" /> Добавить
+              </Button>
+            </div>
+            {(formData.staffMembers || []).map((staff, staffIndex) => (
+              <div key={staffIndex} className="p-3 border rounded-md space-y-3 bg-muted/30">
+                <div className="flex gap-2 items-center">
+                  <Select
+                    value={staff.role}
+                    onValueChange={(v) => updateStaffMember(staffIndex, 'role', v)}
+                  >
+                    <SelectTrigger className="w-[140px]" data-testid={`select-staff-role-${staffIndex}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="assistant">Ассистент</SelectItem>
+                      <SelectItem value="driver">Водитель</SelectItem>
+                      <SelectItem value="secretary">Секретарь</SelectItem>
+                      <SelectItem value="manager">Менеджер</SelectItem>
+                      <SelectItem value="security">Охрана</SelectItem>
+                      <SelectItem value="other">Другой</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={staff.name}
+                    onChange={(e) => updateStaffMember(staffIndex, 'name', e.target.value)}
+                    placeholder="ФИО"
+                    className="flex-1"
+                    data-testid={`input-staff-name-${staffIndex}`}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => removeStaffMember(staffIndex)}
+                    data-testid={`button-remove-staff-${staffIndex}`}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+
+                {staff.role === "other" && (
+                  <Input
+                    value={staff.roleCustom || ""}
+                    onChange={(e) => updateStaffMember(staffIndex, 'roleCustom', e.target.value)}
+                    placeholder="Укажите роль"
+                    data-testid={`input-staff-role-custom-${staffIndex}`}
+                  />
+                )}
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Телефоны</span>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => addStaffPhone(staffIndex)}
+                      data-testid={`button-add-staff-phone-${staffIndex}`}
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Телефон
+                    </Button>
+                  </div>
+                  {staff.phones.map((phone, phoneIndex) => (
+                    <div key={phoneIndex} className="flex gap-2 items-center">
+                      <Select
+                        value={phone.type}
+                        onValueChange={(v) => updateStaffPhone(staffIndex, phoneIndex, 'type', v)}
+                      >
+                        <SelectTrigger className="w-[100px]" data-testid={`select-staff-phone-type-${staffIndex}-${phoneIndex}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mobile">Мобильный</SelectItem>
+                          <SelectItem value="work">Рабочий</SelectItem>
+                          <SelectItem value="other">Другой</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        value={phone.number}
+                        onChange={(e) => updateStaffPhone(staffIndex, phoneIndex, 'number', e.target.value)}
+                        placeholder="+7 XXX XXX-XX-XX"
+                        className="flex-1"
+                        data-testid={`input-staff-phone-${staffIndex}-${phoneIndex}`}
+                      />
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => removeStaffPhone(staffIndex, phoneIndex)}
+                        data-testid={`button-remove-staff-phone-${staffIndex}-${phoneIndex}`}
+                      >
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Мессенджеры</span>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => addStaffMessenger(staffIndex)}
+                      data-testid={`button-add-staff-messenger-${staffIndex}`}
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Мессенджер
+                    </Button>
+                  </div>
+                  {staff.messengers.map((msg, msgIndex) => (
+                    <div key={msgIndex} className="flex gap-2 items-center">
+                      <Select
+                        value={msg.platform}
+                        onValueChange={(v) => updateStaffMessenger(staffIndex, msgIndex, 'platform', v)}
+                      >
+                        <SelectTrigger className="w-[120px]" data-testid={`select-staff-msg-platform-${staffIndex}-${msgIndex}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="telegram">Telegram</SelectItem>
+                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                          <SelectItem value="viber">Viber</SelectItem>
+                          <SelectItem value="other">Другой</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        value={msg.username}
+                        onChange={(e) => updateStaffMessenger(staffIndex, msgIndex, 'username', e.target.value)}
+                        placeholder="@username или номер"
+                        className="flex-1"
+                        data-testid={`input-staff-messenger-${staffIndex}-${msgIndex}`}
+                      />
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => removeStaffMessenger(staffIndex, msgIndex)}
+                        data-testid={`button-remove-staff-msg-${staffIndex}-${msgIndex}`}
+                      >
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <Textarea
+                  value={staff.notes || ""}
+                  onChange={(e) => updateStaffMember(staffIndex, 'notes', e.target.value)}
+                  placeholder="Заметки"
+                  className="min-h-[38px] resize-none overflow-hidden"
+                  rows={1}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = target.scrollHeight + 'px';
+                  }}
+                  data-testid={`textarea-staff-notes-${staffIndex}`}
+                />
+              </div>
+            ))}
+            {(formData.staffMembers || []).length === 0 && (
+              <p className="text-sm text-muted-foreground">Нет добавленных членов команды</p>
+            )}
           </div>
         </TabsContent>
 

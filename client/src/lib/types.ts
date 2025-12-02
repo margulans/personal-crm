@@ -2,7 +2,8 @@ import type {
   PhoneEntry, 
   MessengerEntry, 
   SocialAccountEntry, 
-  FamilyStatus 
+  FamilyStatus,
+  StaffMember 
 } from "@shared/schema";
 
 export interface Contact {
@@ -28,6 +29,7 @@ export interface Contact {
   socialLinks: string[];
   
   familyStatus: FamilyStatus;
+  staffMembers: StaffMember[];
   
   tags: string[];
   roleTags: string[];
@@ -98,6 +100,7 @@ export interface InsertContact {
   socialLinks?: string[];
   
   familyStatus?: FamilyStatus;
+  staffMembers?: StaffMember[];
   
   tags?: string[];
   roleTags?: string[];
@@ -133,4 +136,4 @@ export interface InsertInteraction {
   isMeaningful: boolean;
 }
 
-export type { PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, FamilyMember, FamilyEvent } from "@shared/schema";
+export type { PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, FamilyMember, FamilyEvent, StaffMember, StaffPhone, StaffMessenger } from "@shared/schema";
