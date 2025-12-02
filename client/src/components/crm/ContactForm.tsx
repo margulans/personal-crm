@@ -402,7 +402,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
         </TabsList>
 
         <TabsContent value="basic" className="space-y-4 mt-4">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="lastName">Фамилия</Label>
               <Input
@@ -435,23 +435,15 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="shortName">Короткое имя (как обращаться)</Label>
-              <Input
-                id="shortName"
-                value={formData.shortName || ""}
-                onChange={(e) => setFormData({ ...formData, shortName: e.target.value })}
-                placeholder="Ваня"
-                data-testid="input-shortName"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Полное имя (авто)</Label>
-              <div className="h-9 px-3 py-2 bg-muted rounded-md text-sm text-muted-foreground">
-                {formData.fullName || "—"}
-              </div>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="shortName">Короткое имя (как обращаться)</Label>
+            <Input
+              id="shortName"
+              value={formData.shortName || ""}
+              onChange={(e) => setFormData({ ...formData, shortName: e.target.value })}
+              placeholder="Ваня"
+              data-testid="input-shortName"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
