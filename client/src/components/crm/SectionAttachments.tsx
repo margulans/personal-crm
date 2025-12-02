@@ -319,22 +319,116 @@ export function SectionAttachments({
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2">
-        <ObjectUploader
-          maxNumberOfFiles={5}
-          onGetUploadParameters={handleGetUploadParameters}
-          onComplete={handleUploadComplete}
-          buttonVariant="ghost"
-          buttonSize="sm"
-        >
-          <Paperclip className="h-4 w-4 mr-1" />
-          <span className="text-xs">Прикрепить</span>
-        </ObjectUploader>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <ObjectUploader
+            maxNumberOfFiles={5}
+            onGetUploadParameters={handleGetUploadParameters}
+            onComplete={handleUploadComplete}
+            buttonVariant="ghost"
+            buttonSize="sm"
+          >
+            <Paperclip className="h-4 w-4 mr-1" />
+            <span className="text-xs">Прикрепить</span>
+          </ObjectUploader>
+          {filteredAttachments.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              ({filteredAttachments.length})
+            </span>
+          )}
+        </div>
+        
         {filteredAttachments.length > 0 && (
-          <span className="text-xs text-muted-foreground">
-            ({filteredAttachments.length})
-          </span>
+          <div className="flex flex-wrap gap-2">
+            {filteredAttachments.map((attachment) => {
+              const FileIcon = getFileIcon(attachment.fileType, attachment.originalName);
+              const isImage = isImageFile(attachment.fileType, attachment.originalName);
+              const isPdf = isPdfFile(attachment.fileType, attachment.originalName);
+              const displayUrl = getDisplayUrl(attachment);
+
+              return (
+                <div
+                  key={attachment.id}
+                  className="group relative w-16 h-16 rounded-lg border bg-muted/30 overflow-hidden hover:bg-muted/50 transition-colors"
+                  data-testid={`attachment-compact-${attachment.id}`}
+                >
+                  {isImage ? (
+                    <div className="w-full h-full relative bg-black/5 dark:bg-white/5 flex items-center justify-center">
+                      {displayUrl ? (
+                        <img
+                          src={displayUrl}
+                          alt={attachment.originalName}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                  ) : isPdf ? (
+                    <div className="w-full h-full relative bg-white dark:bg-gray-100 flex items-center justify-center overflow-hidden">
+                      {displayUrl ? (
+                        <Document
+                          file={displayUrl}
+                          loading={<Loader2 className="h-4 w-4 animate-spin" />}
+                          error={<FileText className="h-6 w-6 text-muted-foreground" />}
+                          className="flex items-center justify-center scale-[0.4] origin-center"
+                        >
+                          <Page 
+                            pageNumber={1} 
+                            width={160}
+                            renderTextLayer={false}
+                            renderAnnotationLayer={false}
+                          />
+                        </Document>
+                      ) : (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-1">
+                      <FileIcon className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  
+                  {/* Delete button overlay */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-white hover:text-destructive hover:bg-white/20"
+                      onClick={() => deleteMutation.mutate(attachment.id)}
+                      disabled={deleteMutation.isPending}
+                      data-testid="button-delete-compact"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
+        
+        {/* Preview dialog */}
+        <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Просмотр</DialogTitle>
+            </DialogHeader>
+            {previewUrl && (
+              <div className="flex items-center justify-center max-h-[70vh]">
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="max-w-full max-h-[70vh] object-contain"
+                />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
