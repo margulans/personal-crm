@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -13,8 +14,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ATTENTION_LEVELS, ROLE_TAGS, CONTRIBUTION_CRITERIA, POTENTIAL_CRITERIA } from "@/lib/constants";
-import { X, Plus, Loader2 } from "lucide-react";
+import { X, Plus, Loader2, Trash2 } from "lucide-react";
 import type { Contact, InsertContact } from "@/lib/types";
+import type { PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyMember, FamilyEvent, FamilyStatus } from "@shared/schema";
 
 interface ContactFormProps {
   initialData?: Contact;
@@ -23,16 +25,30 @@ interface ContactFormProps {
   isLoading?: boolean;
   allTags?: string[];
   allRoles?: string[];
-  initialTab?: "basic" | "priority" | "contribution" | "potential";
+  initialTab?: "basic" | "contacts" | "family" | "priority" | "contribution" | "potential";
+}
+
+function computeFullName(firstName?: string, lastName?: string, patronymic?: string): string {
+  const parts = [lastName, firstName, patronymic].filter(Boolean);
+  return parts.join(" ") || "";
 }
 
 export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTags = [], allRoles = [], initialTab = "basic" }: ContactFormProps) {
   const [formData, setFormData] = useState<InsertContact>({
+    firstName: initialData?.firstName || "",
+    lastName: initialData?.lastName || "",
+    patronymic: initialData?.patronymic || "",
     fullName: initialData?.fullName || "",
     shortName: initialData?.shortName || "",
+    company: initialData?.company || "",
+    companyRole: initialData?.companyRole || "",
     phone: initialData?.phone || "",
     email: initialData?.email || "",
+    phones: (initialData?.phones as PhoneEntry[]) || [],
+    messengers: (initialData?.messengers as MessengerEntry[]) || [],
+    socialAccounts: (initialData?.socialAccounts as SocialAccountEntry[]) || [],
     socialLinks: initialData?.socialLinks || [],
+    familyStatus: (initialData?.familyStatus as FamilyStatus) || { members: [], events: [] },
     tags: initialData?.tags || [],
     roleTags: initialData?.roleTags || [],
     importanceLevel: initialData?.importanceLevel || "C",
@@ -65,7 +81,6 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
     lastContactDate: initialData?.lastContactDate || null,
   });
 
-  const [newSocialLink, setNewSocialLink] = useState("");
   const [newTag, setNewTag] = useState("");
   const [newRole, setNewRole] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
@@ -117,23 +132,147 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    const computedFullName = computeFullName(formData.firstName || undefined, formData.lastName || undefined, formData.patronymic || undefined);
+    onSubmit({
+      ...formData,
+      fullName: computedFullName || formData.shortName || "Без имени",
+    });
   };
 
-  const addSocialLink = () => {
-    if (newSocialLink.trim()) {
-      setFormData({
-        ...formData,
-        socialLinks: [...(formData.socialLinks || []), newSocialLink.trim()],
-      });
-      setNewSocialLink("");
-    }
+  const updateNameField = (field: 'firstName' | 'lastName' | 'patronymic', value: string) => {
+    const newData = { ...formData, [field]: value };
+    const computedFullName = computeFullName(
+      field === 'firstName' ? value : newData.firstName || undefined,
+      field === 'lastName' ? value : newData.lastName || undefined,
+      field === 'patronymic' ? value : newData.patronymic || undefined
+    );
+    setFormData({ ...newData, fullName: computedFullName || newData.shortName || "" });
   };
 
-  const removeSocialLink = (index: number) => {
+  const addPhone = () => {
+    const phones = formData.phones || [];
     setFormData({
       ...formData,
-      socialLinks: formData.socialLinks?.filter((_, i) => i !== index) || [],
+      phones: [...phones, { type: "mobile", number: "" }],
+    });
+  };
+
+  const updatePhone = (index: number, field: keyof PhoneEntry, value: string) => {
+    const phones = [...(formData.phones || [])];
+    phones[index] = { ...phones[index], [field]: value };
+    setFormData({ ...formData, phones });
+  };
+
+  const removePhone = (index: number) => {
+    setFormData({
+      ...formData,
+      phones: formData.phones?.filter((_, i) => i !== index) || [],
+    });
+  };
+
+  const addMessenger = () => {
+    const messengers = formData.messengers || [];
+    setFormData({
+      ...formData,
+      messengers: [...messengers, { platform: "telegram", username: "" }],
+    });
+  };
+
+  const updateMessenger = (index: number, field: keyof MessengerEntry, value: string) => {
+    const messengers = [...(formData.messengers || [])];
+    messengers[index] = { ...messengers[index], [field]: value };
+    setFormData({ ...formData, messengers });
+  };
+
+  const removeMessenger = (index: number) => {
+    setFormData({
+      ...formData,
+      messengers: formData.messengers?.filter((_, i) => i !== index) || [],
+    });
+  };
+
+  const addSocialAccount = () => {
+    const socialAccounts = formData.socialAccounts || [];
+    setFormData({
+      ...formData,
+      socialAccounts: [...socialAccounts, { platform: "instagram", url: "" }],
+    });
+  };
+
+  const updateSocialAccount = (index: number, field: keyof SocialAccountEntry, value: string) => {
+    const socialAccounts = [...(formData.socialAccounts || [])];
+    socialAccounts[index] = { ...socialAccounts[index], [field]: value };
+    setFormData({ ...formData, socialAccounts });
+  };
+
+  const removeSocialAccount = (index: number) => {
+    setFormData({
+      ...formData,
+      socialAccounts: formData.socialAccounts?.filter((_, i) => i !== index) || [],
+    });
+  };
+
+  const addFamilyMember = () => {
+    const familyStatus = formData.familyStatus || { members: [], events: [] };
+    setFormData({
+      ...formData,
+      familyStatus: {
+        ...familyStatus,
+        members: [...familyStatus.members, { name: "", relation: "spouse" }],
+      },
+    });
+  };
+
+  const updateFamilyMember = (index: number, field: keyof FamilyMember, value: string) => {
+    const familyStatus = formData.familyStatus || { members: [], events: [] };
+    const members = [...familyStatus.members];
+    members[index] = { ...members[index], [field]: value };
+    setFormData({
+      ...formData,
+      familyStatus: { ...familyStatus, members },
+    });
+  };
+
+  const removeFamilyMember = (index: number) => {
+    const familyStatus = formData.familyStatus || { members: [], events: [] };
+    setFormData({
+      ...formData,
+      familyStatus: {
+        ...familyStatus,
+        members: familyStatus.members.filter((_, i) => i !== index),
+      },
+    });
+  };
+
+  const addFamilyEvent = () => {
+    const familyStatus = formData.familyStatus || { members: [], events: [] };
+    setFormData({
+      ...formData,
+      familyStatus: {
+        ...familyStatus,
+        events: [...familyStatus.events, { title: "", date: "" }],
+      },
+    });
+  };
+
+  const updateFamilyEvent = (index: number, field: keyof FamilyEvent, value: string) => {
+    const familyStatus = formData.familyStatus || { members: [], events: [] };
+    const events = [...familyStatus.events];
+    events[index] = { ...events[index], [field]: value };
+    setFormData({
+      ...formData,
+      familyStatus: { ...familyStatus, events },
+    });
+  };
+
+  const removeFamilyEvent = (index: number) => {
+    const familyStatus = formData.familyStatus || { members: [], events: [] };
+    setFormData({
+      ...formData,
+      familyStatus: {
+        ...familyStatus,
+        events: familyStatus.events.filter((_, i) => i !== index),
+      },
     });
   };
 
@@ -183,21 +322,6 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
     });
   };
 
-  const toggleRoleTag = (tag: string) => {
-    const currentTags = formData.roleTags || [];
-    if (currentTags.includes(tag)) {
-      setFormData({
-        ...formData,
-        roleTags: currentTags.filter((t) => t !== tag),
-      });
-    } else {
-      setFormData({
-        ...formData,
-        roleTags: [...currentTags, tag],
-      });
-    }
-  };
-
   const updateContribution = (key: string, value: number) => {
     setFormData({
       ...formData,
@@ -220,31 +344,100 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
 
   const attentionInfo = ATTENTION_LEVELS.find((l) => l.id === formData.attentionLevel);
 
+  const phoneTypes = [
+    { value: "mobile", label: "Мобильный" },
+    { value: "work", label: "Рабочий" },
+    { value: "home", label: "Домашний" },
+    { value: "other", label: "Другой" },
+  ];
+
+  const messengerPlatforms = [
+    { value: "telegram", label: "Telegram" },
+    { value: "whatsapp", label: "WhatsApp" },
+    { value: "viber", label: "Viber" },
+    { value: "signal", label: "Signal" },
+    { value: "wechat", label: "WeChat" },
+    { value: "other", label: "Другой" },
+  ];
+
+  const socialPlatforms = [
+    { value: "instagram", label: "Instagram" },
+    { value: "facebook", label: "Facebook" },
+    { value: "linkedin", label: "LinkedIn" },
+    { value: "twitter", label: "Twitter/X" },
+    { value: "vk", label: "ВКонтакте" },
+    { value: "youtube", label: "YouTube" },
+    { value: "tiktok", label: "TikTok" },
+    { value: "other", label: "Другой" },
+  ];
+
+  const maritalStatuses = [
+    { value: "single", label: "Не женат/не замужем" },
+    { value: "married", label: "В браке" },
+    { value: "divorced", label: "В разводе" },
+    { value: "widowed", label: "Вдова/вдовец" },
+    { value: "partnership", label: "Гражданский брак" },
+  ];
+
+  const familyRelations = [
+    { value: "spouse", label: "Супруг(а)" },
+    { value: "child", label: "Ребёнок" },
+    { value: "parent", label: "Родитель" },
+    { value: "sibling", label: "Брат/сестра" },
+    { value: "other", label: "Другой" },
+  ];
+
+  const isNameValid = Boolean(formData.firstName || formData.lastName || formData.shortName);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Tabs defaultValue={initialTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="basic">Основное</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="basic">ФИО</TabsTrigger>
+          <TabsTrigger value="contacts">Контакты</TabsTrigger>
+          <TabsTrigger value="family">Семья</TabsTrigger>
           <TabsTrigger value="priority">Приоритеты</TabsTrigger>
           <TabsTrigger value="contribution">Вклад</TabsTrigger>
           <TabsTrigger value="potential">Потенциал</TabsTrigger>
         </TabsList>
 
         <TabsContent value="basic" className="space-y-4 mt-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Полное имя *</Label>
+              <Label htmlFor="lastName">Фамилия</Label>
               <Input
-                id="fullName"
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                placeholder="Иван Иванов"
-                required
-                data-testid="input-fullName"
+                id="lastName"
+                value={formData.lastName || ""}
+                onChange={(e) => updateNameField('lastName', e.target.value)}
+                placeholder="Иванов"
+                data-testid="input-lastName"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="shortName">Короткое имя</Label>
+              <Label htmlFor="firstName">Имя *</Label>
+              <Input
+                id="firstName"
+                value={formData.firstName || ""}
+                onChange={(e) => updateNameField('firstName', e.target.value)}
+                placeholder="Иван"
+                data-testid="input-firstName"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="patronymic">Отчество</Label>
+              <Input
+                id="patronymic"
+                value={formData.patronymic || ""}
+                onChange={(e) => updateNameField('patronymic', e.target.value)}
+                placeholder="Иванович"
+                data-testid="input-patronymic"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="shortName">Короткое имя (как обращаться)</Label>
               <Input
                 id="shortName"
                 value={formData.shortName || ""}
@@ -253,54 +446,34 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
                 data-testid="input-shortName"
               />
             </div>
+            <div className="space-y-2">
+              <Label>Полное имя (авто)</Label>
+              <div className="h-9 px-3 py-2 bg-muted rounded-md text-sm text-muted-foreground">
+                {formData.fullName || "—"}
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">Телефон</Label>
+              <Label htmlFor="company">Компания</Label>
               <Input
-                id="phone"
-                value={formData.phone || ""}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+7 999 123-45-67"
-                data-testid="input-phone"
+                id="company"
+                value={formData.company || ""}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                placeholder="ООО Рога и Копыта"
+                data-testid="input-company"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="companyRole">Должность</Label>
               <Input
-                id="email"
-                type="email"
-                value={formData.email || ""}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@example.com"
-                data-testid="input-email"
+                id="companyRole"
+                value={formData.companyRole || ""}
+                onChange={(e) => setFormData({ ...formData, companyRole: e.target.value })}
+                placeholder="Генеральный директор"
+                data-testid="input-companyRole"
               />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Социальные ссылки</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {formData.socialLinks?.map((link, i) => (
-                <Badge key={i} variant="secondary" className="gap-1">
-                  {link}
-                  <button type="button" onClick={() => removeSocialLink(i)}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={newSocialLink}
-                onChange={(e) => setNewSocialLink(e.target.value)}
-                placeholder="t.me/username"
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSocialLink())}
-              />
-              <Button type="button" variant="outline" size="icon" onClick={addSocialLink}>
-                <Plus className="h-4 w-4" />
-              </Button>
             </div>
           </div>
 
@@ -435,6 +608,319 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
+            {allTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                <span className="text-xs text-muted-foreground mr-1">Существующие:</span>
+                {allTags.filter(tag => !formData.tags?.includes(tag)).slice(0, 12).map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className="cursor-pointer text-xs hover-elevate"
+                    onClick={() => addTag(tag)}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="contacts" className="space-y-4 mt-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email || ""}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="email@example.com"
+              data-testid="input-email"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Телефоны</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addPhone} data-testid="button-add-phone">
+                <Plus className="h-4 w-4 mr-1" /> Добавить
+              </Button>
+            </div>
+            {(formData.phones || []).map((phone, index) => (
+              <div key={index} className="flex gap-2 items-center">
+                <Select
+                  value={phone.type}
+                  onValueChange={(v) => updatePhone(index, 'type', v)}
+                >
+                  <SelectTrigger className="w-[140px]" data-testid={`select-phone-type-${index}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {phoneTypes.map(t => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  value={phone.number}
+                  onChange={(e) => updatePhone(index, 'number', e.target.value)}
+                  placeholder="+7 999 123-45-67"
+                  className="flex-1"
+                  data-testid={`input-phone-number-${index}`}
+                />
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => removePhone(index)}
+                  data-testid={`button-remove-phone-${index}`}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+            {(formData.phones || []).length === 0 && (
+              <p className="text-sm text-muted-foreground">Нет добавленных телефонов</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Мессенджеры</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addMessenger} data-testid="button-add-messenger">
+                <Plus className="h-4 w-4 mr-1" /> Добавить
+              </Button>
+            </div>
+            {(formData.messengers || []).map((messenger, index) => (
+              <div key={index} className="flex gap-2 items-center">
+                <Select
+                  value={messenger.platform}
+                  onValueChange={(v) => updateMessenger(index, 'platform', v)}
+                >
+                  <SelectTrigger className="w-[140px]" data-testid={`select-messenger-platform-${index}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {messengerPlatforms.map(p => (
+                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  value={messenger.username}
+                  onChange={(e) => updateMessenger(index, 'username', e.target.value)}
+                  placeholder="@username или номер"
+                  className="flex-1"
+                  data-testid={`input-messenger-username-${index}`}
+                />
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => removeMessenger(index)}
+                  data-testid={`button-remove-messenger-${index}`}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+            {(formData.messengers || []).length === 0 && (
+              <p className="text-sm text-muted-foreground">Нет добавленных мессенджеров</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Социальные сети</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addSocialAccount} data-testid="button-add-social">
+                <Plus className="h-4 w-4 mr-1" /> Добавить
+              </Button>
+            </div>
+            {(formData.socialAccounts || []).map((account, index) => (
+              <div key={index} className="flex gap-2 items-center">
+                <Select
+                  value={account.platform}
+                  onValueChange={(v) => updateSocialAccount(index, 'platform', v)}
+                >
+                  <SelectTrigger className="w-[140px]" data-testid={`select-social-platform-${index}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {socialPlatforms.map(p => (
+                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  value={account.url}
+                  onChange={(e) => updateSocialAccount(index, 'url', e.target.value)}
+                  placeholder="https://instagram.com/username"
+                  className="flex-1"
+                  data-testid={`input-social-url-${index}`}
+                />
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => removeSocialAccount(index)}
+                  data-testid={`button-remove-social-${index}`}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+            {(formData.socialAccounts || []).length === 0 && (
+              <p className="text-sm text-muted-foreground">Нет добавленных аккаунтов</p>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="family" className="space-y-4 mt-4">
+          <div className="space-y-2">
+            <Label>Семейное положение</Label>
+            <Select
+              value={formData.familyStatus?.maritalStatus || ""}
+              onValueChange={(v) => setFormData({
+                ...formData,
+                familyStatus: {
+                  ...formData.familyStatus!,
+                  maritalStatus: v as FamilyStatus['maritalStatus'],
+                },
+              })}
+            >
+              <SelectTrigger data-testid="select-marital-status">
+                <SelectValue placeholder="Не указано" />
+              </SelectTrigger>
+              <SelectContent>
+                {maritalStatuses.map(s => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Члены семьи</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addFamilyMember} data-testid="button-add-family-member">
+                <Plus className="h-4 w-4 mr-1" /> Добавить
+              </Button>
+            </div>
+            {(formData.familyStatus?.members || []).map((member, index) => (
+              <div key={index} className="p-3 border rounded-md space-y-2 bg-muted/30">
+                <div className="flex gap-2 items-center">
+                  <Select
+                    value={member.relation}
+                    onValueChange={(v) => updateFamilyMember(index, 'relation', v)}
+                  >
+                    <SelectTrigger className="w-[140px]" data-testid={`select-family-relation-${index}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {familyRelations.map(r => (
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={member.name}
+                    onChange={(e) => updateFamilyMember(index, 'name', e.target.value)}
+                    placeholder="Имя"
+                    className="flex-1"
+                    data-testid={`input-family-name-${index}`}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => removeFamilyMember(index)}
+                    data-testid={`button-remove-family-${index}`}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Input
+                      type="date"
+                      value={member.birthday || ""}
+                      onChange={(e) => updateFamilyMember(index, 'birthday', e.target.value)}
+                      placeholder="Дата рождения"
+                      data-testid={`input-family-birthday-${index}`}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Input
+                      value={member.notes || ""}
+                      onChange={(e) => updateFamilyMember(index, 'notes', e.target.value)}
+                      placeholder="Заметки"
+                      data-testid={`input-family-notes-${index}`}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {(formData.familyStatus?.members || []).length === 0 && (
+              <p className="text-sm text-muted-foreground">Нет добавленных членов семьи</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Семейные события (даты)</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addFamilyEvent} data-testid="button-add-family-event">
+                <Plus className="h-4 w-4 mr-1" /> Добавить
+              </Button>
+            </div>
+            {(formData.familyStatus?.events || []).map((event, index) => (
+              <div key={index} className="flex gap-2 items-center">
+                <Input
+                  value={event.title}
+                  onChange={(e) => updateFamilyEvent(index, 'title', e.target.value)}
+                  placeholder="Название (годовщина, др и т.д.)"
+                  className="flex-1"
+                  data-testid={`input-event-title-${index}`}
+                />
+                <Input
+                  type="date"
+                  value={event.date}
+                  onChange={(e) => updateFamilyEvent(index, 'date', e.target.value)}
+                  className="w-[160px]"
+                  data-testid={`input-event-date-${index}`}
+                />
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => removeFamilyEvent(index)}
+                  data-testid={`button-remove-event-${index}`}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+            {(formData.familyStatus?.events || []).length === 0 && (
+              <p className="text-sm text-muted-foreground">Нет добавленных событий</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="familyNotes">Заметки о семье</Label>
+            <Textarea
+              id="familyNotes"
+              value={formData.familyStatus?.notes || ""}
+              onChange={(e) => setFormData({
+                ...formData,
+                familyStatus: {
+                  ...formData.familyStatus!,
+                  notes: e.target.value,
+                },
+              })}
+              placeholder="Дополнительная информация о семье..."
+              className="resize-none"
+              rows={3}
+              data-testid="textarea-family-notes"
+            />
           </div>
         </TabsContent>
 
@@ -620,7 +1106,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
           Отмена
         </Button>
-        <Button type="submit" disabled={isLoading || !formData.fullName} data-testid="button-submit">
+        <Button type="submit" disabled={isLoading || !isNameValid} data-testid="button-submit">
           {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           {initialData ? "Сохранить" : "Создать"}
         </Button>
