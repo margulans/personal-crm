@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { ObjectUploader } from "./ObjectUploader";
 import { Button } from "@/components/ui/button";
@@ -89,6 +89,7 @@ export function SectionAttachments({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<string>("");
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const fetchedIdsRef = useRef<Set<string>>(new Set());
 
   const { data: attachments = [], isLoading } = useQuery<Attachment[]>({
     queryKey: ["/api/contacts", contactId, "attachments", category],
@@ -107,10 +108,16 @@ export function SectionAttachments({
 
   useEffect(() => {
     const fetchSignedUrls = async () => {
+      const toFetch = filteredAttachments.filter(
+        a => !fetchedIdsRef.current.has(a.id)
+      );
+      
+      if (toFetch.length === 0) return;
+      
       const newUrls: Record<string, string> = {};
       
-      for (const attachment of filteredAttachments) {
-        if (signedUrls[attachment.id]) continue;
+      for (const attachment of toFetch) {
+        fetchedIdsRef.current.add(attachment.id);
         
         if (attachment.storagePath.startsWith("http://") || attachment.storagePath.startsWith("https://")) {
           newUrls[attachment.id] = attachment.storagePath;
@@ -124,6 +131,8 @@ export function SectionAttachments({
           if (res.ok) {
             const { url } = await res.json();
             newUrls[attachment.id] = url;
+          } else {
+            console.error("Failed to get signed URL for", attachment.id, "status:", res.status);
           }
         } catch (err) {
           console.error("Failed to get signed URL:", err);
@@ -138,7 +147,7 @@ export function SectionAttachments({
     if (filteredAttachments.length > 0) {
       fetchSignedUrls();
     }
-  }, [filteredAttachments, signedUrls]);
+  }, [filteredAttachments]);
 
   const getDisplayUrl = (attachment: Attachment): string | undefined => {
     return signedUrls[attachment.id];
@@ -189,6 +198,7 @@ export function SectionAttachments({
     }
 
     setSignedUrls({});
+    fetchedIdsRef.current.clear();
     queryClient.invalidateQueries({ queryKey: ["/api/contacts", contactId, "attachments", category] });
     toast({ title: "Файл загружен" });
   };
