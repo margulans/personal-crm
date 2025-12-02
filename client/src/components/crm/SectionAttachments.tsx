@@ -116,9 +116,6 @@ export function SectionAttachments({
       
       if (toFetch.length === 0) return;
       
-      // Mark all as being fetched to prevent duplicate requests
-      toFetch.forEach(a => fetchedIdsRef.current.add(a.id));
-      
       // Fetch all URLs in parallel
       const results = await Promise.all(
         toFetch.map(async (attachment) => {
@@ -147,6 +144,8 @@ export function SectionAttachments({
       results.forEach(result => {
         if (result?.url) {
           newUrls[result.id] = result.url;
+          // Only mark as fetched AFTER successful URL retrieval
+          fetchedIdsRef.current.add(result.id);
         }
       });
       
@@ -315,12 +314,17 @@ export function SectionAttachments({
                         src={displayUrl}
                         alt={attachment.originalName}
                         className="max-w-full max-h-full object-contain"
+                        onLoad={() => console.log("[Image] Loaded:", attachment.originalName)}
                         onError={(e) => {
+                          console.error("[Image] Error loading:", attachment.originalName, displayUrl?.substring(0, 60));
                           (e.target as HTMLImageElement).style.display = "none";
                         }}
                       />
                     ) : (
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      <div className="flex flex-col items-center gap-1">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Загрузка...</span>
+                      </div>
                     )}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                       <Button
