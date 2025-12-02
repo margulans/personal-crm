@@ -22,9 +22,10 @@ interface ScorePanelProps {
   scores: Record<string, number>;
   totalScore: number;
   scoreClass: string;
+  compact?: boolean;
 }
 
-export function ScorePanel({ type, scores, totalScore, scoreClass }: ScorePanelProps) {
+export function ScorePanel({ type, scores, totalScore, scoreClass, compact = false }: ScorePanelProps) {
   const criteria = type === "contribution" ? CONTRIBUTION_CRITERIA : POTENTIAL_CRITERIA;
   const title = type === "contribution" ? "Вклад" : "Потенциал";
   const info = SCORE_DESCRIPTIONS[type];
@@ -35,6 +36,35 @@ export function ScorePanel({ type, scores, totalScore, scoreClass }: ScorePanelP
     C: "text-muted-foreground",
     D: "text-muted-foreground/60",
   };
+
+  if (compact) {
+    return (
+      <div className="space-y-3" data-testid={`score-panel-${type}-compact`}>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">{title}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold font-mono">{totalScore}</span>
+            <span className={`text-base font-bold ${classColors[scoreClass]}`}>
+              {scoreClass}
+            </span>
+          </div>
+        </div>
+        {criteria.map((criterion) => {
+          const key = criterion.key as keyof typeof scores;
+          const value = scores[key] || 0;
+          return (
+            <div key={criterion.key} className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{criterion.label}</span>
+                <span className="font-mono font-medium">{value}/3</span>
+              </div>
+              <Progress value={(value / 3) * 100} className="h-1.5" />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <Card 
