@@ -9,11 +9,14 @@ import {
   type InsertTeam,
   type TeamMember,
   type InsertTeamMember,
+  type Backup,
+  type InsertBackup,
   contacts, 
   interactions,
   users,
   teams,
   teamMembers,
+  backups,
   getClassFromScore,
   calculateHeatIndex,
   getRecommendedAttentionLevel,
@@ -56,8 +59,16 @@ export interface IStorage {
   
   // Utility operations
   recalculateContactMetrics(contactId: string): Promise<Contact | undefined>;
-  recalculateAllContactMetrics(): Promise<void>;
-  migrateContributionData(): Promise<void>;
+  recalculateAllContactMetrics(teamId: string): Promise<void>;
+  migrateContributionData(teamId: string): Promise<void>;
+  
+  // Backup operations
+  getBackups(teamId: string): Promise<Backup[]>;
+  getBackup(id: string): Promise<Backup | undefined>;
+  createBackup(teamId: string, userId: string, description?: string): Promise<Backup>;
+  restoreBackup(backupId: string): Promise<boolean>;
+  deleteBackup(id: string): Promise<boolean>;
+  deleteOldBackups(teamId: string, keepCount: number): Promise<number>;
 }
 
 function calculateScoresAndClass(details: { 
@@ -405,15 +416,15 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async recalculateAllContactMetrics(): Promise<void> {
-    const allContacts = await this.getContacts();
+  async recalculateAllContactMetrics(teamId: string): Promise<void> {
+    const allContacts = await this.getContacts(teamId);
     for (const contact of allContacts) {
       await this.recalculateContactMetrics(contact.id);
     }
   }
 
-  async migrateContributionData(): Promise<void> {
-    const allContacts = await this.getContacts();
+  async migrateContributionData(teamId: string): Promise<void> {
+    const allContacts = await this.getContacts(teamId);
     for (const contact of allContacts) {
       const details = contact.contributionDetails as { 
         financial?: number; network?: number; tactical?: number; 
@@ -430,6 +441,95 @@ export class DatabaseStorage implements IStorage {
         await this.updateContact(contact.id, { contributionDetails: newDetails });
       }
     }
+  }
+
+  // Backup operations
+  async getBackups(teamId: string): Promise<Backup[]> {
+    return await db.select()
+      .from(backups)
+      .where(eq(backups.teamId, teamId))
+      .orderBy(desc(backups.createdAt));
+  }
+
+  async getBackup(id: string): Promise<Backup | undefined> {
+    const [backup] = await db.select().from(backups).where(eq(backups.id, id));
+    return backup;
+  }
+
+  async createBackup(teamId: string, userId: string, description?: string): Promise<Backup> {
+    const teamContacts = await this.getContacts(teamId);
+    
+    const allInteractions: Interaction[] = [];
+    for (const contact of teamContacts) {
+      const contactInteractions = await this.getInteractions(contact.id);
+      allInteractions.push(...contactInteractions);
+    }
+
+    const [backup] = await db.insert(backups).values({
+      teamId,
+      createdBy: userId,
+      description: description || `Автоматический бекап - ${new Date().toLocaleDateString('ru-RU')}`,
+      contactsCount: teamContacts.length,
+      interactionsCount: allInteractions.length,
+      data: {
+        contacts: teamContacts,
+        interactions: allInteractions,
+      },
+    }).returning();
+
+    return backup;
+  }
+
+  async restoreBackup(backupId: string): Promise<boolean> {
+    const backup = await this.getBackup(backupId);
+    if (!backup || !backup.data) return false;
+
+    const { contacts: backupContacts, interactions: backupInteractions } = backup.data;
+
+    await db.delete(contacts).where(eq(contacts.teamId, backup.teamId));
+
+    for (const contactData of backupContacts) {
+      const { id, createdAt, updatedAt, ...insertData } = contactData;
+      await db.insert(contacts).values({
+        ...insertData,
+        id,
+        createdAt: new Date(createdAt),
+        updatedAt: new Date(),
+      });
+    }
+
+    for (const interactionData of backupInteractions) {
+      const { id, createdAt, updatedAt, ...insertData } = interactionData;
+      await db.insert(interactions).values({
+        ...insertData,
+        id,
+        createdAt: new Date(createdAt),
+        updatedAt: new Date(),
+      });
+    }
+
+    return true;
+  }
+
+  async deleteBackup(id: string): Promise<boolean> {
+    const result = await db.delete(backups).where(eq(backups.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async deleteOldBackups(teamId: string, keepCount: number): Promise<number> {
+    const allBackups = await this.getBackups(teamId);
+    
+    if (allBackups.length <= keepCount) return 0;
+
+    const toDelete = allBackups.slice(keepCount);
+    let deletedCount = 0;
+
+    for (const backup of toDelete) {
+      const deleted = await this.deleteBackup(backup.id);
+      if (deleted) deletedCount++;
+    }
+
+    return deletedCount;
   }
 }
 

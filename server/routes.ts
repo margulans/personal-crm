@@ -1,7 +1,8 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema, insertInteractionSchema, insertTeamSchema } from "@shared/schema";
+import { db } from "./db";
+import { insertContactSchema, insertInteractionSchema, insertTeamSchema, teams } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -363,7 +364,11 @@ export async function registerRoutes(
 
   app.post("/api/recalculate", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      await storage.recalculateAllContactMetrics();
+      const teamId = await getCurrentTeamId(req);
+      if (!teamId) {
+        return res.status(400).json({ error: "No team found" });
+      }
+      await storage.recalculateAllContactMetrics(teamId);
       res.json({ message: "All contacts recalculated successfully" });
     } catch (error) {
       console.error("Error recalculating metrics:", error);
@@ -616,6 +621,142 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error importing contacts:", error);
       res.status(500).json({ error: "Failed to import contacts" });
+    }
+  });
+
+  // Backup endpoints
+  app.get("/api/backups", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getCurrentTeamId(req);
+      if (!teamId) {
+        return res.json([]);
+      }
+      const backupsList = await storage.getBackups(teamId);
+      res.json(backupsList);
+    } catch (error) {
+      console.error("Error fetching backups:", error);
+      res.status(500).json({ error: "Failed to fetch backups" });
+    }
+  });
+
+  app.post("/api/backups", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const teamId = await getCurrentTeamId(req);
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "You must be a member of a team to create backups" });
+      }
+      
+      const { description } = req.body;
+      const backup = await storage.createBackup(teamId, userId, description);
+      
+      // Keep only last 30 backups (daily backups for a month)
+      await storage.deleteOldBackups(teamId, 30);
+      
+      res.status(201).json(backup);
+    } catch (error) {
+      console.error("Error creating backup:", error);
+      res.status(500).json({ error: "Failed to create backup" });
+    }
+  });
+
+  app.post("/api/backups/:id/restore", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const teamId = await getCurrentTeamId(req);
+      const backupId = req.params.id;
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "No team found" });
+      }
+      
+      // Verify backup belongs to user's team
+      const backup = await storage.getBackup(backupId);
+      if (!backup || backup.teamId !== teamId) {
+        return res.status(404).json({ error: "Backup not found" });
+      }
+      
+      // Check if user is owner or admin (only they can restore)
+      const member = await storage.getTeamMember(teamId, userId);
+      if (!member || (member.role !== "owner" && member.role !== "admin")) {
+        return res.status(403).json({ error: "Only team owner or admin can restore backups" });
+      }
+      
+      // Create a backup before restoring (safety measure)
+      await storage.createBackup(teamId, userId, `Автобекап перед восстановлением`);
+      
+      const success = await storage.restoreBackup(backupId);
+      if (success) {
+        res.json({ message: "Backup restored successfully" });
+      } else {
+        res.status(500).json({ error: "Failed to restore backup" });
+      }
+    } catch (error) {
+      console.error("Error restoring backup:", error);
+      res.status(500).json({ error: "Failed to restore backup" });
+    }
+  });
+
+  app.delete("/api/backups/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const teamId = await getCurrentTeamId(req);
+      const backupId = req.params.id;
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "No team found" });
+      }
+      
+      // Verify backup belongs to user's team
+      const backup = await storage.getBackup(backupId);
+      if (!backup || backup.teamId !== teamId) {
+        return res.status(404).json({ error: "Backup not found" });
+      }
+      
+      // Check if user is owner or admin
+      const member = await storage.getTeamMember(teamId, userId);
+      if (!member || (member.role !== "owner" && member.role !== "admin")) {
+        return res.status(403).json({ error: "Only team owner or admin can delete backups" });
+      }
+      
+      await storage.deleteBackup(backupId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting backup:", error);
+      res.status(500).json({ error: "Failed to delete backup" });
+    }
+  });
+
+  // Endpoint for scheduled backup (can be called by cron/scheduled deployment)
+  app.post("/api/backups/auto", async (req: Request, res: Response) => {
+    try {
+      const { secret } = req.body;
+      
+      // Simple secret key protection for scheduled task
+      const expectedSecret = process.env.BACKUP_SECRET || "prima-auto-backup-secret";
+      if (secret !== expectedSecret) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Get all teams and create backups for each
+      const allTeams = await db.select().from(teams);
+      const results: { teamId: string; success: boolean; contactsCount?: number }[] = [];
+      
+      for (const team of allTeams) {
+        try {
+          const backup = await storage.createBackup(team.id, team.ownerId, "Ежедневный автоматический бекап");
+          await storage.deleteOldBackups(team.id, 30);
+          results.push({ teamId: team.id, success: true, contactsCount: backup.contactsCount });
+        } catch (err) {
+          results.push({ teamId: team.id, success: false });
+        }
+      }
+      
+      res.json({ message: "Auto backup completed", results });
+    } catch (error) {
+      console.error("Error in auto backup:", error);
+      res.status(500).json({ error: "Failed to run auto backup" });
     }
   });
 
