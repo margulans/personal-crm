@@ -248,7 +248,7 @@ export const attachments = pgTable("attachments", {
   teamId: varchar("team_id").references(() => teams.id, { onDelete: "cascade" }),
   uploadedBy: varchar("uploaded_by").references(() => users.id),
   
-  category: varchar("category", { length: 30 }).notNull(), // personal, family, team, work, documents, other
+  category: varchar("category", { length: 30 }).notNull(), // personal, family, team, work, documents, hobbies, gifts, preferences, dates, notes, other
   subCategory: varchar("sub_category", { length: 50 }), // e.g., "child_photo", "driver_photo", "contract"
   
   fileName: varchar("file_name", { length: 255 }).notNull(),
@@ -272,7 +272,7 @@ export const insertAttachmentSchema = createInsertSchema(attachments).omit({
   contactId: z.string().min(1),
   teamId: z.string().optional(),
   uploadedBy: z.string().optional(),
-  category: z.enum(["personal", "family", "team", "work", "documents", "other"]),
+  category: z.enum(["personal", "family", "team", "work", "documents", "hobbies", "gifts", "preferences", "dates", "notes", "other"]),
   subCategory: z.string().optional(),
   fileName: z.string().min(1),
   originalName: z.string().min(1),
