@@ -201,7 +201,10 @@ export async function registerRoutes(
   app.get("/api/contacts", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const teamId = await getCurrentTeamId(req);
-      const contacts = await storage.getContacts(teamId || undefined);
+      if (!teamId) {
+        return res.json([]);
+      }
+      const contacts = await storage.getContacts(teamId);
       res.json(contacts);
     } catch (error) {
       console.error("Error fetching contacts:", error);
@@ -211,7 +214,8 @@ export async function registerRoutes(
 
   app.get("/api/contacts/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const contact = await storage.getContact(req.params.id);
+      const teamId = await getCurrentTeamId(req);
+      const contact = await storage.getContact(req.params.id, teamId || undefined);
       if (!contact) {
         return res.status(404).json({ error: "Contact not found" });
       }
@@ -226,6 +230,10 @@ export async function registerRoutes(
     try {
       const userId = getUserId(req);
       const teamId = await getCurrentTeamId(req);
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "You must be a member of a team to create contacts. Please create or join a team first." });
+      }
       
       const data = insertContactSchema.parse({
         ...req.body,
@@ -248,15 +256,19 @@ export async function registerRoutes(
   app.patch("/api/contacts/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getUserId(req);
+      const teamId = await getCurrentTeamId(req);
+      
+      const existing = await storage.getContact(req.params.id, teamId || undefined);
+      if (!existing) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
       const partialSchema = insertContactSchema.partial();
       const data = partialSchema.parse({
         ...req.body,
         updatedBy: userId,
       });
       const contact = await storage.updateContact(req.params.id, data);
-      if (!contact) {
-        return res.status(404).json({ error: "Contact not found" });
-      }
       res.json(contact);
     } catch (error) {
       if (error instanceof ZodError) {
@@ -270,10 +282,14 @@ export async function registerRoutes(
 
   app.delete("/api/contacts/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const deleted = await storage.deleteContact(req.params.id);
-      if (!deleted) {
+      const teamId = await getCurrentTeamId(req);
+      
+      const existing = await storage.getContact(req.params.id, teamId || undefined);
+      if (!existing) {
         return res.status(404).json({ error: "Contact not found" });
       }
+      
+      await storage.deleteContact(req.params.id);
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting contact:", error);
@@ -283,6 +299,12 @@ export async function registerRoutes(
 
   app.get("/api/contacts/:contactId/interactions", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      const teamId = await getCurrentTeamId(req);
+      const contact = await storage.getContact(req.params.contactId, teamId || undefined);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
       const interactions = await storage.getInteractions(req.params.contactId);
       res.json(interactions);
     } catch (error) {
@@ -293,6 +315,12 @@ export async function registerRoutes(
 
   app.post("/api/contacts/:contactId/interactions", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      const teamId = await getCurrentTeamId(req);
+      const contact = await storage.getContact(req.params.contactId, teamId || undefined);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
       const userId = getUserId(req);
       const data = insertInteractionSchema.parse({
         ...req.body,
@@ -313,10 +341,19 @@ export async function registerRoutes(
 
   app.delete("/api/interactions/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const deleted = await storage.deleteInteraction(req.params.id);
-      if (!deleted) {
+      const teamId = await getCurrentTeamId(req);
+      
+      const interaction = await storage.getInteraction(req.params.id);
+      if (!interaction) {
         return res.status(404).json({ error: "Interaction not found" });
       }
+      
+      const contact = await storage.getContact(interaction.contactId, teamId || undefined);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      await storage.deleteInteraction(req.params.id);
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting interaction:", error);
@@ -337,7 +374,10 @@ export async function registerRoutes(
   app.get("/api/export/json", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const teamId = await getCurrentTeamId(req);
-      const contacts = await storage.getContacts(teamId || undefined);
+      if (!teamId) {
+        return res.json([]);
+      }
+      const contacts = await storage.getContacts(teamId);
       const exportData = contacts.map(contact => ({
         fullName: contact.fullName,
         shortName: contact.shortName,
@@ -369,7 +409,12 @@ export async function registerRoutes(
   app.get("/api/export/csv", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const teamId = await getCurrentTeamId(req);
-      const contacts = await storage.getContacts(teamId || undefined);
+      if (!teamId) {
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.send("");
+        return;
+      }
+      const contacts = await storage.getContacts(teamId);
       
       const headers = [
         "fullName", "shortName", "phone", "email", "socialLinks", "tags", "roleTags",
@@ -440,6 +485,7 @@ export async function registerRoutes(
 
   app.post("/api/contacts/bulk-delete", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      const teamId = await getCurrentTeamId(req);
       const { ids } = req.body;
       if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: "No contact IDs provided" });
@@ -447,8 +493,11 @@ export async function registerRoutes(
       
       let deleted = 0;
       for (const id of ids) {
-        const result = await storage.deleteContact(id);
-        if (result) deleted++;
+        const contact = await storage.getContact(id, teamId || undefined);
+        if (contact) {
+          const result = await storage.deleteContact(id);
+          if (result) deleted++;
+        }
       }
       
       res.json({ message: `Deleted ${deleted} contacts`, deleted });
@@ -461,6 +510,7 @@ export async function registerRoutes(
   app.post("/api/contacts/bulk-update", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getUserId(req);
+      const teamId = await getCurrentTeamId(req);
       const { ids, updates } = req.body;
       if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: "No contact IDs provided" });
@@ -471,8 +521,11 @@ export async function registerRoutes(
       
       let updated = 0;
       for (const id of ids) {
-        const result = await storage.updateContact(id, validUpdates);
-        if (result) updated++;
+        const contact = await storage.getContact(id, teamId || undefined);
+        if (contact) {
+          const result = await storage.updateContact(id, validUpdates);
+          if (result) updated++;
+        }
       }
       
       res.json({ message: `Updated ${updated} contacts`, updated });
@@ -490,6 +543,11 @@ export async function registerRoutes(
     try {
       const userId = getUserId(req);
       const teamId = await getCurrentTeamId(req);
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "You must be a member of a team to import contacts. Please create or join a team first." });
+      }
+      
       const { contacts: importContacts } = req.body;
       
       if (!Array.isArray(importContacts)) {

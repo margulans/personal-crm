@@ -41,8 +41,9 @@ export interface IStorage {
   getTeamMember(teamId: string, userId: string): Promise<TeamMember | undefined>;
   
   // Contact operations
-  getContacts(teamId?: string): Promise<Contact[]>;
-  getContact(id: string): Promise<Contact | undefined>;
+  getContacts(teamId: string): Promise<Contact[]>;
+  getContactsAll(): Promise<Contact[]>;
+  getContact(id: string, teamId?: string): Promise<Contact | undefined>;
   createContact(contact: InsertContact): Promise<Contact>;
   updateContact(id: string, contact: Partial<InsertContact>): Promise<Contact | undefined>;
   deleteContact(id: string): Promise<boolean>;
@@ -193,15 +194,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Contact operations
-  async getContacts(teamId?: string): Promise<Contact[]> {
-    if (teamId) {
-      return await db.select().from(contacts).where(eq(contacts.teamId, teamId)).orderBy(desc(contacts.heatIndex));
-    }
+  async getContacts(teamId: string): Promise<Contact[]> {
+    return await db.select().from(contacts).where(eq(contacts.teamId, teamId)).orderBy(desc(contacts.heatIndex));
+  }
+  
+  async getContactsAll(): Promise<Contact[]> {
     return await db.select().from(contacts).orderBy(desc(contacts.heatIndex));
   }
 
-  async getContact(id: string): Promise<Contact | undefined> {
+  async getContact(id: string, teamId?: string): Promise<Contact | undefined> {
     const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
+    if (contact && teamId && contact.teamId !== teamId) {
+      return undefined;
+    }
     return contact;
   }
 

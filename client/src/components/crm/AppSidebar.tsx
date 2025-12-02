@@ -12,13 +12,19 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { Users, BarChart3, Zap } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Users, BarChart3, Zap, UserCog, LogOut } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { ImportExportPanel } from "./ImportExportPanel";
 import { TagManagementPanel } from "./TagManagementPanel";
 import { RoleManagementPanel } from "./RoleManagementPanel";
-import type { Contact } from "@shared/schema";
+import type { Contact, User, Team } from "@shared/schema";
+
+interface AuthUser extends User {
+  teams: (Team & { role: string })[];
+}
 
 const menuItems = [
   {
@@ -31,6 +37,11 @@ const menuItems = [
     url: "/analytics",
     icon: BarChart3,
   },
+  {
+    title: "Команда",
+    url: "/team",
+    icon: UserCog,
+  },
 ];
 
 export function AppSidebar() {
@@ -38,9 +49,15 @@ export function AppSidebar() {
   
   const { data: contacts = [] } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
+    refetchInterval: 10000,
+  });
+
+  const { data: user } = useQuery<AuthUser>({
+    queryKey: ["/api/auth/user"],
   });
 
   const contactCount = contacts.length;
+  const teamName = user?.teams?.[0]?.name;
 
   return (
     <Sidebar>
@@ -100,7 +117,37 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t">
+      <SidebarFooter className="p-4 border-t space-y-3">
+        {user && (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user.profileImageUrl || undefined} />
+              <AvatarFallback>
+                {(user.firstName?.[0] || "") + (user.lastName?.[0] || "")}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate" data-testid="text-user-name">
+                {user.firstName} {user.lastName}
+              </p>
+              {teamName && (
+                <p className="text-xs text-muted-foreground truncate" data-testid="text-team-name">
+                  {teamName}
+                </p>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              data-testid="button-logout"
+            >
+              <a href="/api/logout">
+                <LogOut className="h-4 w-4" />
+              </a>
+            </Button>
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Тема</span>
           <ThemeToggle />

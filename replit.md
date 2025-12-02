@@ -2,9 +2,11 @@
 
 ## Overview
 
-A single-user personal CRM (Customer Relationship Management) web application designed to help manage and prioritize personal and professional contacts. The system tracks relationships through a sophisticated scoring mechanism that evaluates contacts based on their contribution and potential, assigns attention levels, and provides a "heat index" to identify which relationships need nurturing.
+A **multi-user collaborative CRM** (Customer Relationship Management) web application designed to help teams manage and prioritize personal and professional contacts. The system tracks relationships through a sophisticated scoring mechanism that evaluates contacts based on their contribution and potential, assigns attention levels, and provides a "heat index" to identify which relationships need nurturing.
 
 **Key Features:**
+- **Team collaboration** with invite codes for joining teams
+- **Replit Auth** for secure authentication (Google, GitHub, email)
 - Contact management with role-based categorization
 - Contribution scoring (0-9 scale: Financial, Network, Trust) and Potential scoring (0-15 scale), classified A-D
 - **Automatic importance calculation** from Value Category (sum of class points: A=4, B=3, C=2, D=1)
@@ -19,12 +21,15 @@ A single-user personal CRM (Customer Relationship Management) web application de
 - **Bulk operations** for selecting multiple contacts and performing delete/update actions
 - **Tag management** panel for adding/removing tags across multiple contacts
 - **Mobile-optimized** responsive layouts and touch-friendly UI
+- **Auto-refresh** every 10 seconds for real-time sync between team members
+- **PWA support** for installing on mobile home screens
 
 **Technology Stack:**
 - Frontend: React with TypeScript, Vite build system
 - Backend: Express.js (Node.js)
 - Database: PostgreSQL via Neon serverless
 - ORM: Drizzle ORM
+- Authentication: Replit Auth (OIDC with Passport.js)
 - UI: shadcn/ui components with Radix UI primitives, Tailwind CSS
 - State Management: TanStack Query (React Query)
 
@@ -35,7 +40,7 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Application Type
-Single-user application with no authentication system. All data belongs to one user, simplifying the data model and eliminating multi-tenancy concerns.
+Multi-user collaborative application with team-based access control. Users authenticate via Replit Auth and can create or join teams using invite codes. All contacts within a team are visible to all team members (collaborative model). Conflicts are resolved with "last save wins" strategy.
 
 ### Frontend Architecture
 

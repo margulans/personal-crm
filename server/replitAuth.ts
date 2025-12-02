@@ -72,8 +72,12 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
-    updateUserSession(user, tokens);
+    const user: Express.User = {
+      claims: tokens.claims() as Express.User["claims"],
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token ?? "",
+      expires_at: (tokens.claims() as any)?.exp ?? 0,
+    };
     await upsertUser(tokens.claims());
     verified(null, user);
   };
