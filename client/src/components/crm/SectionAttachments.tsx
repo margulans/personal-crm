@@ -24,6 +24,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Document, Page, pdfjs } from "react-pdf";
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 interface SectionAttachmentsProps {
   contactId: string;
@@ -45,11 +48,61 @@ const CATEGORY_LABELS: Record<string, string> = {
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.ico', '.heic', '.heif'];
 const VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
 const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'];
+const PDF_EXTENSIONS = ['.pdf'];
 
 function isImageFile(fileType: string, fileName: string): boolean {
   if (fileType.startsWith("image/")) return true;
   const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
   return IMAGE_EXTENSIONS.includes(ext);
+}
+
+function isPdfFile(fileType: string, fileName: string): boolean {
+  if (fileType === "application/pdf") return true;
+  const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
+  return PDF_EXTENSIONS.includes(ext);
+}
+
+function PdfThumbnail({ url, fileName }: { url: string; fileName: string }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <FileText className="h-8 w-8 text-muted-foreground mb-1" />
+        <span className="text-xs text-muted-foreground text-center truncate w-full px-1">
+          {fileName}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      )}
+      <Document
+        file={url}
+        onLoadSuccess={() => setLoading(false)}
+        onLoadError={() => {
+          setLoading(false);
+          setError(true);
+        }}
+        loading={null}
+        className="flex items-center justify-center"
+      >
+        <Page 
+          pageNumber={1} 
+          width={120}
+          renderTextLayer={false}
+          renderAnnotationLayer={false}
+        />
+      </Document>
+    </div>
+  );
 }
 
 function isVideoFile(fileType: string, fileName: string): boolean {
@@ -299,6 +352,7 @@ export function SectionAttachments({
           {filteredAttachments.map((attachment) => {
             const FileIcon = getFileIcon(attachment.fileType, attachment.originalName);
             const isImage = isImageFile(attachment.fileType, attachment.originalName);
+            const isPdf = isPdfFile(attachment.fileType, attachment.originalName);
             const displayUrl = getDisplayUrl(attachment);
 
             return (
@@ -333,6 +387,28 @@ export function SectionAttachments({
                         className="h-8 w-8 text-white"
                         onClick={() => handlePreview(attachment)}
                         data-testid="button-preview"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : isPdf ? (
+                  <div className="aspect-square relative bg-white dark:bg-gray-100 flex items-center justify-center overflow-hidden">
+                    {displayUrl ? (
+                      <PdfThumbnail url={displayUrl} fileName={attachment.originalName} />
+                    ) : (
+                      <div className="flex flex-col items-center gap-1">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Загрузка...</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-white"
+                        onClick={() => handleDownload(attachment)}
+                        data-testid="button-preview-pdf"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
