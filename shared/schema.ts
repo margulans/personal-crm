@@ -363,7 +363,9 @@ const socialAccountEntrySchema = z.object({
 
 const emailEntrySchema = z.object({
   type: z.enum(["personal", "work", "other"]),
-  email: z.string().email("Неверный формат email"),
+  email: z.string().refine(val => val === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+    message: "Неверный формат email"
+  }),
   label: z.string().optional(),
 });
 

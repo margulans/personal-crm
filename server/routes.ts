@@ -261,8 +261,20 @@ export async function registerRoutes(
         return res.status(400).json({ error: "You must be a member of a team to create contacts. Please create or join a team first." });
       }
       
+      // Filter out empty emails, phones, messengers before validation
+      let bodyData = { ...req.body };
+      if (bodyData.emails && Array.isArray(bodyData.emails)) {
+        bodyData.emails = bodyData.emails.filter((e: { email?: string }) => e.email && e.email.trim() !== "");
+      }
+      if (bodyData.phones && Array.isArray(bodyData.phones)) {
+        bodyData.phones = bodyData.phones.filter((p: { number?: string }) => p.number && p.number.trim() !== "");
+      }
+      if (bodyData.messengers && Array.isArray(bodyData.messengers)) {
+        bodyData.messengers = bodyData.messengers.filter((m: { username?: string }) => m.username && m.username.trim() !== "");
+      }
+      
       const data = insertContactSchema.parse({
-        ...req.body,
+        ...bodyData,
         teamId,
         createdBy: userId,
         updatedBy: userId,
@@ -297,6 +309,17 @@ export async function registerRoutes(
         if (normalizedPath) {
           bodyData.avatarUrl = normalizedPath;
         }
+      }
+      
+      // Filter out empty emails, phones, messengers before validation
+      if (bodyData.emails && Array.isArray(bodyData.emails)) {
+        bodyData.emails = bodyData.emails.filter((e: { email?: string }) => e.email && e.email.trim() !== "");
+      }
+      if (bodyData.phones && Array.isArray(bodyData.phones)) {
+        bodyData.phones = bodyData.phones.filter((p: { number?: string }) => p.number && p.number.trim() !== "");
+      }
+      if (bodyData.messengers && Array.isArray(bodyData.messengers)) {
+        bodyData.messengers = bodyData.messengers.filter((m: { username?: string }) => m.username && m.username.trim() !== "");
       }
       
       const partialSchema = insertContactSchema.partial();
