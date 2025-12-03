@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect, Component, type ReactNode } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import ForceGraph2D from "react-force-graph-2d";
 import { Button } from "@/components/ui/button";
@@ -24,9 +24,70 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Plus, X, Link2, ZoomIn, ZoomOut, Maximize2, Users, Menu } from "lucide-react";
+import { Loader2, Plus, X, Link2, ZoomIn, ZoomOut, Maximize2, Users, Menu, RefreshCw } from "lucide-react";
 import type { Contact, ContactConnection } from "@/lib/types";
 import { connectionTypes } from "@shared/schema";
+
+interface GraphErrorBoundaryProps {
+  children: ReactNode;
+  onReset: () => void;
+}
+
+interface GraphErrorBoundaryState {
+  hasError: boolean;
+  errorCount: number;
+}
+
+class GraphErrorBoundary extends Component<GraphErrorBoundaryProps, GraphErrorBoundaryState> {
+  constructor(props: GraphErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, errorCount: 0 };
+  }
+
+  static getDerivedStateFromError(): Partial<GraphErrorBoundaryState> {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    if (error.message?.includes('initPos') || error.message?.includes('undefined')) {
+      this.setState(prev => ({ errorCount: prev.errorCount + 1 }));
+      if (this.state.errorCount < 3) {
+        setTimeout(() => {
+          this.setState({ hasError: false });
+          this.props.onReset();
+        }, 300);
+      }
+    }
+  }
+
+  render() {
+    if (this.state.hasError && this.state.errorCount >= 3) {
+      return (
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+          <RefreshCw className="h-12 w-12 text-muted-foreground/50 mb-4" />
+          <h2 className="text-lg font-medium mb-2">Ошибка загрузки графа</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Произошла ошибка при отрисовке графа. Попробуйте обновить страницу.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Обновить страницу
+          </Button>
+        </div>
+      );
+    }
+
+    if (this.state.hasError) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const connectionTypeLabels: Record<string, string> = {
   friend: "Друзья",
@@ -397,26 +458,28 @@ export default function NetworkGraphPage() {
             </Button>
           </div>
         ) : isGraphReady ? (
-          <ForceGraph2D
-            key={graphKey}
-            ref={graphRef}
-            graphData={graphData}
-            width={dimensions.width}
-            height={dimensions.height}
-            nodeCanvasObject={nodeCanvasObject}
-            nodePointerAreaPaint={nodePointerAreaPaint}
-            linkCanvasObject={linkCanvasObject}
-            onNodeClick={handleNodeClick}
-            onLinkClick={handleLinkClick}
-            cooldownTicks={100}
-            linkDirectionalParticles={0}
-            d3AlphaDecay={0.02}
-            d3VelocityDecay={0.3}
-            enablePanInteraction={true}
-            enableZoomInteraction={true}
-            minZoom={0.5}
-            maxZoom={5}
-          />
+          <GraphErrorBoundary onReset={() => setGraphKey(k => k + 1)}>
+            <ForceGraph2D
+              key={graphKey}
+              ref={graphRef}
+              graphData={graphData}
+              width={dimensions.width}
+              height={dimensions.height}
+              nodeCanvasObject={nodeCanvasObject}
+              nodePointerAreaPaint={nodePointerAreaPaint}
+              linkCanvasObject={linkCanvasObject}
+              onNodeClick={handleNodeClick}
+              onLinkClick={handleLinkClick}
+              cooldownTicks={100}
+              linkDirectionalParticles={0}
+              d3AlphaDecay={0.02}
+              d3VelocityDecay={0.3}
+              enablePanInteraction={true}
+              enableZoomInteraction={true}
+              minZoom={0.5}
+              maxZoom={5}
+            />
+          </GraphErrorBoundary>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
