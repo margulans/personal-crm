@@ -988,9 +988,7 @@ export function ContactDetail({
                                     Позвонить
                                   </a>
                                   <a 
-                                    href={`https://wa.me/${cleanNumber}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    href={`whatsapp://send?phone=${cleanNumber}`}
                                     className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted text-sm"
                                     data-testid={`link-whatsapp-${i}`}
                                   >
@@ -1024,9 +1022,7 @@ export function ContactDetail({
                                     Позвонить
                                   </a>
                                   <a 
-                                    href={`https://wa.me/${cleanNumber}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    href={`whatsapp://send?phone=${cleanNumber}`}
                                     className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted text-sm"
                                     data-testid="link-whatsapp-legacy"
                                   >
@@ -1067,9 +1063,7 @@ export function ContactDetail({
                                 return (
                                   <a
                                     key={`msg-${i}`}
-                                    href={`https://wa.me/${cleanNumber}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    href={`whatsapp://send?phone=${cleanNumber}`}
                                     data-testid={`link-whatsapp-msg-${i}`}
                                   >
                                     <Badge variant="secondary" className="gap-1 cursor-pointer hover:bg-accent">
