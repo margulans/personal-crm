@@ -72,6 +72,12 @@ export type SocialAccountEntry = {
   label?: string;
 };
 
+export type EmailEntry = {
+  type: "personal" | "work" | "other";
+  email: string;
+  label?: string;
+};
+
 export type FamilyMember = {
   name: string;
   relation: "spouse" | "child" | "parent" | "sibling" | "other";
@@ -138,6 +144,7 @@ export const contacts = pgTable("contacts", {
   
   // Structured contact methods
   phones: jsonb("phones").$type<PhoneEntry[]>().default([]),
+  emails: jsonb("emails").$type<EmailEntry[]>().default([]),
   messengers: jsonb("messengers").$type<MessengerEntry[]>().default([]),
   socialAccounts: jsonb("social_accounts").$type<SocialAccountEntry[]>().default([]),
   
@@ -354,6 +361,12 @@ const socialAccountEntrySchema = z.object({
   label: z.string().optional(),
 });
 
+const emailEntrySchema = z.object({
+  type: z.enum(["personal", "work", "other"]),
+  email: z.string().email("Неверный формат email"),
+  label: z.string().optional(),
+});
+
 const familyMemberSchema = z.object({
   name: z.string(),
   relation: z.enum(["spouse", "child", "parent", "sibling", "other"]),
@@ -426,6 +439,7 @@ export const insertContactSchema = createInsertSchema(contacts).omit({
   phone: z.string().optional().nullable(),
   email: z.string().optional().nullable(),
   phones: z.array(phoneEntrySchema).default([]),
+  emails: z.array(emailEntrySchema).default([]),
   messengers: z.array(messengerEntrySchema).default([]),
   socialAccounts: z.array(socialAccountEntrySchema).default([]),
   socialLinks: z.array(z.string()).default([]),

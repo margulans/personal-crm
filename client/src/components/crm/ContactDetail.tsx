@@ -63,7 +63,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 
-import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, FamilyMember, StaffMember, StaffPhone, StaffMessenger, AIInsight, AIRecommendation } from "@/lib/types";
+import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, EmailEntry, FamilyStatus, FamilyMember, StaffMember, StaffPhone, StaffMessenger, AIInsight, AIRecommendation } from "@/lib/types";
 import { SectionAttachments } from "./SectionAttachments";
 
 const BLOCK_DESCRIPTIONS = {
@@ -282,7 +282,7 @@ export function ContactDetail({
     setEditingSection(section);
     if (section === "contacts") {
       setFormData({
-        email: contact.email || "",
+        emails: ((contact.emails as EmailEntry[]) || []).map(e => ({ ...e })),
         phones: ((contact.phones as PhoneEntry[]) || []).map(p => ({ ...p })),
         messengers: ((contact.messengers as MessengerEntry[]) || []).map(m => ({ ...m })),
         socialAccounts: ((contact.socialAccounts as SocialAccountEntry[]) || []).map(s => ({ ...s })),
@@ -665,15 +665,71 @@ export function ContactDetail({
                 <CardContent className="space-y-4">
                   {editingSection === "contacts" ? (
                     <div className="space-y-6">
-                      {/* Email */}
-                      <div className="grid gap-2">
-                        <Label>Email</Label>
-                        <Input 
-                          type="email"
-                          value={getFieldValue("email") || ""} 
-                          onChange={e => updateField("email", e.target.value)}
-                          data-testid="input-email"
-                        />
+                      {/* Email адреса */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label>Email адреса</Label>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const currentEmails = (getFieldValue("emails") as EmailEntry[]) || [];
+                              updateField("emails", [...currentEmails, { email: "", type: "personal" }]);
+                            }}
+                            data-testid="button-add-email"
+                          >
+                            <Plus className="h-3 w-3 mr-1" /> Добавить
+                          </Button>
+                        </div>
+                        {((getFieldValue("emails") as EmailEntry[]) || []).map((emailEntry, idx) => (
+                          <div key={idx} className="flex gap-2 items-start">
+                            <Input 
+                              type="email"
+                              value={emailEntry.email}
+                              onChange={e => {
+                                const emails = [...((getFieldValue("emails") as EmailEntry[]) || [])];
+                                emails[idx] = { ...emails[idx], email: e.target.value };
+                                updateField("emails", emails);
+                              }}
+                              placeholder="email@example.com"
+                              className="flex-1"
+                              data-testid={`input-email-${idx}`}
+                            />
+                            <Select 
+                              value={emailEntry.type}
+                              onValueChange={v => {
+                                const emails = [...((getFieldValue("emails") as EmailEntry[]) || [])];
+                                emails[idx] = { ...emails[idx], type: v as EmailEntry["type"] };
+                                updateField("emails", emails);
+                              }}
+                            >
+                              <SelectTrigger className="w-28" data-testid={`select-email-type-${idx}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="personal">Личный</SelectItem>
+                                <SelectItem value="work">Рабочий</SelectItem>
+                                <SelectItem value="other">Другой</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                const emails = ((getFieldValue("emails") as EmailEntry[]) || []).filter((_, i) => i !== idx);
+                                updateField("emails", emails);
+                              }}
+                              data-testid={`button-remove-email-${idx}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        {((getFieldValue("emails") as EmailEntry[]) || []).length === 0 && (
+                          <p className="text-sm text-muted-foreground">Нет email адресов</p>
+                        )}
                       </div>
                       
                       {/* Телефоны */}
@@ -883,7 +939,19 @@ export function ContactDetail({
                   ) : (
                     <>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {contact.email && (
+                        {((contact.emails as EmailEntry[]) || []).map((emailEntry, i) => (
+                          <div key={`email-${i}`} className="flex items-center gap-2 text-sm">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <a href={`mailto:${emailEntry.email}`} className="hover:underline">
+                              {emailEntry.email}
+                            </a>
+                            <Badge variant="outline" className="text-xs">
+                              {emailEntry.type === "personal" ? "Личн" : emailEntry.type === "work" ? "Раб" : "Др"}
+                            </Badge>
+                          </div>
+                        ))}
+                        
+                        {contact.email && (!contact.emails || (contact.emails as EmailEntry[]).length === 0) && (
                           <div className="flex items-center gap-2 text-sm">
                             <Mail className="h-4 w-4 text-muted-foreground" />
                             <a href={`mailto:${contact.email}`} className="hover:underline">
@@ -957,6 +1025,7 @@ export function ContactDetail({
                       
                       {!contact.phone && !contact.email && 
                        (!contact.phones || (contact.phones as PhoneEntry[]).length === 0) &&
+                       (!contact.emails || (contact.emails as EmailEntry[]).length === 0) &&
                        (!contact.messengers || (contact.messengers as MessengerEntry[]).length === 0) &&
                        (!contact.socialAccounts || (contact.socialAccounts as SocialAccountEntry[]).length === 0) && (
                         <p className="text-sm text-muted-foreground">

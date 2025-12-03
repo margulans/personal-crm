@@ -2,6 +2,7 @@ import type {
   PhoneEntry, 
   MessengerEntry, 
   SocialAccountEntry, 
+  EmailEntry,
   FamilyStatus,
   StaffMember 
 } from "@shared/schema";
@@ -25,6 +26,7 @@ export interface Contact {
   phone: string | null;
   email: string | null;
   phones: PhoneEntry[];
+  emails: EmailEntry[];
   messengers: MessengerEntry[];
   socialAccounts: SocialAccountEntry[];
   socialLinks: string[];
@@ -102,6 +104,7 @@ export interface InsertContact {
   phone?: string | null;
   email?: string | null;
   phones?: PhoneEntry[];
+  emails?: EmailEntry[];
   messengers?: MessengerEntry[];
   socialAccounts?: SocialAccountEntry[];
   socialLinks?: string[];
@@ -149,7 +152,7 @@ export interface InsertInteraction {
   isMeaningful: boolean;
 }
 
-export type { PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, FamilyMember, FamilyEvent, StaffMember, StaffPhone, StaffMessenger } from "@shared/schema";
+export type { PhoneEntry, MessengerEntry, SocialAccountEntry, EmailEntry, FamilyStatus, FamilyMember, FamilyEvent, StaffMember, StaffPhone, StaffMessenger } from "@shared/schema";
 
 // AI Types
 export interface AIInsight {

@@ -16,7 +16,7 @@ import {
 import { ATTENTION_LEVELS, ROLE_TAGS, CONTRIBUTION_CRITERIA, POTENTIAL_CRITERIA } from "@/lib/constants";
 import { X, Plus, Loader2, Trash2 } from "lucide-react";
 import type { Contact, InsertContact } from "@/lib/types";
-import type { PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyMember, FamilyEvent, FamilyStatus, StaffMember, StaffPhone, StaffMessenger } from "@shared/schema";
+import type { PhoneEntry, MessengerEntry, SocialAccountEntry, EmailEntry, FamilyMember, FamilyEvent, FamilyStatus, StaffMember, StaffPhone, StaffMessenger } from "@shared/schema";
 
 interface ContactFormProps {
   initialData?: Contact;
@@ -45,6 +45,7 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
     phone: initialData?.phone || "",
     email: initialData?.email || "",
     phones: (initialData?.phones as PhoneEntry[]) || [],
+    emails: (initialData?.emails as EmailEntry[]) || [],
     messengers: (initialData?.messengers as MessengerEntry[]) || [],
     socialAccounts: (initialData?.socialAccounts as SocialAccountEntry[]) || [],
     socialLinks: initialData?.socialLinks || [],
@@ -168,6 +169,27 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
     setFormData({
       ...formData,
       phones: formData.phones?.filter((_, i) => i !== index) || [],
+    });
+  };
+
+  const addEmail = () => {
+    const emails = formData.emails || [];
+    setFormData({
+      ...formData,
+      emails: [...emails, { type: "personal", email: "" }],
+    });
+  };
+
+  const updateEmail = (index: number, field: keyof EmailEntry, value: string) => {
+    const emails = [...(formData.emails || [])];
+    emails[index] = { ...emails[index], [field]: value };
+    setFormData({ ...formData, emails });
+  };
+
+  const removeEmail = (index: number) => {
+    setFormData({
+      ...formData,
+      emails: formData.emails?.filter((_, i) => i !== index) || [],
     });
   };
 
@@ -688,15 +710,49 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
 
         <TabsContent value="contacts" className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email || ""}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="email@example.com"
-              data-testid="input-email"
-            />
+            <div className="flex items-center justify-between">
+              <Label>Email адреса</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addEmail} data-testid="button-add-email">
+                <Plus className="h-4 w-4 mr-1" /> Добавить
+              </Button>
+            </div>
+            {(formData.emails || []).map((emailEntry, index) => (
+              <div key={index} className="flex gap-2 items-center">
+                <Select
+                  value={emailEntry.type}
+                  onValueChange={(v) => updateEmail(index, 'type', v)}
+                >
+                  <SelectTrigger className="w-[140px]" data-testid={`select-email-type-${index}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="personal">Личный</SelectItem>
+                    <SelectItem value="work">Рабочий</SelectItem>
+                    <SelectItem value="other">Другой</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="email"
+                  value={emailEntry.email}
+                  onChange={(e) => updateEmail(index, 'email', e.target.value)}
+                  placeholder="email@example.com"
+                  className="flex-1"
+                  data-testid={`input-email-address-${index}`}
+                />
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => removeEmail(index)}
+                  data-testid={`button-remove-email-${index}`}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+            {(formData.emails || []).length === 0 && (
+              <p className="text-sm text-muted-foreground">Нет добавленных email адресов</p>
+            )}
           </div>
 
           <div className="space-y-2">
