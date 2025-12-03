@@ -22,10 +22,24 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Plus, X, Link2, ZoomIn, ZoomOut, Maximize2, Users, Menu, RefreshCw, Hand, Play, PanelLeft } from "lucide-react";
+import { Loader2, Plus, X, Link2, ZoomIn, ZoomOut, Maximize2, Users, Menu, RefreshCw, Hand, Play, PanelLeft, Check, ChevronsUpDown } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 import type { Contact, ContactConnection } from "@/lib/types";
 import { connectionTypes } from "@shared/schema";
 
@@ -182,6 +196,8 @@ export default function NetworkGraphPage() {
   const [connectionStrength, setConnectionStrength] = useState(3);
   const [connectionNotes, setConnectionNotes] = useState("");
   const [manualMode, setManualMode] = useState(false);
+  const [fromContactOpen, setFromContactOpen] = useState(false);
+  const [toContactOpen, setToContactOpen] = useState(false);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -263,6 +279,8 @@ export default function NetworkGraphPage() {
     setConnectionStrength(3);
     setConnectionNotes("");
     setSelectedNode(null);
+    setFromContactOpen(false);
+    setToContactOpen(false);
   };
 
   const graphData = useMemo(() => {
@@ -649,34 +667,98 @@ export default function NetworkGraphPage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>От контакта</Label>
-              <Select value={fromContactId} onValueChange={setFromContactId}>
-                <SelectTrigger data-testid="select-from-contact">
-                  <SelectValue placeholder="Выберите контакт" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[40vh]">
-                  {contacts.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.fullName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={fromContactOpen} onOpenChange={setFromContactOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={fromContactOpen}
+                    className="w-full justify-between"
+                    data-testid="select-from-contact"
+                  >
+                    {fromContactId
+                      ? contacts.find((c) => c.id === fromContactId)?.fullName
+                      : "Выберите контакт"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Поиск контакта..." />
+                    <CommandList>
+                      <CommandEmpty>Контакт не найден</CommandEmpty>
+                      <CommandGroup>
+                        {contacts.map((c) => (
+                          <CommandItem
+                            key={c.id}
+                            value={c.fullName}
+                            onSelect={() => {
+                              setFromContactId(c.id);
+                              setFromContactOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                fromContactId === c.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {c.fullName}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div className="space-y-2">
               <Label>К контакту</Label>
-              <Select value={toContactId} onValueChange={setToContactId}>
-                <SelectTrigger data-testid="select-to-contact">
-                  <SelectValue placeholder="Выберите контакт" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[40vh]">
-                  {contacts.filter((c) => c.id !== fromContactId).map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.fullName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={toContactOpen} onOpenChange={setToContactOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={toContactOpen}
+                    className="w-full justify-between"
+                    data-testid="select-to-contact"
+                  >
+                    {toContactId
+                      ? contacts.find((c) => c.id === toContactId)?.fullName
+                      : "Выберите контакт"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Поиск контакта..." />
+                    <CommandList>
+                      <CommandEmpty>Контакт не найден</CommandEmpty>
+                      <CommandGroup>
+                        {contacts.filter((c) => c.id !== fromContactId).map((c) => (
+                          <CommandItem
+                            key={c.id}
+                            value={c.fullName}
+                            onSelect={() => {
+                              setToContactId(c.id);
+                              setToContactOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                toContactId === c.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {c.fullName}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div className="grid grid-cols-2 gap-3">
