@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Plus, X, Link2, ZoomIn, ZoomOut, Maximize2, Users } from "lucide-react";
+import { Loader2, Plus, X, Link2, ZoomIn, ZoomOut, Maximize2, Users, Menu } from "lucide-react";
 import type { Contact, ContactConnection } from "@/lib/types";
 import { connectionTypes } from "@shared/schema";
 
@@ -67,23 +67,43 @@ interface GraphNode {
   valueCategory: string;
   color: string;
   size: number;
+  x?: number;
+  y?: number;
 }
 
 interface GraphLink {
-  source: string;
-  target: string;
+  source: string | GraphNode;
+  target: string | GraphNode;
   connectionType: string;
   strength: number;
   id: string;
+}
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+  
+  return isMobile;
 }
 
 export default function NetworkGraphPage() {
   const { toast } = useToast();
   const graphRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [graphKey, setGraphKey] = useState(0);
+  const [isGraphReady, setIsGraphReady] = useState(false);
+  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showLegend, setShowLegend] = useState(!isMobile);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [fromContactId, setFromContactId] = useState("");
   const [toContactId, setToContactId] = useState("");
@@ -95,16 +115,37 @@ export default function NetworkGraphPage() {
     const updateDimensions = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        setDimensions({
-          width: rect.width || 800,
-          height: Math.max(rect.height - 60, 400),
-        });
+        const newWidth = Math.max(rect.width || 300, 300);
+        const newHeight = Math.max(rect.height - 60, 300);
+        
+        setDimensions({ width: newWidth, height: newHeight });
       }
     };
     
+    const debouncedUpdate = () => {
+      setIsGraphReady(false);
+      
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+      
+      resizeTimeoutRef.current = setTimeout(() => {
+        updateDimensions();
+        setGraphKey(k => k + 1);
+        setTimeout(() => setIsGraphReady(true), 150);
+      }, 200);
+    };
+    
     updateDimensions();
-    window.addEventListener("resize", updateDimensions);
-    return () => window.removeEventListener("resize", updateDimensions);
+    setTimeout(() => setIsGraphReady(true), 200);
+    
+    window.addEventListener("resize", debouncedUpdate);
+    return () => {
+      window.removeEventListener("resize", debouncedUpdate);
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+    };
   }, []);
 
   const { data: contacts = [], isLoading: contactsLoading } = useQuery<Contact[]>({
@@ -159,6 +200,7 @@ export default function NetworkGraphPage() {
       connectedContactIds.add(c.toContactId);
     });
 
+    const baseSize = isMobile ? 12 : 8;
     const nodes: GraphNode[] = contacts
       .filter((contact) => connectedContactIds.has(contact.id))
       .map((contact) => ({
@@ -167,7 +209,7 @@ export default function NetworkGraphPage() {
         shortName: contact.shortName,
         valueCategory: contact.valueCategory,
         color: valueCategoryColors[contact.valueCategory] || "#94a3b8",
-        size: 8 + (contact.contributionScore + contact.potentialScore) / 2,
+        size: baseSize + (contact.contributionScore + contact.potentialScore) / 2,
       }));
 
     const seenPairs = new Set<string>();
@@ -188,7 +230,7 @@ export default function NetworkGraphPage() {
     }
 
     return { nodes, links };
-  }, [contacts, connections]);
+  }, [contacts, connections, isMobile]);
 
   const handleNodeClick = useCallback((node: GraphNode) => {
     setSelectedNode(node);
@@ -216,7 +258,7 @@ export default function NetworkGraphPage() {
 
   const handleFitView = () => {
     if (graphRef.current) {
-      graphRef.current.zoomToFit(400);
+      graphRef.current.zoomToFit(400, isMobile ? 30 : 50);
     }
   };
 
@@ -239,15 +281,19 @@ export default function NetworkGraphPage() {
   };
 
   const nodeCanvasObject = useCallback((node: any, ctx: CanvasRenderingContext2D) => {
-    const size = node.size || 8;
-    const fontSize = Math.max(10, size * 0.8);
+    if (typeof node.x !== 'number' || typeof node.y !== 'number' || isNaN(node.x) || isNaN(node.y)) {
+      return;
+    }
+    
+    const size = node.size || (isMobile ? 12 : 8);
+    const fontSize = isMobile ? Math.max(11, size * 0.9) : Math.max(10, size * 0.8);
     
     ctx.beginPath();
     ctx.arc(node.x, node.y, size, 0, 2 * Math.PI);
     ctx.fillStyle = node.color;
     ctx.fill();
     ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = isMobile ? 3 : 2;
     ctx.stroke();
     
     ctx.font = `${fontSize}px Inter, sans-serif`;
@@ -255,17 +301,32 @@ export default function NetworkGraphPage() {
     ctx.textBaseline = "top";
     ctx.fillStyle = "#1f2937";
     
-    const label = node.name.length > 15 ? node.name.slice(0, 12) + "..." : node.name;
+    const maxLength = isMobile ? 10 : 15;
+    const label = node.name.length > maxLength ? node.name.slice(0, maxLength - 3) + "..." : node.name;
     ctx.fillText(label, node.x, node.y + size + 4);
-  }, []);
+  }, [isMobile]);
+
+  const nodePointerAreaPaint = useCallback((node: any, color: string, ctx: CanvasRenderingContext2D) => {
+    if (typeof node.x !== 'number' || typeof node.y !== 'number' || isNaN(node.x) || isNaN(node.y)) {
+      return;
+    }
+    
+    const hitArea = isMobile ? 20 : 5;
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, (node.size || 8) + hitArea, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }, [isMobile]);
 
   const linkCanvasObject = useCallback((link: any, ctx: CanvasRenderingContext2D) => {
     const start = link.source;
     const end = link.target;
     
     if (typeof start !== 'object' || typeof end !== 'object') return;
+    if (typeof start.x !== 'number' || typeof start.y !== 'number' || isNaN(start.x) || isNaN(start.y)) return;
+    if (typeof end.x !== 'number' || typeof end.y !== 'number' || isNaN(end.x) || isNaN(end.y)) return;
     
-    const lineWidth = 1 + link.strength * 0.5;
+    const lineWidth = isMobile ? 2 + link.strength * 0.6 : 1 + link.strength * 0.5;
     
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
@@ -273,7 +334,7 @@ export default function NetworkGraphPage() {
     ctx.strokeStyle = "rgba(100, 116, 139, 0.5)";
     ctx.lineWidth = lineWidth;
     ctx.stroke();
-  }, []);
+  }, [isMobile]);
 
   if (contactsLoading || connectionsLoading) {
     return (
@@ -285,60 +346,65 @@ export default function NetworkGraphPage() {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-between p-4 border-b bg-background">
-        <div className="flex items-center gap-3">
-          <Link2 className="h-6 w-6 text-primary" />
-          <div>
-            <h1 className="text-xl font-semibold">Граф связей</h1>
-            <p className="text-sm text-muted-foreground">
+      <div className="flex items-center justify-between p-3 md:p-4 border-b bg-background gap-2">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0">
+          <Link2 className="h-5 w-5 md:h-6 md:w-6 text-primary shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-base md:text-xl font-semibold truncate">Граф связей</h1>
+            <p className="text-xs md:text-sm text-muted-foreground">
               {graphData.nodes.length} контактов, {graphData.links.length} связей
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={handleZoomOut} data-testid="button-zoom-out">
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={handleZoomIn} data-testid="button-zoom-in">
-            <ZoomIn className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-1 md:gap-2 shrink-0">
+          {!isMobile && (
+            <>
+              <Button variant="outline" size="icon" onClick={handleZoomOut} data-testid="button-zoom-out">
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon" onClick={handleZoomIn} data-testid="button-zoom-in">
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </>
+          )}
           <Button variant="outline" size="icon" onClick={handleFitView} data-testid="button-fit-view">
             <Maximize2 className="h-4 w-4" />
           </Button>
-          <Button onClick={() => { resetForm(); setShowAddDialog(true); }} data-testid="button-add-connection">
-            <Plus className="h-4 w-4 mr-2" />
-            Добавить связь
-          </Button>
+          {isMobile ? (
+            <Button size="icon" onClick={() => { resetForm(); setShowAddDialog(true); }} data-testid="button-add-connection">
+              <Plus className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button onClick={() => { resetForm(); setShowAddDialog(true); }} data-testid="button-add-connection">
+              <Plus className="h-4 w-4 mr-2" />
+              Добавить связь
+            </Button>
+          )}
         </div>
       </div>
 
-      <div ref={containerRef} className="flex-1 bg-muted/30 relative">
+      <div ref={containerRef} className="flex-1 bg-muted/30 relative touch-pan-x touch-pan-y">
         {graphData.nodes.length === 0 ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-            <Users className="h-16 w-16 text-muted-foreground/50 mb-4" />
-            <h2 className="text-xl font-medium mb-2">Нет связей</h2>
-            <p className="text-muted-foreground mb-4 max-w-md">
-              Добавьте связи между контактами, чтобы увидеть граф отношений. 
-              Нажмите кнопку "Добавить связь" чтобы начать.
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 md:p-8">
+            <Users className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground/50 mb-4" />
+            <h2 className="text-lg md:text-xl font-medium mb-2">Нет связей</h2>
+            <p className="text-sm md:text-base text-muted-foreground mb-4 max-w-md">
+              Добавьте связи между контактами, чтобы увидеть граф отношений.
             </p>
             <Button onClick={() => { resetForm(); setShowAddDialog(true); }}>
               <Plus className="h-4 w-4 mr-2" />
               Добавить первую связь
             </Button>
           </div>
-        ) : (
+        ) : isGraphReady ? (
           <ForceGraph2D
+            key={graphKey}
             ref={graphRef}
             graphData={graphData}
             width={dimensions.width}
             height={dimensions.height}
             nodeCanvasObject={nodeCanvasObject}
-            nodePointerAreaPaint={(node: any, color, ctx) => {
-              ctx.beginPath();
-              ctx.arc(node.x, node.y, node.size + 5, 0, 2 * Math.PI);
-              ctx.fillStyle = color;
-              ctx.fill();
-            }}
+            nodePointerAreaPaint={nodePointerAreaPaint}
             linkCanvasObject={linkCanvasObject}
             onNodeClick={handleNodeClick}
             onLinkClick={handleLinkClick}
@@ -346,24 +412,60 @@ export default function NetworkGraphPage() {
             linkDirectionalParticles={0}
             d3AlphaDecay={0.02}
             d3VelocityDecay={0.3}
+            enablePanInteraction={true}
+            enableZoomInteraction={true}
+            minZoom={0.5}
+            maxZoom={5}
           />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
         )}
         
-        <Card className="absolute bottom-4 left-4 w-48 p-3">
-          <div className="text-xs font-medium mb-2">Категории ценности</div>
-          <div className="grid grid-cols-2 gap-1 text-xs">
-            {Object.entries(valueCategoryColors).slice(0, 6).map(([cat, color]) => (
-              <div key={cat} className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-                <span>{cat}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
+        {graphData.nodes.length > 0 && (
+          <>
+            {isMobile ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="absolute bottom-3 left-3 h-8 text-xs"
+                onClick={() => setShowLegend(!showLegend)}
+              >
+                <Menu className="h-3 w-3 mr-1" />
+                Легенда
+              </Button>
+            ) : null}
+            
+            {(showLegend || !isMobile) && (
+              <Card className={`absolute ${isMobile ? 'bottom-12 left-3 right-3' : 'bottom-4 left-4 w-48'} p-2 md:p-3`}>
+                {isMobile && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-1 right-1 h-6 w-6"
+                    onClick={() => setShowLegend(false)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+                <div className="text-xs font-medium mb-2">Категории ценности</div>
+                <div className={`grid ${isMobile ? 'grid-cols-4' : 'grid-cols-2'} gap-1 text-xs`}>
+                  {Object.entries(valueCategoryColors).slice(0, isMobile ? 8 : 6).map(([cat, color]) => (
+                    <div key={cat} className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                      <span>{cat}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </>
+        )}
       </div>
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] md:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedNode ? `Связи для: ${selectedNode.name}` : "Новая связь"}
@@ -380,7 +482,7 @@ export default function NetworkGraphPage() {
                 <SelectTrigger data-testid="select-from-contact">
                   <SelectValue placeholder="Выберите контакт" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[40vh]">
                   {contacts.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.fullName}
@@ -396,7 +498,7 @@ export default function NetworkGraphPage() {
                 <SelectTrigger data-testid="select-to-contact">
                   <SelectValue placeholder="Выберите контакт" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[40vh]">
                   {contacts.filter((c) => c.id !== fromContactId).map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.fullName}
@@ -406,39 +508,41 @@ export default function NetworkGraphPage() {
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <Label>Тип связи</Label>
-              <Select value={connectionType} onValueChange={setConnectionType}>
-                <SelectTrigger data-testid="select-connection-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {connectionTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {connectionTypeLabels[type] || type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Сила связи (1-5)</Label>
-              <Select 
-                value={connectionStrength.toString()} 
-                onValueChange={(v) => setConnectionStrength(parseInt(v))}
-              >
-                <SelectTrigger data-testid="select-connection-strength">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 - Слабая</SelectItem>
-                  <SelectItem value="2">2 - Ниже среднего</SelectItem>
-                  <SelectItem value="3">3 - Средняя</SelectItem>
-                  <SelectItem value="4">4 - Выше среднего</SelectItem>
-                  <SelectItem value="5">5 - Сильная</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Тип связи</Label>
+                <Select value={connectionType} onValueChange={setConnectionType}>
+                  <SelectTrigger data-testid="select-connection-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {connectionTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {connectionTypeLabels[type] || type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Сила (1-5)</Label>
+                <Select 
+                  value={connectionStrength.toString()} 
+                  onValueChange={(v) => setConnectionStrength(parseInt(v))}
+                >
+                  <SelectTrigger data-testid="select-connection-strength">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 - Слабая</SelectItem>
+                    <SelectItem value="2">2</SelectItem>
+                    <SelectItem value="3">3 - Средняя</SelectItem>
+                    <SelectItem value="4">4</SelectItem>
+                    <SelectItem value="5">5 - Сильная</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
             <div className="space-y-2">
@@ -446,19 +550,21 @@ export default function NetworkGraphPage() {
               <Textarea
                 value={connectionNotes}
                 onChange={(e) => setConnectionNotes(e.target.value)}
-                placeholder="Как они познакомились, общие интересы..."
+                placeholder="Как они познакомились..."
+                className="min-h-[80px]"
                 data-testid="input-connection-notes"
               />
             </div>
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowAddDialog(false)} className="w-full sm:w-auto">
               Отмена
             </Button>
             <Button 
               onClick={handleCreateConnection}
               disabled={createConnectionMutation.isPending}
+              className="w-full sm:w-auto"
               data-testid="button-create-connection"
             >
               {createConnectionMutation.isPending && (
