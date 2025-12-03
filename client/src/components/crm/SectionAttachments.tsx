@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { ObjectUploader } from "./ObjectUploader";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Paperclip, 
   Image, 
@@ -13,6 +15,8 @@ import {
   Download,
   Loader2,
   Eye,
+  Link,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +27,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Document, Page, pdfjs } from "react-pdf";
 
@@ -167,6 +172,9 @@ export function SectionAttachments({
   const [previewType, setPreviewType] = useState<string>("");
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const fetchedIdsRef = useRef<Set<string>>(new Set());
+  const [showUrlDialog, setShowUrlDialog] = useState(false);
+  const [urlInput, setUrlInput] = useState("");
+  const [urlLoading, setUrlLoading] = useState(false);
 
   const { data: attachments = [], isLoading } = useQuery<Attachment[]>({
     queryKey: ["/api/contacts", contactId, "attachments", category],
@@ -257,6 +265,60 @@ export function SectionAttachments({
     },
   });
 
+  const handleAddFromUrl = async () => {
+    if (!urlInput.trim()) {
+      toast({ title: "Введите URL изображения", variant: "destructive" });
+      return;
+    }
+
+    const url = urlInput.trim();
+    
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      toast({ title: "URL должен начинаться с http:// или https://", variant: "destructive" });
+      return;
+    }
+
+    setUrlLoading(true);
+    try {
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split("/");
+      let fileName = pathParts[pathParts.length - 1] || "image";
+      
+      if (!fileName.includes(".")) {
+        fileName += ".jpg";
+      }
+
+      const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
+      let fileType = "image/jpeg";
+      if (ext === ".png") fileType = "image/png";
+      else if (ext === ".gif") fileType = "image/gif";
+      else if (ext === ".webp") fileType = "image/webp";
+      else if (ext === ".svg") fileType = "image/svg+xml";
+
+      await apiRequest("POST", `/api/contacts/${contactId}/attachments`, {
+        category,
+        subCategory,
+        fileName,
+        originalName: fileName,
+        fileType,
+        fileSize: 0,
+        externalUrl: url,
+      });
+
+      setSignedUrls({});
+      fetchedIdsRef.current.clear();
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts", contactId, "attachments", category] });
+      toast({ title: "Изображение добавлено" });
+      setShowUrlDialog(false);
+      setUrlInput("");
+    } catch (err) {
+      console.error("Failed to add from URL:", err);
+      toast({ title: "Ошибка добавления изображения", variant: "destructive" });
+    } finally {
+      setUrlLoading(false);
+    }
+  };
+
   const handleGetUploadParameters = async () => {
     const res = await fetch("/api/objects/upload", {
       method: "POST",
@@ -331,6 +393,15 @@ export function SectionAttachments({
             <Paperclip className="h-4 w-4 mr-1" />
             <span className="text-xs">Прикрепить</span>
           </ObjectUploader>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowUrlDialog(true)}
+            data-testid="button-add-url-compact"
+          >
+            <Globe className="h-4 w-4 mr-1" />
+            <span className="text-xs">По ссылке</span>
+          </Button>
           {filteredAttachments.length > 0 && (
             <span className="text-xs text-muted-foreground">
               ({filteredAttachments.length})
@@ -429,6 +500,52 @@ export function SectionAttachments({
             )}
           </DialogContent>
         </Dialog>
+        
+        {/* URL dialog */}
+        <Dialog open={showUrlDialog} onOpenChange={setShowUrlDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Добавить изображение по ссылке</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="url-input">URL изображения</Label>
+                <Input
+                  id="url-input"
+                  placeholder="https://example.com/image.jpg"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  data-testid="input-image-url"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Найдите изображение в Google, нажмите правой кнопкой и выберите "Копировать адрес изображения"
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowUrlDialog(false);
+                  setUrlInput("");
+                }}
+              >
+                Отмена
+              </Button>
+              <Button
+                onClick={handleAddFromUrl}
+                disabled={urlLoading || !urlInput.trim()}
+              >
+                {urlLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Globe className="h-4 w-4 mr-2" />
+                )}
+                Добавить
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -447,16 +564,27 @@ export function SectionAttachments({
             </span>
           )}
         </div>
-        <ObjectUploader
-          maxNumberOfFiles={10}
-          onGetUploadParameters={handleGetUploadParameters}
-          onComplete={handleUploadComplete}
-          buttonVariant="outline"
-          buttonSize="sm"
-        >
-          <Paperclip className="h-3 w-3 mr-1" />
-          Добавить
-        </ObjectUploader>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowUrlDialog(true)}
+            data-testid="button-add-url"
+          >
+            <Globe className="h-3 w-3 mr-1" />
+            По ссылке
+          </Button>
+          <ObjectUploader
+            maxNumberOfFiles={10}
+            onGetUploadParameters={handleGetUploadParameters}
+            onComplete={handleUploadComplete}
+            buttonVariant="outline"
+            buttonSize="sm"
+          >
+            <Paperclip className="h-3 w-3 mr-1" />
+            Добавить
+          </ObjectUploader>
+        </div>
       </div>
 
       {isLoading ? (
@@ -592,6 +720,52 @@ export function SectionAttachments({
               />
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* URL dialog */}
+      <Dialog open={showUrlDialog} onOpenChange={setShowUrlDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Добавить изображение по ссылке</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="url-input-full">URL изображения</Label>
+              <Input
+                id="url-input-full"
+                placeholder="https://example.com/image.jpg"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                data-testid="input-image-url-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Найдите изображение в Google, нажмите правой кнопкой и выберите "Копировать адрес изображения"
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowUrlDialog(false);
+                setUrlInput("");
+              }}
+            >
+              Отмена
+            </Button>
+            <Button
+              onClick={handleAddFromUrl}
+              disabled={urlLoading || !urlInput.trim()}
+            >
+              {urlLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Globe className="h-4 w-4 mr-2" />
+              )}
+              Добавить
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

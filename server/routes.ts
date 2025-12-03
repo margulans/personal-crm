@@ -1502,21 +1502,35 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Contact not found" });
       }
 
-      const objectStorageService = new ObjectStorageService();
+      let storagePath: string;
       
-      // Validate and set ACL policy for the uploaded file with team-based access
-      const storagePath = await objectStorageService.trySetObjectEntityAclPolicy(
-        req.body.uploadURL,
-        {
-          owner: userId,
-          teamId: teamId || undefined,
-          visibility: "private",
+      // Check if this is an external URL (from Google Images, etc.)
+      if (req.body.externalUrl) {
+        const externalUrl = req.body.externalUrl;
+        // Validate it's a proper URL
+        if (!externalUrl.startsWith("http://") && !externalUrl.startsWith("https://")) {
+          return res.status(400).json({ error: "Invalid external URL" });
         }
-      );
-      
-      // Reject invalid storage paths (security: prevent path injection)
-      if (!storagePath) {
-        return res.status(400).json({ error: "Invalid upload URL format" });
+        storagePath = externalUrl;
+      } else {
+        // Regular file upload - validate and set ACL policy
+        const objectStorageService = new ObjectStorageService();
+        
+        // Validate and set ACL policy for the uploaded file with team-based access
+        const validatedPath = await objectStorageService.trySetObjectEntityAclPolicy(
+          req.body.uploadURL,
+          {
+            owner: userId,
+            teamId: teamId || undefined,
+            visibility: "private",
+          }
+        );
+        
+        // Reject invalid storage paths (security: prevent path injection)
+        if (!validatedPath) {
+          return res.status(400).json({ error: "Invalid upload URL format" });
+        }
+        storagePath = validatedPath;
       }
 
       // Detect MIME type from filename if not provided correctly
@@ -1556,7 +1570,7 @@ export async function registerRoutes(
         fileName: req.body.fileName,
         originalName: originalName,
         fileType: fileType,
-        fileSize: req.body.fileSize,
+        fileSize: req.body.fileSize || 0,
         storagePath,
         description: req.body.description,
       });
@@ -1598,12 +1612,14 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      // Delete from object storage
-      const objectStorageService = new ObjectStorageService();
-      try {
-        await objectStorageService.deleteObject(attachment.storagePath);
-      } catch (err) {
-        console.error("Error deleting from storage:", err);
+      // Delete from object storage (skip for external URLs)
+      if (!attachment.storagePath.startsWith("http://") && !attachment.storagePath.startsWith("https://")) {
+        const objectStorageService = new ObjectStorageService();
+        try {
+          await objectStorageService.deleteObject(attachment.storagePath);
+        } catch (err) {
+          console.error("Error deleting from storage:", err);
+        }
       }
 
       // Delete attachment record
