@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { insertContactSchema, insertInteractionSchema, insertTeamSchema, insertAttachmentSchema, insertContactConnectionSchema, teams, aiInsightsCache } from "@shared/schema";
+import { insertContactSchema, insertInteractionSchema, insertTeamSchema, insertAttachmentSchema, insertContactConnectionSchema, insertGiftSchema, updateGiftSchema, teams, aiInsightsCache } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -1868,6 +1868,124 @@ export async function registerRoutes(
   });
 
   // ============= END CONNECTION ENDPOINTS =============
+
+  // ============= GIFT ENDPOINTS =============
+  
+  // Get all gifts for current team
+  app.get("/api/gifts", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      const gifts = await storage.getGifts(teamId);
+      res.json(gifts);
+    } catch (error) {
+      console.error("Error fetching gifts:", error);
+      res.status(500).json({ error: "Failed to fetch gifts" });
+    }
+  });
+
+  // Get gifts for a specific contact
+  app.get("/api/contacts/:contactId/gifts", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const contact = await storage.getContact(req.params.contactId, teamId);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      const gifts = await storage.getContactGifts(req.params.contactId, teamId);
+      res.json(gifts);
+    } catch (error) {
+      console.error("Error fetching contact gifts:", error);
+      res.status(500).json({ error: "Failed to fetch contact gifts" });
+    }
+  });
+
+  // Create a new gift
+  app.post("/api/gifts", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const userId = getUserId(req);
+      const giftData = insertGiftSchema.parse({
+        ...req.body,
+        teamId,
+        createdBy: userId,
+      });
+      
+      // Verify contact exists and belongs to team
+      const contact = await storage.getContact(giftData.contactId, teamId);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      const gift = await storage.createGift(giftData);
+      res.status(201).json(gift);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: fromZodError(error).message });
+      }
+      console.error("Error creating gift:", error);
+      res.status(500).json({ error: "Failed to create gift" });
+    }
+  });
+
+  // Update a gift
+  app.patch("/api/gifts/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const gift = await storage.getGift(req.params.id, teamId);
+      if (!gift) {
+        return res.status(404).json({ error: "Gift not found" });
+      }
+      
+      const validatedData = updateGiftSchema.parse(req.body);
+      const updated = await storage.updateGift(req.params.id, validatedData, teamId);
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: fromZodError(error).message });
+      }
+      console.error("Error updating gift:", error);
+      res.status(500).json({ error: "Failed to update gift" });
+    }
+  });
+
+  // Delete a gift
+  app.delete("/api/gifts/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const gift = await storage.getGift(req.params.id, teamId);
+      if (!gift) {
+        return res.status(404).json({ error: "Gift not found" });
+      }
+      
+      await storage.deleteGift(req.params.id, teamId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting gift:", error);
+      res.status(500).json({ error: "Failed to delete gift" });
+    }
+  });
+
+  // ============= END GIFT ENDPOINTS =============
 
   // Endpoint for scheduled backup (can be called by cron/scheduled deployment)
   app.post("/api/backups/auto", async (req: Request, res: Response) => {

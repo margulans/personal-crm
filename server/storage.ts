@@ -15,6 +15,8 @@ import {
   type InsertAttachment,
   type ContactConnection,
   type InsertContactConnection,
+  type Gift,
+  type InsertGift,
   contacts, 
   interactions,
   users,
@@ -23,6 +25,7 @@ import {
   backups,
   attachments,
   contactConnections,
+  gifts,
   getClassFromScore,
   calculateHeatIndex,
   getRecommendedAttentionLevel,
@@ -91,6 +94,14 @@ export interface IStorage {
   createConnection(connection: InsertContactConnection): Promise<ContactConnection>;
   updateConnection(id: string, data: Pick<InsertContactConnection, "connectionType" | "strength" | "notes">, teamId: string): Promise<ContactConnection | undefined>;
   deleteConnection(id: string, teamId: string): Promise<boolean>;
+  
+  // Gift operations
+  getGifts(teamId: string): Promise<Gift[]>;
+  getContactGifts(contactId: string, teamId: string): Promise<Gift[]>;
+  getGift(id: string, teamId: string): Promise<Gift | undefined>;
+  createGift(gift: InsertGift): Promise<Gift>;
+  updateGift(id: string, data: Partial<InsertGift>, teamId: string): Promise<Gift | undefined>;
+  deleteGift(id: string, teamId: string): Promise<boolean>;
 }
 
 function calculateScoresAndClass(details: { 
@@ -696,6 +707,63 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         eq(contactConnections.id, id),
         eq(contactConnections.teamId, teamId)
+      ))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Gift operations
+  async getGifts(teamId: string): Promise<Gift[]> {
+    return db.select().from(gifts)
+      .where(eq(gifts.teamId, teamId))
+      .orderBy(desc(gifts.date));
+  }
+
+  async getContactGifts(contactId: string, teamId: string): Promise<Gift[]> {
+    return db.select().from(gifts)
+      .where(and(
+        eq(gifts.contactId, contactId),
+        eq(gifts.teamId, teamId)
+      ))
+      .orderBy(desc(gifts.date));
+  }
+
+  async getGift(id: string, teamId: string): Promise<Gift | undefined> {
+    const [gift] = await db.select().from(gifts)
+      .where(and(
+        eq(gifts.id, id),
+        eq(gifts.teamId, teamId)
+      ));
+    return gift;
+  }
+
+  async createGift(gift: InsertGift): Promise<Gift> {
+    const [created] = await db.insert(gifts).values(gift).returning();
+    return created;
+  }
+
+  async updateGift(id: string, data: Partial<InsertGift>, teamId: string): Promise<Gift | undefined> {
+    const safeData: Partial<InsertGift> & { updatedAt: Date } = {
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    const [updated] = await db
+      .update(gifts)
+      .set(safeData)
+      .where(and(
+        eq(gifts.id, id),
+        eq(gifts.teamId, teamId)
+      ))
+      .returning();
+    return updated;
+  }
+
+  async deleteGift(id: string, teamId: string): Promise<boolean> {
+    const result = await db.delete(gifts)
+      .where(and(
+        eq(gifts.id, id),
+        eq(gifts.teamId, teamId)
       ))
       .returning();
     return result.length > 0;

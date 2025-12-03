@@ -65,6 +65,7 @@ import { useLocation } from "wouter";
 
 import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, EmailEntry, FamilyStatus, FamilyMember, StaffMember, StaffPhone, StaffMessenger, AIInsight, AIRecommendation } from "@/lib/types";
 import { SectionAttachments } from "./SectionAttachments";
+import { GiftSection } from "./GiftSection";
 
 const BLOCK_DESCRIPTIONS = {
   identity: {
@@ -2283,6 +2284,9 @@ export function ContactDetail({
                   )}
                 </CardContent>
               </Card>
+
+              {/* Gifts */}
+              <GiftSection contactId={contact.id} />
             </div>
           </div>
         </div>

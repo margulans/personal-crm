@@ -355,6 +355,67 @@ export const insertContactConnectionSchema = createInsertSchema(contactConnectio
   createdBy: z.string().optional(),
 });
 
+// Gift occasions
+export const giftOccasions = [
+  "birthday", "new_year", "anniversary", "holiday", "business", "thank_you", "apology", "no_occasion", "other"
+] as const;
+
+export type GiftOccasion = typeof giftOccasions[number];
+
+// Gifts table
+export const gifts = pgTable("gifts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  contactId: varchar("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  createdBy: varchar("created_by").references(() => users.id),
+  
+  title: text("title").notNull(),
+  description: text("description"),
+  amount: real("amount"), // approximate cost
+  currency: varchar("currency", { length: 10 }).default("RUB"),
+  direction: varchar("direction", { length: 10 }).notNull(), // "given" or "received"
+  occasion: varchar("occasion", { length: 30 }).default("no_occasion"),
+  date: date("date").notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_gifts_team_id").on(table.teamId),
+  index("idx_gifts_contact_id").on(table.contactId),
+  index("idx_gifts_date").on(table.date),
+  index("idx_gifts_direction").on(table.direction),
+]);
+
+export type Gift = typeof gifts.$inferSelect;
+export type InsertGift = typeof gifts.$inferInsert;
+
+export const insertGiftSchema = createInsertSchema(gifts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  teamId: z.string().min(1),
+  contactId: z.string().min(1),
+  createdBy: z.string().optional(),
+  title: z.string().min(1, "Название подарка обязательно"),
+  description: z.string().optional().nullable(),
+  amount: z.number().min(0).optional().nullable(),
+  currency: z.string().default("RUB"),
+  direction: z.enum(["given", "received"]),
+  occasion: z.enum(giftOccasions).default("no_occasion"),
+  date: z.string().min(1, "Дата обязательна"),
+});
+
+export const updateGiftSchema = z.object({
+  title: z.string().min(1, "Название подарка обязательно").optional(),
+  description: z.string().optional().nullable(),
+  amount: z.number().min(0).optional().nullable(),
+  currency: z.string().optional(),
+  direction: z.enum(["given", "received"]).optional(),
+  occasion: z.enum(giftOccasions).optional(),
+  date: z.string().optional(),
+});
+
 const contributionDetailsSchema = z.object({
   financial: z.number().min(0).max(3).default(0),
   network: z.number().min(0).max(3).default(0),

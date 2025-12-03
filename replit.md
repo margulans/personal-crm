@@ -24,8 +24,16 @@ PRIMA is a multi-user collaborative application with team-based access control. 
 
 ### Data Layer
 - **Database**: PostgreSQL via Neon serverless, utilizing Drizzle ORM for type-safe queries.
-- **Data Model**: Key tables include `contacts` (comprehensive contact details, scoring, and relationship metrics), `interactions` (tracking touchpoints), `attachments` (file uploads organized by category), `contact_connections` (relationship graph edges between contacts), and `backups` (team data snapshots).
+- **Data Model**: Key tables include `contacts` (comprehensive contact details, scoring, and relationship metrics), `interactions` (tracking touchpoints), `attachments` (file uploads organized by category), `contact_connections` (relationship graph edges between contacts), `gifts` (gift tracking with direction, occasion, amount), and `backups` (team data snapshots).
 - **Backup System**: Supports manual and automatic daily backups, with restoration capabilities and retention policies.
+
+### Gift Tracking
+- **Route**: `/gifts` accessible via sidebar "Подарки"
+- **Features**: Track gifts given to and received from contacts with title, description, amount, currency, occasion type, and date
+- **Direction**: "given" (sent to contact) or "received" (received from contact)
+- **Occasions**: birthday, new_year, anniversary, holiday, business, thank_you, apology, no_occasion, other
+- **Currency Support**: RUB, USD, EUR with appropriate symbols
+- **Components**: GiftSection (in contact detail), GiftsPage (full gift list with filters)
 
 ### Network Graph (Relationship Visualization)
 - **Library**: react-force-graph-2d for interactive force-directed graph layout
