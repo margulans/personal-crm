@@ -63,8 +63,14 @@ export const CONTRIBUTION_CRITERIA = [
   { 
     key: "emotional", 
     label: "Эмоциональный вклад", 
-    description: "Приятное общение, эмоциональная поддержка, психологический комфорт",
-    scale: "0=нет; 1=иногда приятно; 2=регулярная поддержка; 3=ключевой человек для эмоций"
+    description: "Приятное общение, эмоциональная/духовная поддержка, психологический комфорт",
+    scale: "0=нет; 1=иногда приятно; 2=регулярная поддержка; 3=ключевой человек"
+  },
+  { 
+    key: "intellectual", 
+    label: "Интеллектуальный вклад", 
+    description: "Знания, опыт, экспертиза, интеллектуальная помощь",
+    scale: "0=нет; 1=разовые советы; 2=регулярная помощь; 3=ментор/эксперт"
   },
 ] as const;
 
@@ -76,7 +82,7 @@ export const POTENTIAL_CRITERIA = [
   { key: "systemRole", label: "Системная роль", description: "Потенциал стать партнёром, лидером, советником" },
 ] as const;
 
-export function getClassFromScore(score: number, maxScore: number = 9): string {
+export function getClassFromScore(score: number, maxScore: number = 15): string {
   if (maxScore === 15) {
     if (score >= 12) return "A";
     if (score >= 8) return "B";

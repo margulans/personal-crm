@@ -63,15 +63,22 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
       if (initialData?.contributionDetails) {
         const oldData = initialData.contributionDetails as { 
           financial?: number; network?: number; tactical?: number; 
-          strategic?: number; loyalty?: number; trust?: number 
+          strategic?: number; loyalty?: number; trust?: number;
+          emotional?: number; intellectual?: number;
         };
         if ('trust' in oldData) {
-          return { financial: oldData.financial || 0, network: oldData.network || 0, trust: oldData.trust || 0 };
+          return { 
+            financial: oldData.financial || 0, 
+            network: oldData.network || 0, 
+            trust: oldData.trust || 0,
+            emotional: oldData.emotional || 0,
+            intellectual: oldData.intellectual || 0,
+          };
         }
         const trustValue = Math.min(3, Math.round(((oldData.tactical || 0) + (oldData.strategic || 0) + (oldData.loyalty || 0)) / 3));
-        return { financial: oldData.financial || 0, network: oldData.network || 0, trust: trustValue };
+        return { financial: oldData.financial || 0, network: oldData.network || 0, trust: trustValue, emotional: 0, intellectual: 0 };
       }
-      return { financial: 0, network: 0, trust: 0 };
+      return { financial: 0, network: 0, trust: 0, emotional: 0, intellectual: 0 };
     })(),
     potentialDetails: initialData?.potentialDetails || {
       personal: 0,

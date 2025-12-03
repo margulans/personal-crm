@@ -20,7 +20,7 @@ import { AttentionGapIndicator } from "./AttentionGapIndicator";
 import { ScorePanel } from "./ScorePanel";
 import { InteractionItem } from "./InteractionItem";
 import { InteractionForm } from "./InteractionForm";
-import { ATTENTION_LEVELS, formatDaysAgo } from "@/lib/constants";
+import { ATTENTION_LEVELS, CONTRIBUTION_CRITERIA, formatDaysAgo } from "@/lib/constants";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -431,13 +431,16 @@ export function ContactDetail({
 
   const contributionDetails = (() => {
     const details = contact.contributionDetails as { 
-      financial?: number; network?: number; trust?: number 
+      financial?: number; network?: number; trust?: number;
+      emotional?: number; intellectual?: number;
     } | null;
-    if (!details) return { financial: 0, network: 0, trust: 0 };
+    if (!details) return { financial: 0, network: 0, trust: 0, emotional: 0, intellectual: 0 };
     return { 
       financial: details.financial || 0, 
       network: details.network || 0, 
-      trust: details.trust || 0 
+      trust: details.trust || 0,
+      emotional: details.emotional || 0,
+      intellectual: details.intellectual || 0,
     };
   })();
 
@@ -1903,7 +1906,7 @@ export function ContactDetail({
               <Card className="bg-amber-50/50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700">
                 <CardHeader className="flex-row items-center justify-between space-y-0 gap-2 pb-3">
                   <CardTitle className="text-base flex items-center">
-                    Вклад ({contact.contributionScore}/9)
+                    Вклад ({contact.contributionScore}/15)
                     <InfoPopover blockKey="contribution" />
                   </CardTitle>
                   {editingSection === "contribution" ? <SaveCancelButtons /> : <EditButton section="contribution" />}
@@ -1911,63 +1914,30 @@ export function ContactDetail({
                 <CardContent>
                   {editingSection === "contribution" ? (
                     <div className="space-y-4">
-                      <div className="grid gap-2">
-                        <Label>Финансовая польза (0-3)</Label>
-                        <div className="flex items-center gap-4">
-                          <Slider
-                            value={[(getFieldValue("contributionDetails") as typeof contributionDetails)?.financial ?? contributionDetails.financial]}
-                            onValueChange={([value]) => updateField("contributionDetails", { 
-                              ...contributionDetails, 
-                              ...(formData.contributionDetails as typeof contributionDetails || {}),
-                              financial: value 
-                            })}
-                            min={0}
-                            max={3}
-                            step={1}
-                            className="flex-1"
-                            data-testid="slider-financial"
-                          />
-                          <span className="font-mono text-lg w-8">{(getFieldValue("contributionDetails") as typeof contributionDetails)?.financial ?? contributionDetails.financial}</span>
+                      {CONTRIBUTION_CRITERIA.map((criterion) => (
+                        <div key={criterion.key} className="grid gap-2">
+                          <div className="flex items-center justify-between">
+                            <Label>{criterion.label} (0-3)</Label>
+                            <span className="text-xs text-muted-foreground">{criterion.description}</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <Slider
+                              value={[(getFieldValue("contributionDetails") as typeof contributionDetails)?.[criterion.key as keyof typeof contributionDetails] ?? contributionDetails[criterion.key as keyof typeof contributionDetails] ?? 0]}
+                              onValueChange={([value]) => updateField("contributionDetails", { 
+                                ...contributionDetails, 
+                                ...(formData.contributionDetails as typeof contributionDetails || {}),
+                                [criterion.key]: value 
+                              })}
+                              min={0}
+                              max={3}
+                              step={1}
+                              className="flex-1"
+                              data-testid={`slider-${criterion.key}`}
+                            />
+                            <span className="font-mono text-lg w-8">{(getFieldValue("contributionDetails") as typeof contributionDetails)?.[criterion.key as keyof typeof contributionDetails] ?? contributionDetails[criterion.key as keyof typeof contributionDetails] ?? 0}</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Помощь сетью контактов (0-3)</Label>
-                        <div className="flex items-center gap-4">
-                          <Slider
-                            value={[(getFieldValue("contributionDetails") as typeof contributionDetails)?.network ?? contributionDetails.network]}
-                            onValueChange={([value]) => updateField("contributionDetails", { 
-                              ...contributionDetails, 
-                              ...(formData.contributionDetails as typeof contributionDetails || {}),
-                              network: value 
-                            })}
-                            min={0}
-                            max={3}
-                            step={1}
-                            className="flex-1"
-                            data-testid="slider-network"
-                          />
-                          <span className="font-mono text-lg w-8">{(getFieldValue("contributionDetails") as typeof contributionDetails)?.network ?? contributionDetails.network}</span>
-                        </div>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Доверие и репутация (0-3)</Label>
-                        <div className="flex items-center gap-4">
-                          <Slider
-                            value={[(getFieldValue("contributionDetails") as typeof contributionDetails)?.trust ?? contributionDetails.trust]}
-                            onValueChange={([value]) => updateField("contributionDetails", { 
-                              ...contributionDetails, 
-                              ...(formData.contributionDetails as typeof contributionDetails || {}),
-                              trust: value 
-                            })}
-                            min={0}
-                            max={3}
-                            step={1}
-                            className="flex-1"
-                            data-testid="slider-trust"
-                          />
-                          <span className="font-mono text-lg w-8">{(getFieldValue("contributionDetails") as typeof contributionDetails)?.trust ?? contributionDetails.trust}</span>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   ) : (
                     <ScorePanel
