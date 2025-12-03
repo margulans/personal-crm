@@ -1224,35 +1224,36 @@ export function ContactDetail({
                                   />
                                 </div>
                               </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <Label className="text-xs">Дата рождения</Label>
-                                  <Input
-                                    type="date"
-                                    value={member.birthday || ""}
-                                    onChange={e => {
-                                      const current = getFieldValue("familyStatus") as FamilyStatus;
-                                      const updatedMembers = [...current.members];
-                                      updatedMembers[index] = { ...updatedMembers[index], birthday: e.target.value };
-                                      updateField("familyStatus", { ...current, members: updatedMembers });
-                                    }}
-                                    data-testid={`input-member-birthday-${index}`}
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs">Заметка</Label>
-                                  <Input
-                                    value={member.notes || ""}
-                                    onChange={e => {
-                                      const current = getFieldValue("familyStatus") as FamilyStatus;
-                                      const updatedMembers = [...current.members];
-                                      updatedMembers[index] = { ...updatedMembers[index], notes: e.target.value };
-                                      updateField("familyStatus", { ...current, members: updatedMembers });
-                                    }}
-                                    placeholder="Заметка..."
-                                    data-testid={`input-member-notes-${index}`}
-                                  />
-                                </div>
+                              <div>
+                                <Label className="text-xs">Дата рождения</Label>
+                                <Input
+                                  type="date"
+                                  value={member.birthday || ""}
+                                  onChange={e => {
+                                    const current = getFieldValue("familyStatus") as FamilyStatus;
+                                    const updatedMembers = [...current.members];
+                                    updatedMembers[index] = { ...updatedMembers[index], birthday: e.target.value };
+                                    updateField("familyStatus", { ...current, members: updatedMembers });
+                                  }}
+                                  className="w-40"
+                                  data-testid={`input-member-birthday-${index}`}
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Заметка</Label>
+                                <Textarea
+                                  value={member.notes || ""}
+                                  onChange={e => {
+                                    const current = getFieldValue("familyStatus") as FamilyStatus;
+                                    const updatedMembers = [...current.members];
+                                    updatedMembers[index] = { ...updatedMembers[index], notes: e.target.value };
+                                    updateField("familyStatus", { ...current, members: updatedMembers });
+                                  }}
+                                  placeholder="Заметка о члене семьи..."
+                                  className="resize-none"
+                                  rows={2}
+                                  data-testid={`input-member-notes-${index}`}
+                                />
                               </div>
                             </div>
                             <Button
