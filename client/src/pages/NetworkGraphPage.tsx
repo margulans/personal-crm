@@ -327,24 +327,29 @@ export default function NetworkGraphPage() {
       const fg = graphRef.current;
       const nodeCount = graphData.nodes.length;
       
-      const chargeStrength = Math.min(-100, -300 / Math.sqrt(nodeCount));
-      const linkDistance = Math.max(50, 120 / Math.sqrt(nodeCount) * 2);
+      const chargeStrength = -150;
+      const linkDistance = 80;
       
       fg.d3Force('charge')?.strength(chargeStrength);
       fg.d3Force('link')?.distance(linkDistance);
-      fg.d3Force('center')?.strength(1);
+      fg.d3Force('center')?.strength(0.5);
+      
+      fg.d3Force('x', null);
+      fg.d3Force('y', null);
+      
+      const fitPadding = Math.max(100, Math.min(dimensions.width, dimensions.height) * 0.15);
       
       const centerAndFit = () => {
         if (graphRef.current && !manualMode) {
-          graphRef.current.centerAt(0, 0, 0);
-          graphRef.current.zoomToFit(400, isMobile ? 50 : 80);
+          graphRef.current.zoomToFit(500, fitPadding);
         }
       };
       
-      setTimeout(centerAndFit, 300);
-      setTimeout(centerAndFit, 800);
+      setTimeout(centerAndFit, 200);
+      setTimeout(centerAndFit, 600);
+      setTimeout(centerAndFit, 1200);
     }
-  }, [graphKey, isGraphReady, graphData.nodes.length, isMobile, manualMode]);
+  }, [graphKey, isGraphReady, graphData.nodes.length, isMobile, manualMode, dimensions]);
 
   const handleNodeClick = useCallback((node: GraphNode) => {
     setSelectedNode(node);
@@ -372,7 +377,8 @@ export default function NetworkGraphPage() {
 
   const handleFitView = () => {
     if (graphRef.current) {
-      graphRef.current.zoomToFit(400, isMobile ? 30 : 50);
+      const fitPadding = Math.max(100, Math.min(dimensions.width, dimensions.height) * 0.15);
+      graphRef.current.zoomToFit(500, fitPadding);
     }
   };
 
@@ -586,8 +592,8 @@ export default function NetworkGraphPage() {
               onLinkClick={handleLinkClick}
               onEngineStop={() => {
                 if (!manualMode && graphRef.current) {
-                  graphRef.current.centerAt(0, 0, 0);
-                  graphRef.current.zoomToFit(400, isMobile ? 50 : 80);
+                  const fitPadding = Math.max(100, Math.min(dimensions.width, dimensions.height) * 0.15);
+                  graphRef.current.zoomToFit(500, fitPadding);
                 }
               }}
               cooldownTicks={manualMode ? 0 : 100}
