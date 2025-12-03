@@ -29,7 +29,7 @@ interface ContactFormProps {
 }
 
 function computeFullName(firstName?: string, lastName?: string, patronymic?: string): string {
-  const parts = [lastName, firstName, patronymic].filter(Boolean);
+  const parts = [firstName, lastName, patronymic].filter(Boolean);
   return parts.join(" ") || "";
 }
 

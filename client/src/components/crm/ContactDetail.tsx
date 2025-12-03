@@ -579,7 +579,7 @@ export function ContactDetail({
                               updateField("firstName", e.target.value);
                               const lastName = getFieldValue("lastName") || "";
                               const patronymic = getFieldValue("patronymic") || "";
-                              const fullName = [lastName, e.target.value, patronymic].filter(Boolean).join(" ");
+                              const fullName = [e.target.value, lastName, patronymic].filter(Boolean).join(" ");
                               updateField("fullName", fullName || "Без имени");
                             }}
                             placeholder="Иван"
@@ -595,7 +595,7 @@ export function ContactDetail({
                               updateField("lastName", e.target.value);
                               const firstName = getFieldValue("firstName") || "";
                               const patronymic = getFieldValue("patronymic") || "";
-                              const fullName = [e.target.value, firstName, patronymic].filter(Boolean).join(" ");
+                              const fullName = [firstName, e.target.value, patronymic].filter(Boolean).join(" ");
                               updateField("fullName", fullName || "Без имени");
                             }}
                             placeholder="Иванов"
@@ -609,9 +609,9 @@ export function ContactDetail({
                             value={getFieldValue("patronymic") || ""} 
                             onChange={e => {
                               updateField("patronymic", e.target.value);
-                              const lastName = getFieldValue("lastName") || "";
                               const firstName = getFieldValue("firstName") || "";
-                              const fullName = [lastName, firstName, e.target.value].filter(Boolean).join(" ");
+                              const lastName = getFieldValue("lastName") || "";
+                              const fullName = [firstName, lastName, e.target.value].filter(Boolean).join(" ");
                               updateField("fullName", fullName || "Без имени");
                             }}
                             placeholder="Иванович"
