@@ -182,21 +182,13 @@ export default function NetworkGraphPage() {
   const [manualMode, setManualMode] = useState(false);
 
   useEffect(() => {
-    if (graphRef.current) {
+    if (graphRef.current && isGraphReady && !manualMode) {
       const fg = graphRef.current;
-      if (manualMode) {
-        fg.d3Force('charge', null);
-        fg.d3Force('link', null);
-        fg.d3Force('center', null);
-        fg.d3ReheatSimulation();
-      } else {
-        fg.d3Force('charge')?.strength(-300);
-        fg.d3Force('link')?.distance(100);
-        fg.d3Force('center')?.strength(0.05);
-        fg.d3ReheatSimulation();
-      }
+      fg.d3Force('charge')?.strength(-300);
+      fg.d3Force('link')?.distance(100);
+      fg.d3Force('center')?.strength(0.05);
     }
-  }, [graphKey, isGraphReady, manualMode]);
+  }, [graphKey, isGraphReady]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -370,12 +362,12 @@ export default function NetworkGraphPage() {
     const newMode = !manualMode;
     setManualMode(newMode);
     
-    if (!newMode && graphRef.current) {
+    if (!newMode) {
       graphData.nodes.forEach((node: any) => {
         node.fx = undefined;
         node.fy = undefined;
       });
-      graphRef.current.d3ReheatSimulation();
+      setGraphKey(k => k + 1);
     }
     
     toast({ 
