@@ -29,7 +29,8 @@ interface ContactFormProps {
 }
 
 function computeFullName(firstName?: string, lastName?: string, patronymic?: string): string {
-  const parts = [firstName, lastName, patronymic].filter(Boolean);
+  // Order: firstName, patronymic, lastName
+  const parts = [firstName, patronymic, lastName].filter(Boolean);
   return parts.join(" ") || "";
 }
 
@@ -522,16 +523,6 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">Фамилия</Label>
-              <Input
-                id="lastName"
-                value={formData.lastName || ""}
-                onChange={(e) => updateNameField('lastName', e.target.value)}
-                placeholder="Иванов"
-                data-testid="input-lastName"
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="patronymic">Отчество</Label>
               <Input
                 id="patronymic"
@@ -539,6 +530,16 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
                 onChange={(e) => updateNameField('patronymic', e.target.value)}
                 placeholder="Иванович"
                 data-testid="input-patronymic"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Фамилия</Label>
+              <Input
+                id="lastName"
+                value={formData.lastName || ""}
+                onChange={(e) => updateNameField('lastName', e.target.value)}
+                placeholder="Иванов"
+                data-testid="input-lastName"
               />
             </div>
           </div>

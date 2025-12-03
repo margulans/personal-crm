@@ -334,12 +334,12 @@ export function ContactDetail({
     
     const dataToSave = { ...formData };
     
-    // Recalculate fullName when saving identity section (new order: firstName lastName patronymic)
+    // Recalculate fullName when saving identity section (order: firstName patronymic lastName)
     if (editingSection === "identity" && (dataToSave.firstName !== undefined || dataToSave.lastName !== undefined || dataToSave.patronymic !== undefined)) {
       const firstName = (dataToSave.firstName as string) ?? contact.firstName ?? "";
       const lastName = (dataToSave.lastName as string) ?? contact.lastName ?? "";
       const patronymic = (dataToSave.patronymic as string) ?? contact.patronymic ?? "";
-      dataToSave.fullName = [firstName, lastName, patronymic].filter(Boolean).join(" ") || contact.fullName;
+      dataToSave.fullName = [firstName, patronymic, lastName].filter(Boolean).join(" ") || contact.fullName;
     }
     
     if (dataToSave.contributionDetails) {
@@ -597,27 +597,11 @@ export function ContactDetail({
                               updateField("firstName", e.target.value);
                               const lastName = getFieldValue("lastName") || "";
                               const patronymic = getFieldValue("patronymic") || "";
-                              const fullName = [e.target.value, lastName, patronymic].filter(Boolean).join(" ");
+                              const fullName = [e.target.value, patronymic, lastName].filter(Boolean).join(" ");
                               updateField("fullName", fullName || "Без имени");
                             }}
                             placeholder="Иван"
                             data-testid="input-firstname"
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label className="text-base font-medium">Фамилия</Label>
-                          <Input 
-                            className="h-12 text-lg"
-                            value={getFieldValue("lastName") || ""} 
-                            onChange={e => {
-                              updateField("lastName", e.target.value);
-                              const firstName = getFieldValue("firstName") || "";
-                              const patronymic = getFieldValue("patronymic") || "";
-                              const fullName = [firstName, e.target.value, patronymic].filter(Boolean).join(" ");
-                              updateField("fullName", fullName || "Без имени");
-                            }}
-                            placeholder="Иванов"
-                            data-testid="input-lastname"
                           />
                         </div>
                         <div className="grid gap-2">
@@ -629,11 +613,27 @@ export function ContactDetail({
                               updateField("patronymic", e.target.value);
                               const firstName = getFieldValue("firstName") || "";
                               const lastName = getFieldValue("lastName") || "";
-                              const fullName = [firstName, lastName, e.target.value].filter(Boolean).join(" ");
+                              const fullName = [firstName, e.target.value, lastName].filter(Boolean).join(" ");
                               updateField("fullName", fullName || "Без имени");
                             }}
                             placeholder="Иванович"
                             data-testid="input-patronymic"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label className="text-base font-medium">Фамилия</Label>
+                          <Input 
+                            className="h-12 text-lg"
+                            value={getFieldValue("lastName") || ""} 
+                            onChange={e => {
+                              updateField("lastName", e.target.value);
+                              const firstName = getFieldValue("firstName") || "";
+                              const patronymic = getFieldValue("patronymic") || "";
+                              const fullName = [firstName, patronymic, e.target.value].filter(Boolean).join(" ");
+                              updateField("fullName", fullName || "Без имени");
+                            }}
+                            placeholder="Иванов"
+                            data-testid="input-lastname"
                           />
                         </div>
                       </div>
