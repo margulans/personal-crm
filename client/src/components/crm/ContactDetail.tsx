@@ -512,13 +512,6 @@ export function ContactDetail({
                           </span>
                         </div>
                       )}
-                      {contact.roleTags && contact.roleTags.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {contact.roleTags.map((tag) => (
-                            <Badge key={tag} variant="outline">{tag}</Badge>
-                          ))}
-                        </div>
-                      )}
                     </>
                   )}
                 </CardContent>
