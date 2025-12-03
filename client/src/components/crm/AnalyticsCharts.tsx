@@ -18,7 +18,7 @@ import type { Contact } from "@/lib/types";
 
 const CHART_DESCRIPTIONS = {
   heatStatus: {
-    title: "Распределение по статусу",
+    title: "Состояние отношений",
     description: "Показывает долю контактов в каждой зоне. Зелёный — отношения в порядке, жёлтый — нужно внимание, красный — срочно связаться. Стремитесь к максимуму зелёных контактов."
   },
   importance: {
@@ -69,7 +69,7 @@ export function HeatStatusChart({ contacts }: AnalyticsChartsProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Распределение по статусу</CardTitle>
+          <CardTitle className="text-base">Состояние отношений</CardTitle>
         </CardHeader>
         <CardContent className="h-64 flex items-center justify-center text-muted-foreground">
           Нет данных
@@ -82,7 +82,7 @@ export function HeatStatusChart({ contacts }: AnalyticsChartsProps) {
     <Card data-testid="chart-heat-status">
       <CardHeader>
         <CardTitle className="text-base flex items-center">
-          Распределение по статусу
+          Состояние отношений
           <InfoPopover chartKey="heatStatus" />
         </CardTitle>
       </CardHeader>
