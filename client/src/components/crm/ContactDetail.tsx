@@ -194,24 +194,37 @@ export function ContactDetail({
 
     setUploadingAvatar(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('contactId', contact.id);
-      formData.append('category', 'avatar');
-
-      const response = await fetch('/api/attachments/upload', {
+      // Step 1: Get upload URL from server
+      const urlResponse = await fetch('/api/objects/upload', {
         method: 'POST',
-        body: formData,
         credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
       });
 
-      if (!response.ok) {
-        throw new Error('Ошибка загрузки');
+      if (!urlResponse.ok) {
+        throw new Error('Не удалось получить URL для загрузки');
       }
 
-      const result = await response.json();
+      const { uploadURL } = await urlResponse.json();
+
+      // Step 2: Upload file directly to GCS
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Ошибка загрузки файла');
+      }
+
+      // Step 3: Extract the public URL (remove query params from signed URL)
+      const avatarUrl = uploadURL.split('?')[0];
       
-      await apiRequest("PATCH", `/api/contacts/${contact.id}`, { avatarUrl: result.url });
+      // Step 4: Save avatar URL to contact
+      await apiRequest("PATCH", `/api/contacts/${contact.id}`, { avatarUrl });
       
       queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id] });
