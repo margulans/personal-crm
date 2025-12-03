@@ -36,7 +36,7 @@ export function AnalyticsMatrix({ contacts, onCellClick }: AnalyticsMatrixProps)
     <Card data-testid="analytics-matrix">
       <CardHeader>
         <CardTitle className="text-base flex items-center">
-          Матрица контактов
+          Состояние отношений
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
@@ -45,7 +45,7 @@ export function AnalyticsMatrix({ contacts, onCellClick }: AnalyticsMatrixProps)
             </PopoverTrigger>
             <PopoverContent className="w-80">
               <div className="space-y-2">
-                <h4 className="font-medium">Матрица контактов</h4>
+                <h4 className="font-medium">Состояние отношений</h4>
                 <p className="text-sm text-muted-foreground">
                   Визуализация контактов по двум осям: важность (A/B/C) и тепловой статус (зелёный/жёлтый/красный). 
                   Ячейки в верхнем правом углу (A-класс, красный) требуют срочного внимания — это важные контакты, 
