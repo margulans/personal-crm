@@ -431,7 +431,15 @@ export function SectionAttachments({
                           alt={attachment.originalName}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = "none";
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = "none";
+                            const parent = target.parentElement;
+                            if (parent) {
+                              const fallback = document.createElement("div");
+                              fallback.className = "flex items-center justify-center w-full h-full";
+                              fallback.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`;
+                              parent.appendChild(fallback);
+                            }
                           }}
                         />
                       ) : (
@@ -617,7 +625,15 @@ export function SectionAttachments({
                         onLoad={() => console.log("[Image] Loaded:", attachment.originalName)}
                         onError={(e) => {
                           console.error("[Image] Error loading:", attachment.originalName, displayUrl?.substring(0, 60));
-                          (e.target as HTMLImageElement).style.display = "none";
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement("div");
+                            fallback.className = "flex flex-col items-center justify-center gap-1";
+                            fallback.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg><span class="text-xs text-muted-foreground">Ошибка загрузки</span>`;
+                            parent.appendChild(fallback);
+                          }
                         }}
                       />
                     ) : (
