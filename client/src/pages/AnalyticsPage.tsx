@@ -205,7 +205,7 @@ export default function AnalyticsPage() {
           interactions={interactions}
           onBack={() => setSelectedContactId(null)}
           onEdit={() => openEditForm(selectedContact)}
-          onEditTab={(tab) => openEditForm(selectedContact, tab)}
+          onEditTab={(tab) => openEditForm(selectedContact, tab as "basic" | "priority" | "contribution" | "potential")}
           onAddInteraction={(data) => {
             addInteractionMutation.mutate({ contactId: selectedContact.id, data });
           }}
