@@ -48,7 +48,10 @@ export const teamMembers = pgTable("team_members", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   role: varchar("role", { length: 20 }).notNull().default("member"), // owner, admin, member
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_team_members_team_id").on(table.teamId),
+  index("idx_team_members_user_id").on(table.userId),
+]);
 
 export type TeamMember = typeof teamMembers.$inferSelect;
 export type InsertTeamMember = typeof teamMembers.$inferInsert;
@@ -205,7 +208,11 @@ export const contacts = pgTable("contacts", {
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_contacts_team_id").on(table.teamId),
+  index("idx_contacts_heat_status").on(table.heatStatus),
+  index("idx_contacts_importance_level").on(table.importanceLevel),
+]);
 
 export const interactions = pgTable("interactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -218,7 +225,10 @@ export const interactions = pgTable("interactions", {
   isMeaningful: boolean("is_meaningful").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_interactions_contact_id").on(table.contactId),
+  index("idx_interactions_date").on(table.date),
+]);
 
 // AI Insights cache table for offline/PWA support
 export const aiInsightsCache = pgTable("ai_insights_cache", {
@@ -230,7 +240,11 @@ export const aiInsightsCache = pgTable("ai_insights_cache", {
   modelUsed: varchar("model_used", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at"), // When the cache should be invalidated
-});
+}, (table) => [
+  index("idx_ai_cache_contact_id").on(table.contactId),
+  index("idx_ai_cache_team_id").on(table.teamId),
+  index("idx_ai_cache_insight_type").on(table.insightType),
+]);
 
 export type AIInsightsCache = typeof aiInsightsCache.$inferSelect;
 export type InsertAIInsightsCache = typeof aiInsightsCache.$inferInsert;
@@ -248,7 +262,9 @@ export const backups = pgTable("backups", {
     interactions: any[];
   }>().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_backups_team_id").on(table.teamId),
+]);
 
 export type Backup = typeof backups.$inferSelect;
 export type InsertBackup = typeof backups.$inferInsert;
@@ -272,7 +288,11 @@ export const attachments = pgTable("attachments", {
   description: text("description"),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_attachments_contact_id").on(table.contactId),
+  index("idx_attachments_team_id").on(table.teamId),
+  index("idx_attachments_category").on(table.category),
+]);
 
 export type Attachment = typeof attachments.$inferSelect;
 export type InsertAttachment = typeof attachments.$inferInsert;
@@ -312,7 +332,11 @@ export const contactConnections = pgTable("contact_connections", {
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_connections_team_id").on(table.teamId),
+  index("idx_connections_from_contact").on(table.fromContactId),
+  index("idx_connections_to_contact").on(table.toContactId),
+]);
 
 export type ContactConnection = typeof contactConnections.$inferSelect;
 export type InsertContactConnection = typeof contactConnections.$inferInsert;
