@@ -28,6 +28,7 @@ import {
   Phone,
   Mail,
   Link as LinkIcon,
+  Link2,
   Plus,
   Edit,
   Check,
@@ -60,6 +61,7 @@ import {
   Camera,
   Upload,
 } from "lucide-react";
+import { useLocation } from "wouter";
 
 import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, FamilyMember, StaffMember, StaffPhone, StaffMessenger, AIInsight, AIRecommendation } from "@/lib/types";
 import { SectionAttachments } from "./SectionAttachments";
@@ -150,6 +152,7 @@ export function ContactDetail({
   onAddInteraction,
 }: ContactDetailProps) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [showInteractionForm, setShowInteractionForm] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [forceRefreshAI, setForceRefreshAI] = useState(0);
@@ -511,6 +514,16 @@ export function ContactDetail({
                 size="lg"
                 showIndex
               />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setLocation(`/network?contact=${contact.id}`)}
+                title="Граф связей"
+                data-testid="button-contact-network"
+              >
+                <Link2 className="h-4 w-4 text-muted-foreground" />
+              </Button>
             </div>
             <div className="flex items-center gap-2 mt-1">
               {contact.roleTags?.map((tag) => (

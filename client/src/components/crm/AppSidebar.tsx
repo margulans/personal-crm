@@ -73,7 +73,7 @@ export function AppSidebar() {
   const teamName = user?.teams?.[0]?.name;
   
   const graphContactCount = useMemo(() => {
-    const connectedIds = new Set<number>();
+    const connectedIds = new Set<string>();
     connections.forEach(conn => {
       connectedIds.add(conn.fromContactId);
       connectedIds.add(conn.toContactId);
