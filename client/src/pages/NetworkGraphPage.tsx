@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Plus, X, Link2, ZoomIn, ZoomOut, Maximize2, Users, Menu, RefreshCw } from "lucide-react";
+import { Loader2, Plus, X, Link2, ZoomIn, ZoomOut, Maximize2, Users, Menu, RefreshCw, Hand, Play } from "lucide-react";
 import type { Contact, ContactConnection } from "@/lib/types";
 import { connectionTypes } from "@shared/schema";
 
@@ -179,15 +179,24 @@ export default function NetworkGraphPage() {
   const [connectionType, setConnectionType] = useState<string>("acquaintance");
   const [connectionStrength, setConnectionStrength] = useState(3);
   const [connectionNotes, setConnectionNotes] = useState("");
+  const [manualMode, setManualMode] = useState(false);
 
   useEffect(() => {
     if (graphRef.current) {
       const fg = graphRef.current;
-      fg.d3Force('charge')?.strength(-300);
-      fg.d3Force('link')?.distance(100);
-      fg.d3Force('center')?.strength(0.05);
+      if (manualMode) {
+        fg.d3Force('charge', null);
+        fg.d3Force('link', null);
+        fg.d3Force('center', null);
+        fg.d3ReheatSimulation();
+      } else {
+        fg.d3Force('charge')?.strength(-300);
+        fg.d3Force('link')?.distance(100);
+        fg.d3Force('center')?.strength(0.05);
+        fg.d3ReheatSimulation();
+      }
     }
-  }, [graphKey, isGraphReady]);
+  }, [graphKey, isGraphReady, manualMode]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -340,6 +349,41 @@ export default function NetworkGraphPage() {
     }
   };
 
+  const handleNodeDrag = useCallback((node: any) => {
+    if (manualMode) {
+      node.fx = node.x;
+      node.fy = node.y;
+    }
+  }, [manualMode]);
+
+  const handleNodeDragEnd = useCallback((node: any) => {
+    if (manualMode) {
+      node.fx = node.x;
+      node.fy = node.y;
+    } else {
+      node.fx = undefined;
+      node.fy = undefined;
+    }
+  }, [manualMode]);
+
+  const toggleManualMode = () => {
+    const newMode = !manualMode;
+    setManualMode(newMode);
+    
+    if (!newMode && graphRef.current) {
+      graphData.nodes.forEach((node: any) => {
+        node.fx = undefined;
+        node.fy = undefined;
+      });
+      graphRef.current.d3ReheatSimulation();
+    }
+    
+    toast({ 
+      title: newMode ? "Ручной режим включён" : "Автоматический режим включён",
+      description: newMode ? "Перетаскивайте узлы для расположения" : "Узлы распределятся автоматически"
+    });
+  };
+
   const handleCreateConnection = () => {
     if (!fromContactId || !toContactId) {
       toast({ title: "Выберите оба контакта", variant: "destructive" });
@@ -444,6 +488,15 @@ export default function NetworkGraphPage() {
           </div>
         </div>
         <div className="flex items-center gap-1 md:gap-2 shrink-0">
+          <Button 
+            variant={manualMode ? "default" : "outline"} 
+            size="icon" 
+            onClick={toggleManualMode} 
+            data-testid="button-toggle-mode"
+            title={manualMode ? "Ручной режим (нажмите для авто)" : "Авто режим (нажмите для ручного)"}
+          >
+            {manualMode ? <Hand className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </Button>
           {!isMobile && (
             <>
               <Button variant="outline" size="icon" onClick={handleZoomOut} data-testid="button-zoom-out">
@@ -496,12 +549,15 @@ export default function NetworkGraphPage() {
               nodePointerAreaPaint={nodePointerAreaPaint}
               linkCanvasObject={linkCanvasObject}
               onNodeClick={handleNodeClick}
+              onNodeDrag={handleNodeDrag}
+              onNodeDragEnd={handleNodeDragEnd}
               onLinkClick={handleLinkClick}
-              cooldownTicks={200}
+              cooldownTicks={manualMode ? 0 : 200}
               linkDirectionalParticles={0}
-              d3AlphaDecay={0.01}
-              d3VelocityDecay={0.2}
+              d3AlphaDecay={manualMode ? 1 : 0.01}
+              d3VelocityDecay={manualMode ? 1 : 0.2}
               d3AlphaMin={0.001}
+              enableNodeDrag={true}
               enablePanInteraction={true}
               enableZoomInteraction={true}
               minZoom={0.3}
