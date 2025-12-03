@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Users, BarChart3, Zap, UserCog, LogOut } from "lucide-react";
+import { Users, BarChart3, Zap, UserCog, LogOut, Link2 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { ImportExportPanel } from "./ImportExportPanel";
@@ -32,6 +32,11 @@ const menuItems = [
     title: "Контакты",
     url: "/",
     icon: Users,
+  },
+  {
+    title: "Граф связей",
+    url: "/network",
+    icon: Link2,
   },
   {
     title: "Аналитика",

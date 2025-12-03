@@ -24,8 +24,16 @@ PRIMA is a multi-user collaborative application with team-based access control. 
 
 ### Data Layer
 - **Database**: PostgreSQL via Neon serverless, utilizing Drizzle ORM for type-safe queries.
-- **Data Model**: Key tables include `contacts` (comprehensive contact details, scoring, and relationship metrics), `interactions` (tracking touchpoints), `attachments` (file uploads organized by category), and `backups` (team data snapshots).
+- **Data Model**: Key tables include `contacts` (comprehensive contact details, scoring, and relationship metrics), `interactions` (tracking touchpoints), `attachments` (file uploads organized by category), `contact_connections` (relationship graph edges between contacts), and `backups` (team data snapshots).
 - **Backup System**: Supports manual and automatic daily backups, with restoration capabilities and retention policies.
+
+### Network Graph (Relationship Visualization)
+- **Library**: react-force-graph-2d for interactive force-directed graph layout
+- **Route**: `/network` accessible via sidebar "Граф связей"
+- **Features**: Visual connections between contacts with typed relationships (friends, colleagues, partners, family, etc.)
+- **Security**: All connection operations are team-scoped with duplicate prevention and cross-team isolation
+- **Connection Types**: friend, colleague, partner, family, client, mentor, classmate, neighbor, acquaintance, other
+- **Strength Levels**: 1-5 scale indicating relationship intensity
 
 ### File Attachments
 - **Object Storage**: Uses Replit Object Storage (Google Cloud Storage) for file uploads with team-based access control.

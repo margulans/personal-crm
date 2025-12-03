@@ -215,4 +215,4 @@ export interface AIAnalytics {
   model?: string;
 }
 
-export type { Attachment } from "@shared/schema";
+export type { Attachment, ContactConnection, ConnectionType } from "@shared/schema";

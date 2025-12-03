@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { insertContactSchema, insertInteractionSchema, insertTeamSchema, insertAttachmentSchema, teams, aiInsightsCache } from "@shared/schema";
+import { insertContactSchema, insertInteractionSchema, insertTeamSchema, insertAttachmentSchema, insertContactConnectionSchema, teams, aiInsightsCache } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -1694,6 +1694,145 @@ export async function registerRoutes(
   });
 
   // ============= END ATTACHMENT ENDPOINTS =============
+
+  // ============= CONNECTION ENDPOINTS (Relationship Graph) =============
+
+  // Get all connections for team
+  app.get("/api/connections", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const connections = await storage.getConnections(teamId);
+      res.json(connections);
+    } catch (error) {
+      console.error("Error fetching connections:", error);
+      res.status(500).json({ error: "Failed to fetch connections" });
+    }
+  });
+
+  // Get connections for a specific contact
+  app.get("/api/contacts/:contactId/connections", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const contact = await storage.getContact(req.params.contactId, teamId);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      const connections = await storage.getContactConnections(req.params.contactId, teamId);
+      res.json(connections);
+    } catch (error) {
+      console.error("Error fetching contact connections:", error);
+      res.status(500).json({ error: "Failed to fetch connections" });
+    }
+  });
+
+  // Create a new connection
+  app.post("/api/connections", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      // Prevent self-connection (check before any DB calls to avoid leaks)
+      if (req.body.fromContactId === req.body.toContactId) {
+        return res.status(400).json({ error: "Invalid connection request" });
+      }
+      
+      // Validate both contacts exist and belong to the team in parallel
+      // Use generic error message to prevent contact ID enumeration
+      const [fromContact, toContact] = await Promise.all([
+        storage.getContact(req.body.fromContactId, teamId),
+        storage.getContact(req.body.toContactId, teamId)
+      ]);
+      
+      if (!fromContact || !toContact) {
+        return res.status(400).json({ error: "Invalid connection request" });
+      }
+      
+      // Check for duplicate connection (in either direction)
+      // Only check after both contacts are validated to prevent cross-team probing
+      const isDuplicate = await storage.checkDuplicateConnection(
+        req.body.fromContactId, 
+        req.body.toContactId, 
+        teamId
+      );
+      
+      if (isDuplicate) {
+        return res.status(400).json({ error: "Connection between these contacts already exists" });
+      }
+      
+      const data = insertContactConnectionSchema.parse({
+        ...req.body,
+        teamId,
+        createdBy: userId,
+      });
+      
+      const connection = await storage.createConnection(data);
+      res.status(201).json(connection);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ error: validationError.message });
+      }
+      console.error("Error creating connection:", error);
+      res.status(500).json({ error: "Failed to create connection" });
+    }
+  });
+
+  // Update a connection
+  app.patch("/api/connections/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const connection = await storage.getConnection(req.params.id, teamId);
+      if (!connection) {
+        return res.status(404).json({ error: "Connection not found" });
+      }
+      
+      const { connectionType, strength, notes } = req.body;
+      const updated = await storage.updateConnection(req.params.id, { connectionType, strength, notes }, teamId);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating connection:", error);
+      res.status(500).json({ error: "Failed to update connection" });
+    }
+  });
+
+  // Delete a connection
+  app.delete("/api/connections/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const connection = await storage.getConnection(req.params.id, teamId);
+      if (!connection) {
+        return res.status(404).json({ error: "Connection not found" });
+      }
+      
+      await storage.deleteConnection(req.params.id, teamId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting connection:", error);
+      res.status(500).json({ error: "Failed to delete connection" });
+    }
+  });
+
+  // ============= END CONNECTION ENDPOINTS =============
 
   // Endpoint for scheduled backup (can be called by cron/scheduled deployment)
   app.post("/api/backups/auto", async (req: Request, res: Response) => {

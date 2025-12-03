@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/crm/AppSidebar";
 import ContactsPage from "@/pages/ContactsPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
+import NetworkGraphPage from "@/pages/NetworkGraphPage";
 import LandingPage from "@/pages/LandingPage";
 import TeamPage from "@/pages/TeamPage";
 import NotFound from "@/pages/not-found";
@@ -17,6 +18,7 @@ function AuthenticatedRouter() {
     <Switch>
       <Route path="/" component={ContactsPage} />
       <Route path="/analytics" component={AnalyticsPage} />
+      <Route path="/network" component={NetworkGraphPage} />
       <Route path="/team" component={TeamPage} />
       <Route component={NotFound} />
     </Switch>

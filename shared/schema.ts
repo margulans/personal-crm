@@ -285,6 +285,43 @@ export const insertAttachmentSchema = createInsertSchema(attachments).omit({
   description: z.string().optional(),
 });
 
+// Contact connections table for relationship graph
+export const connectionTypes = [
+  "friend", "colleague", "partner", "family", "client", "mentor", "classmate", "neighbor", "acquaintance", "other"
+] as const;
+
+export type ConnectionType = typeof connectionTypes[number];
+
+export const contactConnections = pgTable("contact_connections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  fromContactId: varchar("from_contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  toContactId: varchar("to_contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  connectionType: varchar("connection_type", { length: 30 }).notNull().default("acquaintance"),
+  strength: integer("strength").notNull().default(1), // 1-5 relationship strength
+  notes: text("notes"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type ContactConnection = typeof contactConnections.$inferSelect;
+export type InsertContactConnection = typeof contactConnections.$inferInsert;
+
+export const insertContactConnectionSchema = createInsertSchema(contactConnections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  teamId: z.string().min(1),
+  fromContactId: z.string().min(1),
+  toContactId: z.string().min(1),
+  connectionType: z.enum(connectionTypes).default("acquaintance"),
+  strength: z.number().min(1).max(5).default(1),
+  notes: z.string().optional(),
+  createdBy: z.string().optional(),
+});
+
 const contributionDetailsSchema = z.object({
   financial: z.number().min(0).max(3).default(0),
   network: z.number().min(0).max(3).default(0),

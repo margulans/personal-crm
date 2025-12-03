@@ -13,6 +13,8 @@ import {
   type InsertBackup,
   type Attachment,
   type InsertAttachment,
+  type ContactConnection,
+  type InsertContactConnection,
   contacts, 
   interactions,
   users,
@@ -20,6 +22,7 @@ import {
   teamMembers,
   backups,
   attachments,
+  contactConnections,
   getClassFromScore,
   calculateHeatIndex,
   getRecommendedAttentionLevel,
@@ -79,6 +82,15 @@ export interface IStorage {
   getAttachment(id: string): Promise<Attachment | undefined>;
   createAttachment(attachment: InsertAttachment): Promise<Attachment>;
   deleteAttachment(id: string): Promise<boolean>;
+  
+  // Connection operations for relationship graph
+  getConnections(teamId: string): Promise<ContactConnection[]>;
+  getContactConnections(contactId: string, teamId: string): Promise<ContactConnection[]>;
+  getConnection(id: string, teamId: string): Promise<ContactConnection | undefined>;
+  checkDuplicateConnection(fromContactId: string, toContactId: string, teamId: string): Promise<boolean>;
+  createConnection(connection: InsertContactConnection): Promise<ContactConnection>;
+  updateConnection(id: string, data: Pick<InsertContactConnection, "connectionType" | "strength" | "notes">, teamId: string): Promise<ContactConnection | undefined>;
+  deleteConnection(id: string, teamId: string): Promise<boolean>;
 }
 
 function calculateScoresAndClass(details: { 
@@ -593,6 +605,88 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAttachment(id: string): Promise<boolean> {
     const result = await db.delete(attachments).where(eq(attachments.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Connection operations for relationship graph
+  async getConnections(teamId: string): Promise<ContactConnection[]> {
+    return db.select().from(contactConnections)
+      .where(eq(contactConnections.teamId, teamId))
+      .orderBy(desc(contactConnections.createdAt));
+  }
+
+  async getContactConnections(contactId: string, teamId: string): Promise<ContactConnection[]> {
+    return db.select().from(contactConnections)
+      .where(and(
+        eq(contactConnections.teamId, teamId),
+        or(
+          eq(contactConnections.fromContactId, contactId),
+          eq(contactConnections.toContactId, contactId)
+        )
+      ))
+      .orderBy(desc(contactConnections.createdAt));
+  }
+
+  async getConnection(id: string, teamId: string): Promise<ContactConnection | undefined> {
+    const [connection] = await db.select().from(contactConnections)
+      .where(and(
+        eq(contactConnections.id, id),
+        eq(contactConnections.teamId, teamId)
+      ));
+    return connection;
+  }
+
+  async checkDuplicateConnection(fromContactId: string, toContactId: string, teamId: string): Promise<boolean> {
+    const [existing] = await db.select({ id: contactConnections.id })
+      .from(contactConnections)
+      .where(and(
+        eq(contactConnections.teamId, teamId),
+        or(
+          and(
+            eq(contactConnections.fromContactId, fromContactId),
+            eq(contactConnections.toContactId, toContactId)
+          ),
+          and(
+            eq(contactConnections.fromContactId, toContactId),
+            eq(contactConnections.toContactId, fromContactId)
+          )
+        )
+      ))
+      .limit(1);
+    return !!existing;
+  }
+
+  async createConnection(connection: InsertContactConnection): Promise<ContactConnection> {
+    const [created] = await db.insert(contactConnections).values(connection).returning();
+    return created;
+  }
+
+  async updateConnection(id: string, data: Pick<InsertContactConnection, "connectionType" | "strength" | "notes">, teamId: string): Promise<ContactConnection | undefined> {
+    const safeData: { connectionType?: string; strength?: number; notes?: string | null; updatedAt: Date } = {
+      updatedAt: new Date()
+    };
+    if (data.connectionType !== undefined) safeData.connectionType = data.connectionType;
+    if (data.strength !== undefined) safeData.strength = data.strength;
+    if (data.notes !== undefined) safeData.notes = data.notes;
+    
+    const [updated] = await db
+      .update(contactConnections)
+      .set(safeData)
+      .where(and(
+        eq(contactConnections.id, id),
+        eq(contactConnections.teamId, teamId)
+      ))
+      .returning();
+    return updated;
+  }
+
+  async deleteConnection(id: string, teamId: string): Promise<boolean> {
+    const result = await db.delete(contactConnections)
+      .where(and(
+        eq(contactConnections.id, id),
+        eq(contactConnections.teamId, teamId)
+      ))
+      .returning();
     return result.length > 0;
   }
 }
