@@ -43,14 +43,25 @@ export function AnalyticsMatrix({ contacts, onCellClick }: AnalyticsMatrixProps)
                 <Info className="h-4 w-4 text-muted-foreground" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="space-y-2">
+            <PopoverContent className="w-96">
+              <div className="space-y-3">
                 <h4 className="font-medium">Состояние отношений</h4>
                 <p className="text-sm text-muted-foreground">
                   Визуализация контактов по двум осям: важность (A/B/C) и тепловой статус (зелёный/жёлтый/красный). 
                   Ячейки в верхнем правом углу (A-класс, красный) требуют срочного внимания — это важные контакты, 
                   которые «остывают». Нажмите на ячейку для фильтрации.
                 </p>
+                <div className="border-t pt-3">
+                  <p className="text-xs font-medium mb-2">Как определяется класс важности:</p>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p><span className="font-semibold text-emerald-600">A-класс</span> — категории AA, AB, BA (сумма очков ≥7)</p>
+                    <p><span className="font-semibold text-blue-600">B-класс</span> — категории AC, CA, BB (сумма очков 5-6)</p>
+                    <p><span className="font-semibold text-muted-foreground">C-класс</span> — остальные комбинации (сумма &lt;5)</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 italic">
+                    Очки: A=4, B=3, C=2, D=1. Сумма = класс вклада + класс потенциала.
+                  </p>
+                </div>
               </div>
             </PopoverContent>
           </Popover>
