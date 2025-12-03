@@ -571,22 +571,6 @@ export function ContactDetail({
                     <div className="space-y-4">
                       <div className="space-y-4">
                         <div className="grid gap-2">
-                          <Label className="text-base font-medium">Фамилия</Label>
-                          <Input 
-                            className="h-12 text-lg"
-                            value={getFieldValue("lastName") || ""} 
-                            onChange={e => {
-                              updateField("lastName", e.target.value);
-                              const firstName = getFieldValue("firstName") || "";
-                              const patronymic = getFieldValue("patronymic") || "";
-                              const fullName = [e.target.value, firstName, patronymic].filter(Boolean).join(" ");
-                              updateField("fullName", fullName || "Без имени");
-                            }}
-                            placeholder="Иванов"
-                            data-testid="input-lastname"
-                          />
-                        </div>
-                        <div className="grid gap-2">
                           <Label className="text-base font-medium">Имя</Label>
                           <Input 
                             className="h-12 text-lg"
@@ -600,6 +584,22 @@ export function ContactDetail({
                             }}
                             placeholder="Иван"
                             data-testid="input-firstname"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label className="text-base font-medium">Фамилия</Label>
+                          <Input 
+                            className="h-12 text-lg"
+                            value={getFieldValue("lastName") || ""} 
+                            onChange={e => {
+                              updateField("lastName", e.target.value);
+                              const firstName = getFieldValue("firstName") || "";
+                              const patronymic = getFieldValue("patronymic") || "";
+                              const fullName = [e.target.value, firstName, patronymic].filter(Boolean).join(" ");
+                              updateField("fullName", fullName || "Без имени");
+                            }}
+                            placeholder="Иванов"
+                            data-testid="input-lastname"
                           />
                         </div>
                         <div className="grid gap-2">
