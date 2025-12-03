@@ -121,6 +121,14 @@ const valueCategoryColors: Record<string, string> = {
   DD: "#94a3b8",
 };
 
+const strengthColors: Record<number, string> = {
+  1: "rgba(148, 163, 184, 0.3)",
+  2: "rgba(148, 163, 184, 0.45)",
+  3: "rgba(148, 163, 184, 0.6)",
+  4: "rgba(203, 213, 225, 0.75)",
+  5: "rgba(226, 232, 240, 0.9)",
+};
+
 interface GraphNode {
   id: string;
   name: string;
@@ -171,6 +179,15 @@ export default function NetworkGraphPage() {
   const [connectionType, setConnectionType] = useState<string>("acquaintance");
   const [connectionStrength, setConnectionStrength] = useState(3);
   const [connectionNotes, setConnectionNotes] = useState("");
+
+  useEffect(() => {
+    if (graphRef.current) {
+      const fg = graphRef.current;
+      fg.d3Force('charge')?.strength(-300);
+      fg.d3Force('link')?.distance(100);
+      fg.d3Force('center')?.strength(0.05);
+    }
+  }, [graphKey, isGraphReady]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -346,23 +363,30 @@ export default function NetworkGraphPage() {
       return;
     }
     
-    const size = node.size || (isMobile ? 12 : 8);
-    const fontSize = isMobile ? Math.max(11, size * 0.9) : Math.max(10, size * 0.8);
+    const size = node.size || (isMobile ? 14 : 10);
+    const fontSize = isMobile ? Math.max(10, size * 0.7) : Math.max(9, size * 0.7);
     
+    ctx.save();
+    ctx.shadowColor = node.color;
+    ctx.shadowBlur = 8;
     ctx.beginPath();
     ctx.arc(node.x, node.y, size, 0, 2 * Math.PI);
     ctx.fillStyle = node.color;
     ctx.fill();
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = isMobile ? 3 : 2;
+    ctx.restore();
+    
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, size, 0, 2 * Math.PI);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.lineWidth = 1;
     ctx.stroke();
     
     ctx.font = `${fontSize}px Inter, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillStyle = "#1f2937";
+    ctx.fillStyle = "rgba(226, 232, 240, 0.9)";
     
-    const maxLength = isMobile ? 10 : 15;
+    const maxLength = isMobile ? 12 : 18;
     const label = node.name.length > maxLength ? node.name.slice(0, maxLength - 3) + "..." : node.name;
     ctx.fillText(label, node.x, node.y + size + 4);
   }, [isMobile]);
@@ -387,12 +411,14 @@ export default function NetworkGraphPage() {
     if (typeof start.x !== 'number' || typeof start.y !== 'number' || isNaN(start.x) || isNaN(start.y)) return;
     if (typeof end.x !== 'number' || typeof end.y !== 'number' || isNaN(end.x) || isNaN(end.y)) return;
     
-    const lineWidth = isMobile ? 2 + link.strength * 0.6 : 1 + link.strength * 0.5;
+    const strength = Math.min(5, Math.max(1, link.strength || 3));
+    const lineWidth = isMobile ? 0.5 + strength * 0.3 : 0.3 + strength * 0.2;
+    const strokeColor = strengthColors[strength] || strengthColors[3];
     
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(end.x, end.y);
-    ctx.strokeStyle = "rgba(100, 116, 139, 0.5)";
+    ctx.strokeStyle = strokeColor;
     ctx.lineWidth = lineWidth;
     ctx.stroke();
   }, [isMobile]);
@@ -444,12 +470,12 @@ export default function NetworkGraphPage() {
         </div>
       </div>
 
-      <div ref={containerRef} className="flex-1 bg-muted/30 relative touch-pan-x touch-pan-y">
+      <div ref={containerRef} className="flex-1 relative touch-pan-x touch-pan-y" style={{ backgroundColor: '#1e1b2e' }}>
         {graphData.nodes.length === 0 ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 md:p-8">
-            <Users className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground/50 mb-4" />
-            <h2 className="text-lg md:text-xl font-medium mb-2">Нет связей</h2>
-            <p className="text-sm md:text-base text-muted-foreground mb-4 max-w-md">
+            <Users className="h-12 w-12 md:h-16 md:w-16 text-slate-400/50 mb-4" />
+            <h2 className="text-lg md:text-xl font-medium mb-2 text-slate-200">Нет связей</h2>
+            <p className="text-sm md:text-base text-slate-400 mb-4 max-w-md">
               Добавьте связи между контактами, чтобы увидеть граф отношений.
             </p>
             <Button onClick={() => { resetForm(); setShowAddDialog(true); }}>
@@ -465,18 +491,20 @@ export default function NetworkGraphPage() {
               graphData={graphData}
               width={dimensions.width}
               height={dimensions.height}
+              backgroundColor="#1e1b2e"
               nodeCanvasObject={nodeCanvasObject}
               nodePointerAreaPaint={nodePointerAreaPaint}
               linkCanvasObject={linkCanvasObject}
               onNodeClick={handleNodeClick}
               onLinkClick={handleLinkClick}
-              cooldownTicks={100}
+              cooldownTicks={200}
               linkDirectionalParticles={0}
-              d3AlphaDecay={0.02}
-              d3VelocityDecay={0.3}
+              d3AlphaDecay={0.01}
+              d3VelocityDecay={0.2}
+              d3AlphaMin={0.001}
               enablePanInteraction={true}
               enableZoomInteraction={true}
-              minZoom={0.5}
+              minZoom={0.3}
               maxZoom={5}
             />
           </GraphErrorBoundary>
@@ -492,7 +520,7 @@ export default function NetworkGraphPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="absolute bottom-3 left-3 h-8 text-xs"
+                className="absolute bottom-3 left-3 h-8 text-xs bg-slate-800/90 border-slate-600 text-slate-200 hover:bg-slate-700"
                 onClick={() => setShowLegend(!showLegend)}
               >
                 <Menu className="h-3 w-3 mr-1" />
@@ -501,27 +529,36 @@ export default function NetworkGraphPage() {
             ) : null}
             
             {(showLegend || !isMobile) && (
-              <Card className={`absolute ${isMobile ? 'bottom-12 left-3 right-3' : 'bottom-4 left-4 w-48'} p-2 md:p-3`}>
+              <div className={`absolute ${isMobile ? 'bottom-12 left-3 right-3' : 'bottom-4 left-4 w-56'} p-2 md:p-3 rounded-lg bg-slate-800/90 backdrop-blur-sm border border-slate-600`}>
                 {isMobile && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute top-1 right-1 h-6 w-6"
+                    className="absolute top-1 right-1 h-6 w-6 text-slate-400 hover:text-slate-200"
                     onClick={() => setShowLegend(false)}
                   >
                     <X className="h-3 w-3" />
                   </Button>
                 )}
-                <div className="text-xs font-medium mb-2">Категории ценности</div>
-                <div className={`grid ${isMobile ? 'grid-cols-4' : 'grid-cols-2'} gap-1 text-xs`}>
-                  {Object.entries(valueCategoryColors).slice(0, isMobile ? 8 : 6).map(([cat, color]) => (
+                <div className="text-xs font-medium mb-2 text-slate-300">Важность контакта</div>
+                <div className={`grid ${isMobile ? 'grid-cols-4' : 'grid-cols-3'} gap-1 text-xs mb-3`}>
+                  {Object.entries(valueCategoryColors).slice(0, isMobile ? 8 : 9).map(([cat, color]) => (
                     <div key={cat} className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                      <span>{cat}</span>
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}` }} />
+                      <span className="text-slate-400">{cat}</span>
                     </div>
                   ))}
                 </div>
-              </Card>
+                <div className="text-xs font-medium mb-2 text-slate-300">Сила связи</div>
+                <div className="flex items-center gap-2 text-xs">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <div key={s} className="flex items-center gap-1">
+                      <div className="w-6 h-0.5 rounded" style={{ backgroundColor: strengthColors[s].replace(/[\d.]+\)$/, '1)') }} />
+                      <span className="text-slate-400">{s}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </>
         )}
