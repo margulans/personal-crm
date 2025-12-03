@@ -125,6 +125,9 @@ export const contacts = pgTable("contacts", {
   fullName: text("full_name").notNull(), // Computed: lastName + firstName + patronymic
   shortName: text("short_name"),
   
+  // Avatar
+  avatarUrl: text("avatar_url"),
+  
   // Company info
   company: text("company"),
   companyRole: text("company_role"),

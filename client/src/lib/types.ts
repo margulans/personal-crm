@@ -17,6 +17,7 @@ export interface Contact {
   patronymic?: string | null;
   fullName: string;
   shortName: string | null;
+  avatarUrl?: string | null;
   
   company?: string | null;
   companyRole?: string | null;

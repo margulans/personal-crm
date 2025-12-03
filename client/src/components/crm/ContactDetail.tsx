@@ -10,7 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -57,6 +57,8 @@ import {
   Briefcase,
   Star,
   Trash2,
+  Camera,
+  Upload,
 } from "lucide-react";
 
 import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, FamilyStatus, FamilyMember, StaffMember, StaffPhone, StaffMessenger, AIInsight, AIRecommendation } from "@/lib/types";
@@ -153,6 +155,7 @@ export function ContactDetail({
   const [forceRefreshAI, setForceRefreshAI] = useState(0);
   const [editingSection, setEditingSection] = useState<EditingSection>(null);
   const [formData, setFormData] = useState<Partial<Contact>>({});
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<Contact>) => {
@@ -174,6 +177,56 @@ export function ContactDetail({
       });
     },
   });
+
+  const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Ошибка", description: "Можно загружать только изображения", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Ошибка", description: "Файл слишком большой (макс. 5MB)", variant: "destructive" });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('contactId', contact.id);
+      formData.append('category', 'avatar');
+
+      const response = await fetch('/api/attachments/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка загрузки');
+      }
+
+      const result = await response.json();
+      
+      await apiRequest("PATCH", `/api/contacts/${contact.id}`, { avatarUrl: result.url });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id] });
+      toast({ title: "Аватар обновлён" });
+    } catch (error) {
+      toast({ 
+        title: "Ошибка загрузки", 
+        description: error instanceof Error ? error.message : "Не удалось загрузить аватар",
+        variant: "destructive" 
+      });
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  }, [contact.id, toast]);
 
   const startEditing = useCallback((section: EditingSection) => {
     setEditingSection(section);
@@ -385,11 +438,31 @@ export function ContactDetail({
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex items-center gap-3 flex-1">
-          <Avatar className="h-12 w-12">
-            <AvatarFallback className="bg-primary/10 text-primary text-lg font-medium">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+          <label className="relative cursor-pointer group" data-testid="avatar-upload-label">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+              disabled={uploadingAvatar}
+              data-testid="input-avatar-upload"
+            />
+            <Avatar className="h-12 w-12 ring-2 ring-transparent group-hover:ring-primary/50 transition-all">
+              {contact.avatarUrl ? (
+                <AvatarImage src={contact.avatarUrl} alt={contact.fullName} />
+              ) : null}
+              <AvatarFallback className="bg-primary/10 text-primary text-lg font-medium">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+              {uploadingAvatar ? (
+                <Loader2 className="h-5 w-5 text-white animate-spin" />
+              ) : (
+                <Camera className="h-5 w-5 text-white" />
+              )}
+            </div>
+          </label>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-semibold">{contact.fullName}</h1>
