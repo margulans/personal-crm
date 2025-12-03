@@ -30,7 +30,7 @@ const CHART_DESCRIPTIONS = {
     description: "Сопоставляет уровень важности (A/B/C) с тепловым статусом. Помогает найти проблемы: A-класс в красной зоне — критично, C-класс в красной — менее срочно."
   },
   attention: {
-    title: "Распределение по статусу отношений",
+    title: "Распределение внимания",
     description: "Показывает, как распределены контакты по 10 уровням статуса отношений (1 — минимум, 10 — максимум). Помогает оценить баланс усилий и выявить перегруженные/недогруженные уровни."
   }
 };
@@ -266,7 +266,7 @@ export function AttentionDistributionChart({ contacts }: AnalyticsChartsProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Распределение по статусу отношений</CardTitle>
+          <CardTitle className="text-base">Распределение внимания</CardTitle>
         </CardHeader>
         <CardContent className="h-64 flex items-center justify-center text-muted-foreground">
           Нет данных
@@ -279,7 +279,7 @@ export function AttentionDistributionChart({ contacts }: AnalyticsChartsProps) {
     <Card data-testid="chart-attention">
       <CardHeader>
         <CardTitle className="text-base flex items-center">
-          Распределение по статусу отношений
+          Распределение внимания
           <InfoPopover chartKey="attention" />
         </CardTitle>
       </CardHeader>
