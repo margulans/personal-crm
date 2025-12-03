@@ -522,7 +522,7 @@ export default function NetworkGraphPage() {
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => setLocation("/")} 
+              onClick={() => setLocation(`/?contact=${fromContactParam}`)} 
               className="shrink-0 h-8 w-8" 
               data-testid="button-back-to-contact"
               title="Назад к контакту"
