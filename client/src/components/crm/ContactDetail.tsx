@@ -306,6 +306,16 @@ export function ContactDetail({
       setFormData({
         potentialDetails: { ...(contact.potentialDetails as { personal: number; resources: number; network: number; synergy: number; systemRole: number } || { personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 }) },
       });
+    } else if (section === "identity") {
+      // Initialize with current name fields to enable fullName recalculation on save
+      setFormData({
+        firstName: contact.firstName || "",
+        lastName: contact.lastName || "",
+        patronymic: contact.patronymic || "",
+        shortName: contact.shortName || "",
+        company: contact.company || "",
+        companyRole: contact.companyRole || "",
+      });
     } else {
       setFormData({});
     }
@@ -324,6 +334,14 @@ export function ContactDetail({
     
     const dataToSave = { ...formData };
     
+    // Recalculate fullName when saving identity section (new order: firstName lastName patronymic)
+    if (editingSection === "identity" && (dataToSave.firstName !== undefined || dataToSave.lastName !== undefined || dataToSave.patronymic !== undefined)) {
+      const firstName = (dataToSave.firstName as string) ?? contact.firstName ?? "";
+      const lastName = (dataToSave.lastName as string) ?? contact.lastName ?? "";
+      const patronymic = (dataToSave.patronymic as string) ?? contact.patronymic ?? "";
+      dataToSave.fullName = [firstName, lastName, patronymic].filter(Boolean).join(" ") || contact.fullName;
+    }
+    
     if (dataToSave.contributionDetails) {
       const details = dataToSave.contributionDetails as { financial: number; network: number; trust: number; emotional: number; intellectual: number };
       const contributionScore = (details.financial || 0) + (details.network || 0) + (details.trust || 0) + (details.emotional || 0) + (details.intellectual || 0);
@@ -339,7 +357,7 @@ export function ContactDetail({
     }
     
     await updateMutation.mutateAsync(dataToSave);
-  }, [formData, updateMutation]);
+  }, [formData, updateMutation, editingSection, contact]);
 
   const updateField = useCallback(<K extends keyof Contact>(field: K, value: Contact[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
