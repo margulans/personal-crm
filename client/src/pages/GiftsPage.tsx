@@ -163,6 +163,7 @@ function GiftForm({ onSubmit, onCancel, contacts, initialData, isEditing }: Gift
                 <SelectItem value="RUB">₽</SelectItem>
                 <SelectItem value="USD">$</SelectItem>
                 <SelectItem value="EUR">€</SelectItem>
+                <SelectItem value="KZT">₸</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -472,7 +473,7 @@ export default function GiftsPage() {
                       month: "short",
                       year: "numeric",
                     });
-                    const currencySymbol = gift.currency === "RUB" ? "₽" : gift.currency === "USD" ? "$" : "€";
+                    const currencySymbol = gift.currency === "RUB" ? "₽" : gift.currency === "USD" ? "$" : gift.currency === "KZT" ? "₸" : "€";
 
                     return (
                       <div

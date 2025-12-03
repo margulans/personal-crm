@@ -129,6 +129,7 @@ function GiftForm({ onSubmit, onCancel, initialData, isEditing }: GiftFormProps)
                 <SelectItem value="RUB">₽</SelectItem>
                 <SelectItem value="USD">$</SelectItem>
                 <SelectItem value="EUR">€</SelectItem>
+                <SelectItem value="KZT">₸</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -193,7 +194,7 @@ function GiftItem({ gift, onEdit, onDelete }: GiftItemProps) {
     year: gift.date.startsWith(new Date().getFullYear().toString()) ? undefined : "numeric",
   });
 
-  const currencySymbol = gift.currency === "RUB" ? "₽" : gift.currency === "USD" ? "$" : "€";
+  const currencySymbol = gift.currency === "RUB" ? "₽" : gift.currency === "USD" ? "$" : gift.currency === "KZT" ? "₸" : "€";
 
   return (
     <div

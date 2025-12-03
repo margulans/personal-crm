@@ -32,7 +32,7 @@ PRIMA is a multi-user collaborative application with team-based access control. 
 - **Features**: Track gifts given to and received from contacts with title, description, amount, currency, occasion type, and date
 - **Direction**: "given" (sent to contact) or "received" (received from contact)
 - **Occasions**: birthday, new_year, anniversary, holiday, business, thank_you, apology, no_occasion, other
-- **Currency Support**: RUB, USD, EUR with appropriate symbols
+- **Currency Support**: RUB, USD, EUR, KZT with appropriate symbols (₽, $, €, ₸)
 - **Components**: GiftSection (in contact detail), GiftsPage (full gift list with filters)
 
 ### Network Graph (Relationship Visualization)
