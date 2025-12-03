@@ -504,7 +504,7 @@ export function getAttentionGapStatus(actual: number, recommended: number): "gre
   return "red";
 }
 
-export function getClassFromScore(score: number, maxScore: number = 9): string {
+export function getClassFromScore(score: number, maxScore: number = 15): string {
   if (maxScore === 15) {
     if (score >= 12) return "A";
     if (score >= 8) return "B";

@@ -299,7 +299,7 @@ export function ContactDetail({
       });
     } else if (section === "contribution") {
       setFormData({
-        contributionDetails: { ...(contact.contributionDetails as { financial: number; network: number; trust: number } || { financial: 0, network: 0, trust: 0 }) },
+        contributionDetails: { ...(contact.contributionDetails as { financial: number; network: number; trust: number; emotional: number; intellectual: number } || { financial: 0, network: 0, trust: 0, emotional: 0, intellectual: 0 }) },
       });
     } else if (section === "potential") {
       setFormData({
@@ -324,10 +324,10 @@ export function ContactDetail({
     const dataToSave = { ...formData };
     
     if (dataToSave.contributionDetails) {
-      const details = dataToSave.contributionDetails as { financial: number; network: number; trust: number };
-      const contributionScore = (details.financial || 0) + (details.network || 0) + (details.trust || 0);
+      const details = dataToSave.contributionDetails as { financial: number; network: number; trust: number; emotional: number; intellectual: number };
+      const contributionScore = (details.financial || 0) + (details.network || 0) + (details.trust || 0) + (details.emotional || 0) + (details.intellectual || 0);
       dataToSave.contributionScore = contributionScore;
-      dataToSave.contributionClass = contributionScore >= 7 ? "A" : contributionScore >= 5 ? "B" : contributionScore >= 2 ? "C" : "D";
+      dataToSave.contributionClass = contributionScore >= 12 ? "A" : contributionScore >= 8 ? "B" : contributionScore >= 4 ? "C" : "D";
     }
     
     if (dataToSave.potentialDetails) {

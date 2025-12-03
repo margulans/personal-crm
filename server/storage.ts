@@ -97,13 +97,15 @@ function calculateScoresAndClass(details: {
   financial?: number; 
   network?: number; 
   trust?: number;
+  emotional?: number;
+  intellectual?: number;
 } | { 
   personal?: number; 
   resources?: number; 
   network?: number; 
   synergy?: number; 
   systemRole?: number; 
-}, maxScore: number = 9): { score: number; scoreClass: string } {
+}, maxScore: number = 15): { score: number; scoreClass: string } {
   const values = Object.values(details || {});
   const score = values.reduce((sum, val) => sum + (val || 0), 0);
   const scoreClass = getClassFromScore(score, maxScore);
