@@ -1526,8 +1526,22 @@ export async function registerRoutes(
             return res.status(400).json({ error: "Не удалось загрузить изображение по ссылке" });
           }
           
-          const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+          const contentType = imageResponse.headers.get('content-type') || '';
+          
+          // Verify that the response is actually an image
+          if (!contentType.startsWith('image/')) {
+            console.log(`External URL returned non-image content-type: ${contentType}`);
+            return res.status(400).json({ 
+              error: "Сайт заблокировал загрузку изображения. Попробуйте скопировать изображение напрямую или использовать другой источник." 
+            });
+          }
+          
           const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+          
+          // Additional check: verify minimum size (avoid empty or error pages)
+          if (imageBuffer.length < 100) {
+            return res.status(400).json({ error: "Получен пустой или поврежденный файл. Попробуйте другую ссылку." });
+          }
           
           // Generate unique filename
           const uuid = crypto.randomUUID();
