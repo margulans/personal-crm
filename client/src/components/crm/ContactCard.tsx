@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { HeatStatusBadge } from "./HeatStatusBadge";
 import { ImportanceBadge } from "./ImportanceBadge";
 import { AttentionGapIndicator } from "./AttentionGapIndicator";
 import { formatDaysAgo } from "@/lib/constants";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Trash2, Brain } from "lucide-react";
@@ -33,12 +33,29 @@ interface ContactCardProps {
 export function ContactCard({ contact, onClick, onDelete, selectionMode, isSelected, onSelect, aiHint }: ContactCardProps) {
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiped, setIsSwiped] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const isHorizontalSwipe = useRef<boolean | null>(null);
 
   const DELETE_THRESHOLD = 80;
   const SWIPE_DETECTION_THRESHOLD = 10;
+
+  // Fetch signed URL for avatar
+  useEffect(() => {
+    if (contact.avatarUrl) {
+      fetch(`/api/contacts/${contact.id}/avatar`, { credentials: 'include' })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.url) {
+            setAvatarUrl(data.url);
+          }
+        })
+        .catch(() => setAvatarUrl(null));
+    } else {
+      setAvatarUrl(null);
+    }
+  }, [contact.id, contact.avatarUrl]);
 
   const today = new Date();
   const lastContact = contact.lastContactDate ? new Date(contact.lastContactDate) : null;
@@ -173,6 +190,9 @@ export function ContactCard({ contact, onClick, onDelete, selectionMode, isSelec
               />
             )}
             <Avatar className="h-11 w-11 flex-shrink-0 ring-2 ring-primary/20 shadow-md">
+              {avatarUrl ? (
+                <AvatarImage src={avatarUrl} alt={contact.fullName} />
+              ) : null}
               <AvatarFallback className="bg-gradient-to-br from-violet-500/20 via-primary/20 to-indigo-500/20 text-primary text-sm font-bold">
                 {initials}
               </AvatarFallback>
