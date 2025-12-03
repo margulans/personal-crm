@@ -184,15 +184,6 @@ export default function NetworkGraphPage() {
   const [manualMode, setManualMode] = useState(false);
 
   useEffect(() => {
-    if (graphRef.current && isGraphReady && !manualMode) {
-      const fg = graphRef.current;
-      fg.d3Force('charge')?.strength(-300);
-      fg.d3Force('link')?.distance(100);
-      fg.d3Force('center')?.strength(0.05);
-    }
-  }, [graphKey, isGraphReady]);
-
-  useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
@@ -312,6 +303,25 @@ export default function NetworkGraphPage() {
 
     return { nodes, links };
   }, [contacts, connections, isMobile]);
+
+  useEffect(() => {
+    if (graphRef.current && isGraphReady && !manualMode) {
+      const fg = graphRef.current;
+      const nodeCount = graphData.nodes.length || 1;
+      const chargeStrength = Math.max(-800, -200 - nodeCount * 50);
+      const linkDistance = Math.max(80, 150 - nodeCount * 5);
+      
+      fg.d3Force('charge')?.strength(chargeStrength);
+      fg.d3Force('link')?.distance(linkDistance);
+      fg.d3Force('center')?.strength(0.1);
+      
+      setTimeout(() => {
+        if (graphRef.current && !manualMode) {
+          graphRef.current.zoomToFit(400, isMobile ? 40 : 60);
+        }
+      }, 500);
+    }
+  }, [graphKey, isGraphReady, graphData.nodes.length, isMobile, manualMode]);
 
   const handleNodeClick = useCallback((node: GraphNode) => {
     setSelectedNode(node);
@@ -551,10 +561,16 @@ export default function NetworkGraphPage() {
               onNodeDrag={handleNodeDrag}
               onNodeDragEnd={handleNodeDragEnd}
               onLinkClick={handleLinkClick}
-              cooldownTicks={manualMode ? 0 : 200}
+              onEngineStop={() => {
+                if (!manualMode && graphRef.current) {
+                  graphRef.current.zoomToFit(300, isMobile ? 40 : 60);
+                }
+              }}
+              cooldownTicks={manualMode ? 0 : 150}
+              warmupTicks={manualMode ? 0 : 50}
               linkDirectionalParticles={0}
-              d3AlphaDecay={manualMode ? 1 : 0.01}
-              d3VelocityDecay={manualMode ? 1 : 0.2}
+              d3AlphaDecay={manualMode ? 1 : 0.02}
+              d3VelocityDecay={manualMode ? 1 : 0.3}
               d3AlphaMin={0.001}
               enableNodeDrag={true}
               enablePanInteraction={true}
