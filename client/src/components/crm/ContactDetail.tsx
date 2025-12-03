@@ -480,15 +480,6 @@ export function ContactDetail({
                           />
                         </div>
                       </div>
-                      <div className="grid gap-2">
-                        <Label>Краткое имя (как обращаться)</Label>
-                        <Input 
-                          value={getFieldValue("shortName") || ""} 
-                          onChange={e => updateField("shortName", e.target.value)}
-                          placeholder="Иван Иванович"
-                          data-testid="input-shortname"
-                        />
-                      </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                           <Label>Компания</Label>
