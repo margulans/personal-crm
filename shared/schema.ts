@@ -400,7 +400,7 @@ export const insertGiftSchema = createInsertSchema(gifts).omit({
   title: z.string().min(1, "Название подарка обязательно"),
   description: z.string().optional().nullable(),
   amount: z.number().min(0).optional().nullable(),
-  currency: z.string().default("RUB"),
+  currency: z.string().default("USD"),
   direction: z.enum(["given", "received"]),
   occasion: z.enum(giftOccasions).default("no_occasion"),
   date: z.string().min(1, "Дата обязательна"),
