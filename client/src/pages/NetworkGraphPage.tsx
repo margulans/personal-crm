@@ -323,21 +323,26 @@ export default function NetworkGraphPage() {
   }, [contacts, connections, isMobile]);
 
   useEffect(() => {
-    if (graphRef.current && isGraphReady && !manualMode) {
+    if (graphRef.current && isGraphReady && !manualMode && graphData.nodes.length > 0) {
       const fg = graphRef.current;
-      const nodeCount = graphData.nodes.length || 1;
-      const chargeStrength = Math.max(-800, -200 - nodeCount * 50);
-      const linkDistance = Math.max(80, 150 - nodeCount * 5);
+      const nodeCount = graphData.nodes.length;
+      
+      const chargeStrength = Math.min(-100, -300 / Math.sqrt(nodeCount));
+      const linkDistance = Math.max(50, 120 / Math.sqrt(nodeCount) * 2);
       
       fg.d3Force('charge')?.strength(chargeStrength);
       fg.d3Force('link')?.distance(linkDistance);
-      fg.d3Force('center')?.strength(0.1);
+      fg.d3Force('center')?.strength(1);
       
-      setTimeout(() => {
+      const centerAndFit = () => {
         if (graphRef.current && !manualMode) {
-          graphRef.current.zoomToFit(400, isMobile ? 40 : 60);
+          graphRef.current.centerAt(0, 0, 0);
+          graphRef.current.zoomToFit(400, isMobile ? 50 : 80);
         }
-      }, 500);
+      };
+      
+      setTimeout(centerAndFit, 300);
+      setTimeout(centerAndFit, 800);
     }
   }, [graphKey, isGraphReady, graphData.nodes.length, isMobile, manualMode]);
 
@@ -581,11 +586,12 @@ export default function NetworkGraphPage() {
               onLinkClick={handleLinkClick}
               onEngineStop={() => {
                 if (!manualMode && graphRef.current) {
-                  graphRef.current.zoomToFit(300, isMobile ? 40 : 60);
+                  graphRef.current.centerAt(0, 0, 0);
+                  graphRef.current.zoomToFit(400, isMobile ? 50 : 80);
                 }
               }}
-              cooldownTicks={manualMode ? 0 : 150}
-              warmupTicks={manualMode ? 0 : 50}
+              cooldownTicks={manualMode ? 0 : 100}
+              warmupTicks={manualMode ? 0 : 30}
               linkDirectionalParticles={0}
               d3AlphaDecay={manualMode ? 1 : 0.02}
               d3VelocityDecay={manualMode ? 1 : 0.3}
