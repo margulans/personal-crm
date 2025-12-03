@@ -327,7 +327,10 @@ export default function ContactsPage() {
           const dateB = b.lastContactDate ? new Date(b.lastContactDate).getTime() : 0;
           return dateA - dateB;
         case "name":
-          return a.fullName.localeCompare(b.fullName);
+          // Сортируем по firstName если есть, иначе по fullName
+          const nameA = a.firstName || a.fullName;
+          const nameB = b.firstName || b.fullName;
+          return nameA.localeCompare(nameB);
         default:
           return 0;
       }
