@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -21,7 +22,7 @@ import { NotificationsPanel } from "./NotificationsPanel";
 import { ImportExportPanel } from "./ImportExportPanel";
 import { TagManagementPanel } from "./TagManagementPanel";
 import { RoleManagementPanel } from "./RoleManagementPanel";
-import type { Contact, User, Team } from "@shared/schema";
+import type { Contact, User, Team, ContactConnection } from "@shared/schema";
 
 interface AuthUser extends User {
   teams: (Team & { role: string })[];
@@ -59,12 +60,26 @@ export function AppSidebar() {
     refetchInterval: 10000,
   });
 
+  const { data: connections = [] } = useQuery<ContactConnection[]>({
+    queryKey: ["/api/connections"],
+    refetchInterval: 10000,
+  });
+
   const { data: user } = useQuery<AuthUser>({
     queryKey: ["/api/auth/user"],
   });
 
   const contactCount = contacts.length;
   const teamName = user?.teams?.[0]?.name;
+  
+  const graphContactCount = useMemo(() => {
+    const connectedIds = new Set<number>();
+    connections.forEach(conn => {
+      connectedIds.add(conn.fromContactId);
+      connectedIds.add(conn.toContactId);
+    });
+    return connectedIds.size;
+  }, [connections]);
 
   return (
     <Sidebar>
@@ -107,6 +122,14 @@ export function AppSidebar() {
                           data-testid="text-contact-count"
                         >
                           {contactCount}
+                        </span>
+                      )}
+                      {item.title === "Граф связей" && graphContactCount > 0 && (
+                        <span 
+                          className="ml-auto text-xs text-muted-foreground tabular-nums"
+                          data-testid="text-graph-contact-count"
+                        >
+                          {graphContactCount}
                         </span>
                       )}
                     </button>
