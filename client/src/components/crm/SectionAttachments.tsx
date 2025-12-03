@@ -311,9 +311,18 @@ export function SectionAttachments({
       toast({ title: "Изображение добавлено" });
       setShowUrlDialog(false);
       setUrlInput("");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to add from URL:", err);
-      toast({ title: "Ошибка добавления изображения", variant: "destructive" });
+      // Extract error message from API response
+      let errorMessage = "Ошибка добавления изображения";
+      if (err?.message) {
+        errorMessage = err.message;
+      }
+      toast({ 
+        title: errorMessage, 
+        variant: "destructive",
+        duration: 5000,
+      });
     } finally {
       setUrlLoading(false);
     }
