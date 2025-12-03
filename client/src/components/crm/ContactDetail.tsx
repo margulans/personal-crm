@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -156,6 +156,23 @@ export function ContactDetail({
   const [editingSection, setEditingSection] = useState<EditingSection>(null);
   const [formData, setFormData] = useState<Partial<Contact>>({});
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarSignedUrl, setAvatarSignedUrl] = useState<string | null>(null);
+
+  // Fetch signed URL for avatar when contact has avatarUrl
+  useEffect(() => {
+    if (contact.avatarUrl) {
+      fetch(`/api/contacts/${contact.id}/avatar`, { credentials: 'include' })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.url) {
+            setAvatarSignedUrl(data.url);
+          }
+        })
+        .catch(() => setAvatarSignedUrl(null));
+    } else {
+      setAvatarSignedUrl(null);
+    }
+  }, [contact.id, contact.avatarUrl]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<Contact>) => {
@@ -225,6 +242,15 @@ export function ContactDetail({
       
       // Step 4: Save avatar URL to contact
       await apiRequest("PATCH", `/api/contacts/${contact.id}`, { avatarUrl });
+      
+      // Step 5: Fetch the signed URL for display
+      const avatarResponse = await fetch(`/api/contacts/${contact.id}/avatar`, { credentials: 'include' });
+      if (avatarResponse.ok) {
+        const avatarData = await avatarResponse.json();
+        if (avatarData?.url) {
+          setAvatarSignedUrl(avatarData.url);
+        }
+      }
       
       queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id] });
@@ -461,8 +487,8 @@ export function ContactDetail({
               data-testid="input-avatar-upload"
             />
             <Avatar className="h-12 w-12 ring-2 ring-transparent group-hover:ring-primary/50 transition-all">
-              {contact.avatarUrl ? (
-                <AvatarImage src={contact.avatarUrl} alt={contact.fullName} />
+              {avatarSignedUrl ? (
+                <AvatarImage src={avatarSignedUrl} alt={contact.fullName} />
               ) : null}
               <AvatarFallback className="bg-primary/10 text-primary text-lg font-medium">
                 {initials}

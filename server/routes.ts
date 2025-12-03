@@ -289,9 +289,19 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Contact not found" });
       }
       
+      // Normalize avatarUrl if present
+      let bodyData = { ...req.body };
+      if (bodyData.avatarUrl) {
+        const objectStorageService = new ObjectStorageService();
+        const normalizedPath = objectStorageService.normalizeObjectEntityPath(bodyData.avatarUrl);
+        if (normalizedPath) {
+          bodyData.avatarUrl = normalizedPath;
+        }
+      }
+      
       const partialSchema = insertContactSchema.partial();
       const data = partialSchema.parse({
-        ...req.body,
+        ...bodyData,
         updatedBy: userId,
       });
       const contact = await storage.updateContact(req.params.id, data);
@@ -303,6 +313,32 @@ export async function registerRoutes(
       }
       console.error("Error updating contact:", error);
       res.status(500).json({ error: "Failed to update contact" });
+    }
+  });
+
+  // Get avatar image for contact
+  app.get("/api/contacts/:id/avatar", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getCurrentTeamId(req);
+      const contact = await storage.getContact(req.params.id, teamId || undefined);
+      
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      if (!contact.avatarUrl) {
+        return res.status(404).json({ error: "No avatar" });
+      }
+      
+      const objectStorageService = new ObjectStorageService();
+      
+      // Generate signed URL for the avatar
+      const signedUrl = await objectStorageService.getSignedDownloadURL(contact.avatarUrl, 3600);
+      
+      res.json({ url: signedUrl, expires: new Date(Date.now() + 3600 * 1000).toISOString() });
+    } catch (error) {
+      console.error("Error getting avatar:", error);
+      res.status(500).json({ error: "Failed to get avatar" });
     }
   });
 
