@@ -161,6 +161,14 @@ export function ContactDetail({
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarSignedUrl, setAvatarSignedUrl] = useState<string | null>(null);
 
+  const { data: connections = [] } = useQuery<Array<{ fromContactId: string; toContactId: string }>>({
+    queryKey: ["/api/connections"],
+  });
+  
+  const hasConnections = connections.some(
+    conn => conn.fromContactId === contact.id || conn.toContactId === contact.id
+  );
+
   // Fetch signed URL for avatar when contact has avatarUrl
   useEffect(() => {
     if (contact.avatarUrl) {
@@ -514,16 +522,18 @@ export function ContactDetail({
                 size="lg"
                 showIndex
               />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setLocation(`/network?contact=${contact.id}`)}
-                title="Граф связей"
-                data-testid="button-contact-network"
-              >
-                <Link2 className="h-4 w-4 text-muted-foreground" />
-              </Button>
+              {hasConnections && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setLocation(`/network?contact=${contact.id}`)}
+                  title="Граф связей"
+                  data-testid="button-contact-network"
+                >
+                  <Link2 className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              )}
             </div>
             <div className="flex items-center gap-2 mt-1">
               {contact.roleTags?.map((tag) => (
