@@ -267,7 +267,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createContact(insertContact: InsertContact): Promise<Contact> {
-    const contribution = calculateScoresAndClass(insertContact.contributionDetails || {}, 9);
+    const contribution = calculateScoresAndClass(insertContact.contributionDetails || {}, 15);
     const potential = calculateScoresAndClass(insertContact.potentialDetails || {}, 15);
     
     const today = new Date();
@@ -307,12 +307,13 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getContact(id);
     if (!existing) return undefined;
 
-    const defaultContribution = { financial: 0, network: 0, trust: 0 };
+    const defaultContribution = { financial: 0, network: 0, trust: 0, emotional: 0, intellectual: 0 };
     const defaultPotential = { personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 };
     
     const existingContribution = existing.contributionDetails as { 
       financial?: number; network?: number; tactical?: number; 
-      strategic?: number; loyalty?: number; trust?: number 
+      strategic?: number; loyalty?: number; trust?: number;
+      emotional?: number; intellectual?: number;
     } | null;
     
     let baseContribution = defaultContribution;
@@ -321,14 +322,18 @@ export class DatabaseStorage implements IStorage {
         baseContribution = { 
           financial: existingContribution.financial || 0, 
           network: existingContribution.network || 0, 
-          trust: existingContribution.trust || 0 
+          trust: existingContribution.trust || 0,
+          emotional: existingContribution.emotional || 0,
+          intellectual: existingContribution.intellectual || 0,
         };
       } else {
         const trustValue = Math.min(3, Math.round(((existingContribution.tactical || 0) + (existingContribution.strategic || 0) + (existingContribution.loyalty || 0)) / 3));
         baseContribution = { 
           financial: existingContribution.financial || 0, 
           network: existingContribution.network || 0, 
-          trust: trustValue 
+          trust: trustValue,
+          emotional: 0,
+          intellectual: 0,
         };
       }
     }
@@ -343,7 +348,7 @@ export class DatabaseStorage implements IStorage {
       ...updateData.potentialDetails,
     };
 
-    const contribution = calculateScoresAndClass(mergedContribution, 9);
+    const contribution = calculateScoresAndClass(mergedContribution, 15);
     const potential = calculateScoresAndClass(mergedPotential, 15);
 
     const lastContactDate = updateData.lastContactDate !== undefined 
@@ -473,15 +478,19 @@ export class DatabaseStorage implements IStorage {
     for (const contact of allContacts) {
       const details = contact.contributionDetails as { 
         financial?: number; network?: number; tactical?: number; 
-        strategic?: number; loyalty?: number; trust?: number 
+        strategic?: number; loyalty?: number; trust?: number;
+        emotional?: number; intellectual?: number;
       } | null;
       
-      if (details && !('trust' in details)) {
-        const trustValue = Math.min(3, Math.round(((details.tactical || 0) + (details.strategic || 0) + (details.loyalty || 0)) / 3));
+      if (details && (!('trust' in details) || !('emotional' in details) || !('intellectual' in details))) {
+        const trustValue = 'trust' in details ? (details.trust || 0) : 
+          Math.min(3, Math.round(((details.tactical || 0) + (details.strategic || 0) + (details.loyalty || 0)) / 3));
         const newDetails = { 
           financial: details.financial || 0, 
           network: details.network || 0, 
-          trust: trustValue 
+          trust: trustValue,
+          emotional: details.emotional || 0,
+          intellectual: details.intellectual || 0,
         };
         await this.updateContact(contact.id, { contributionDetails: newDetails });
       }

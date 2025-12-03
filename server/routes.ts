@@ -509,7 +509,8 @@ export async function registerRoutes(
         "fullName", "shortName", "phone", "email", "socialLinks", "tags", "roleTags",
         "importanceLevel", "attentionLevel", "desiredFrequencyDays", "lastContactDate",
         "responseQuality", "relationshipEnergy", "attentionTrend",
-        "contribution_financial", "contribution_network", "contribution_trust",
+        "contribution_financial", "contribution_network", "contribution_trust", 
+        "contribution_emotional", "contribution_intellectual",
         "potential_personal", "potential_resources", "potential_network",
         "potential_synergy", "potential_systemRole"
       ];
@@ -525,12 +526,19 @@ export async function registerRoutes(
       
       const rows = contacts.map(contact => {
         const rawContrib = contact.contributionDetails as { 
-          financial?: number; network?: number; trust?: number 
+          financial?: number; network?: number; trust?: number;
+          emotional?: number; intellectual?: number;
         } | null;
         
-        let contrib = { financial: 0, network: 0, trust: 0 };
+        let contrib = { financial: 0, network: 0, trust: 0, emotional: 0, intellectual: 0 };
         if (rawContrib) {
-          contrib = { financial: rawContrib.financial || 0, network: rawContrib.network || 0, trust: rawContrib.trust || 0 };
+          contrib = { 
+            financial: rawContrib.financial || 0, 
+            network: rawContrib.network || 0, 
+            trust: rawContrib.trust || 0,
+            emotional: rawContrib.emotional || 0,
+            intellectual: rawContrib.intellectual || 0,
+          };
         }
         
         const pot = contact.potentialDetails || { personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 };
@@ -553,6 +561,8 @@ export async function registerRoutes(
           String(contrib.financial),
           String(contrib.network),
           String(contrib.trust),
+          String(contrib.emotional),
+          String(contrib.intellectual),
           String(pot.personal),
           String(pot.resources),
           String(pot.network),
@@ -675,6 +685,8 @@ export async function registerRoutes(
               financial: Number(contactData.contribution_financial) || 0,
               network: Number(contactData.contribution_network) || 0,
               trust: Number(contactData.contribution_trust) || 0,
+              emotional: Number(contactData.contribution_emotional) || 0,
+              intellectual: Number(contactData.contribution_intellectual) || 0,
             },
             potentialDetails: contactData.potentialDetails || {
               personal: Number(contactData.potential_personal) || 0,
