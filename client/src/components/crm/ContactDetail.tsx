@@ -430,12 +430,60 @@ export function ContactDetail({
                 <CardContent className="space-y-4">
                   {editingSection === "identity" ? (
                     <div className="space-y-4">
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="grid gap-2">
+                          <Label>Фамилия</Label>
+                          <Input 
+                            value={getFieldValue("lastName") || ""} 
+                            onChange={e => {
+                              updateField("lastName", e.target.value);
+                              const firstName = getFieldValue("firstName") || "";
+                              const patronymic = getFieldValue("patronymic") || "";
+                              const fullName = [e.target.value, firstName, patronymic].filter(Boolean).join(" ");
+                              updateField("fullName", fullName || "Без имени");
+                            }}
+                            placeholder="Иванов"
+                            data-testid="input-lastname"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>Имя</Label>
+                          <Input 
+                            value={getFieldValue("firstName") || ""} 
+                            onChange={e => {
+                              updateField("firstName", e.target.value);
+                              const lastName = getFieldValue("lastName") || "";
+                              const patronymic = getFieldValue("patronymic") || "";
+                              const fullName = [lastName, e.target.value, patronymic].filter(Boolean).join(" ");
+                              updateField("fullName", fullName || "Без имени");
+                            }}
+                            placeholder="Иван"
+                            data-testid="input-firstname"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>Отчество</Label>
+                          <Input 
+                            value={getFieldValue("patronymic") || ""} 
+                            onChange={e => {
+                              updateField("patronymic", e.target.value);
+                              const lastName = getFieldValue("lastName") || "";
+                              const firstName = getFieldValue("firstName") || "";
+                              const fullName = [lastName, firstName, e.target.value].filter(Boolean).join(" ");
+                              updateField("fullName", fullName || "Без имени");
+                            }}
+                            placeholder="Иванович"
+                            data-testid="input-patronymic"
+                          />
+                        </div>
+                      </div>
                       <div className="grid gap-2">
-                        <Label>ФИО</Label>
+                        <Label>Краткое имя (как обращаться)</Label>
                         <Input 
-                          value={getFieldValue("fullName") || ""} 
-                          onChange={e => updateField("fullName", e.target.value)}
-                          data-testid="input-fullname"
+                          value={getFieldValue("shortName") || ""} 
+                          onChange={e => updateField("shortName", e.target.value)}
+                          placeholder="Иван Иванович"
+                          data-testid="input-shortname"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
