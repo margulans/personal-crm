@@ -512,16 +512,6 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
         <TabsContent value="basic" className="space-y-4 mt-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="lastName">Фамилия</Label>
-              <Input
-                id="lastName"
-                value={formData.lastName || ""}
-                onChange={(e) => updateNameField('lastName', e.target.value)}
-                placeholder="Иванов"
-                data-testid="input-lastName"
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="firstName">Имя *</Label>
               <Input
                 id="firstName"
@@ -529,6 +519,16 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
                 onChange={(e) => updateNameField('firstName', e.target.value)}
                 placeholder="Иван"
                 data-testid="input-firstName"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Фамилия</Label>
+              <Input
+                id="lastName"
+                value={formData.lastName || ""}
+                onChange={(e) => updateNameField('lastName', e.target.value)}
+                placeholder="Иванов"
+                data-testid="input-lastName"
               />
             </div>
             <div className="space-y-2">

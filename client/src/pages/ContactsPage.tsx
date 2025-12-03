@@ -70,7 +70,7 @@ export default function ContactsPage() {
   const [sortBy, setSortBy] = useState("heatIndex");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
-  const [editingTab, setEditingTab] = useState<"basic" | "priority" | "contribution" | "potential">("basic");
+  const [editingTab, setEditingTab] = useState<string>("basic");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteContactId, setDeleteContactId] = useState<string | null>(null);
@@ -355,7 +355,7 @@ export default function ContactsPage() {
     return Array.from(roleSet).sort();
   }, [contacts]);
 
-  const openEditForm = (contact: Contact, tab: "basic" | "priority" | "contribution" | "potential" = "basic") => {
+  const openEditForm = (contact: Contact, tab: string = "basic") => {
     setEditingTab(tab);
     setEditingContact(contact);
   };
