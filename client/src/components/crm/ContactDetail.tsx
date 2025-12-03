@@ -964,40 +964,128 @@ export function ContactDetail({
                           </div>
                         )}
                         
-                        {((contact.phones as PhoneEntry[]) || []).map((phone, i) => (
-                          <div key={`phone-${i}`} className="flex items-center gap-2 text-sm">
-                            <Phone className="h-4 w-4 text-muted-foreground" />
-                            <a href={`tel:${phone.number}`} className="hover:underline">
-                              {phone.number}
-                            </a>
-                            <Badge variant="outline" className="text-xs">
-                              {phone.type === "mobile" ? "Моб" : phone.type === "work" ? "Раб" : phone.type === "home" ? "Дом" : "Др"}
-                            </Badge>
-                          </div>
-                        ))}
+                        {((contact.phones as PhoneEntry[]) || []).map((phone, i) => {
+                          const cleanNumber = phone.number.replace(/\D/g, '');
+                          return (
+                            <Popover key={`phone-${i}`}>
+                              <PopoverTrigger asChild>
+                                <div className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1" data-testid={`phone-trigger-${i}`}>
+                                  <Phone className="h-4 w-4 text-muted-foreground" />
+                                  <span className="hover:underline">{phone.number}</span>
+                                  <Badge variant="outline" className="text-xs">
+                                    {phone.type === "mobile" ? "Моб" : phone.type === "work" ? "Раб" : phone.type === "home" ? "Дом" : "Др"}
+                                  </Badge>
+                                </div>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-48 p-2" align="start">
+                                <div className="flex flex-col gap-1">
+                                  <a 
+                                    href={`tel:${phone.number}`}
+                                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted text-sm"
+                                    data-testid={`link-call-${i}`}
+                                  >
+                                    <Phone className="h-4 w-4 text-green-500" />
+                                    Позвонить
+                                  </a>
+                                  <a 
+                                    href={`https://wa.me/${cleanNumber}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted text-sm"
+                                    data-testid={`link-whatsapp-${i}`}
+                                  >
+                                    <MessageCircle className="h-4 w-4 text-green-600" />
+                                    Написать в WhatsApp
+                                  </a>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          );
+                        })}
                         
-                        {contact.phone && (!contact.phones || (contact.phones as PhoneEntry[]).length === 0) && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Phone className="h-4 w-4 text-muted-foreground" />
-                            <a href={`tel:${contact.phone}`} className="hover:underline">
-                              {contact.phone}
-                            </a>
-                          </div>
-                        )}
+                        {contact.phone && (!contact.phones || (contact.phones as PhoneEntry[]).length === 0) && (() => {
+                          const cleanNumber = contact.phone!.replace(/\D/g, '');
+                          return (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <div className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1" data-testid="phone-legacy-trigger">
+                                  <Phone className="h-4 w-4 text-muted-foreground" />
+                                  <span className="hover:underline">{contact.phone}</span>
+                                </div>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-48 p-2" align="start">
+                                <div className="flex flex-col gap-1">
+                                  <a 
+                                    href={`tel:${contact.phone}`}
+                                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted text-sm"
+                                    data-testid="link-call-legacy"
+                                  >
+                                    <Phone className="h-4 w-4 text-green-500" />
+                                    Позвонить
+                                  </a>
+                                  <a 
+                                    href={`https://wa.me/${cleanNumber}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted text-sm"
+                                    data-testid="link-whatsapp-legacy"
+                                  >
+                                    <MessageCircle className="h-4 w-4 text-green-600" />
+                                    Написать в WhatsApp
+                                  </a>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          );
+                        })()}
                       </div>
                       
                       {((contact.messengers as MessengerEntry[]) || []).length > 0 && (
                         <div className="space-y-2">
                           <div className="text-xs text-muted-foreground uppercase tracking-wide">Мессенджеры</div>
                           <div className="flex flex-wrap gap-2">
-                            {((contact.messengers as MessengerEntry[]) || []).map((msg, i) => (
-                              <Badge key={`msg-${i}`} variant="secondary" className="gap-1">
-                                <MessageCircle className="h-3 w-3" />
-                                {msg.platform === "telegram" ? "TG" : 
-                                 msg.platform === "whatsapp" ? "WA" : 
-                                 msg.platform === "viber" ? "Vb" : msg.platform}: {msg.username}
-                              </Badge>
-                            ))}
+                            {((contact.messengers as MessengerEntry[]) || []).map((msg, i) => {
+                              const username = msg.username.replace(/^@/, '');
+                              if (msg.platform === "telegram") {
+                                return (
+                                  <a
+                                    key={`msg-${i}`}
+                                    href={`https://t.me/${username}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    data-testid={`link-telegram-${i}`}
+                                  >
+                                    <Badge variant="secondary" className="gap-1 cursor-pointer hover:bg-accent">
+                                      <MessageCircle className="h-3 w-3" />
+                                      TG: {msg.username}
+                                    </Badge>
+                                  </a>
+                                );
+                              }
+                              if (msg.platform === "whatsapp") {
+                                const cleanNumber = msg.username.replace(/\D/g, '');
+                                return (
+                                  <a
+                                    key={`msg-${i}`}
+                                    href={`https://wa.me/${cleanNumber}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    data-testid={`link-whatsapp-msg-${i}`}
+                                  >
+                                    <Badge variant="secondary" className="gap-1 cursor-pointer hover:bg-accent">
+                                      <MessageCircle className="h-3 w-3" />
+                                      WA: {msg.username}
+                                    </Badge>
+                                  </a>
+                                );
+                              }
+                              return (
+                                <Badge key={`msg-${i}`} variant="secondary" className="gap-1">
+                                  <MessageCircle className="h-3 w-3" />
+                                  {msg.platform === "viber" ? "Vb" : msg.platform}: {msg.username}
+                                </Badge>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
