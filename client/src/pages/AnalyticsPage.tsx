@@ -27,7 +27,6 @@ import { ImportanceBadge } from "@/components/crm/ImportanceBadge";
 import {
   HeatStatusChart,
   ImportanceChart,
-  ImportanceLevelChart,
   AttentionDistributionChart,
 } from "@/components/crm/AnalyticsCharts";
 import { contactsApi, interactionsApi, invalidateContacts, invalidateInteractions } from "@/lib/api";
@@ -547,12 +546,8 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <HeatStatusChart contacts={contacts} />
-              <ImportanceLevelChart contacts={contacts} />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <ImportanceChart contacts={contacts} />
               <AttentionDistributionChart contacts={contacts} />
             </div>
