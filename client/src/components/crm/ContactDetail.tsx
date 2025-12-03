@@ -1277,24 +1277,6 @@ export function ContactDetail({
                           </p>
                         )}
                       </div>
-                      
-                      <Separator />
-                      
-                      <div className="grid gap-2">
-                        <Label>Заметки о семье</Label>
-                        <Textarea 
-                          value={(getFieldValue("familyStatus") as FamilyStatus)?.notes || ""}
-                          onChange={e => {
-                            const current = getFieldValue("familyStatus") as FamilyStatus || { members: [], events: [] };
-                            updateField("familyStatus", { 
-                              ...current,
-                              notes: e.target.value 
-                            });
-                          }}
-                          placeholder="Заметки о семье..."
-                          data-testid="input-family-notes"
-                        />
-                      </div>
                     </div>
                   ) : (
                     <>

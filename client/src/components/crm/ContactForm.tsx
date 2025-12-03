@@ -1102,25 +1102,6 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
               <p className="text-sm text-muted-foreground">Нет добавленных событий</p>
             )}
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="familyNotes">Заметки о семье</Label>
-            <Textarea
-              id="familyNotes"
-              value={formData.familyStatus?.notes || ""}
-              onChange={(e) => setFormData({
-                ...formData,
-                familyStatus: {
-                  ...formData.familyStatus!,
-                  notes: e.target.value,
-                },
-              })}
-              placeholder="Дополнительная информация о семье..."
-              className="resize-none"
-              rows={3}
-              data-testid="textarea-family-notes"
-            />
-          </div>
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4 mt-4 min-h-[300px]">
