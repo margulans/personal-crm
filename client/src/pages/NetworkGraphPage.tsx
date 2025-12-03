@@ -37,8 +37,9 @@ import {
 } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Plus, X, Link2, ZoomIn, ZoomOut, Maximize2, Users, Menu, RefreshCw, Hand, Play, PanelLeft, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Plus, X, Link2, ZoomIn, ZoomOut, Maximize2, Users, Menu, RefreshCw, Hand, Play, PanelLeft, Check, ChevronsUpDown, ArrowLeft } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useLocation, useSearch } from "wouter";
 import { cn } from "@/lib/utils";
 import type { Contact, ContactConnection } from "@/lib/types";
 import { connectionTypes } from "@shared/schema";
@@ -179,6 +180,11 @@ function useIsMobile() {
 export default function NetworkGraphPage() {
   const { toast } = useToast();
   const { toggleSidebar } = useSidebar();
+  const [, setLocation] = useLocation();
+  const searchString = useSearch();
+  const searchParams = new URLSearchParams(searchString);
+  const fromContactParam = searchParams.get("contact");
+  
   const graphRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -512,11 +518,22 @@ export default function NetworkGraphPage() {
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <div className="flex items-center justify-between p-2 md:p-3 border-b bg-background gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          {isMobile && (
+          {fromContactParam ? (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setLocation("/")} 
+              className="shrink-0 h-8 w-8" 
+              data-testid="button-back-to-contact"
+              title="Назад к контакту"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          ) : isMobile ? (
             <Button variant="ghost" size="icon" onClick={toggleSidebar} className="shrink-0 h-8 w-8" data-testid="button-sidebar-toggle">
               <PanelLeft className="h-4 w-4" />
             </Button>
-          )}
+          ) : null}
           <Link2 className="h-4 w-4 md:h-5 md:w-5 text-primary shrink-0" />
           <div className="min-w-0">
             <h1 className="text-sm md:text-lg font-semibold truncate leading-tight">Граф связей</h1>
