@@ -142,20 +142,26 @@ export class ObjectStorageService {
   }
 
   async getObjectEntityFile(objectPath: string): Promise<File> {
-    if (!objectPath.startsWith("/objects/")) {
-      throw new ObjectNotFoundError();
-    }
-
-    const parts = objectPath.slice(1).split("/");
-    if (parts.length < 2) {
-      throw new ObjectNotFoundError();
-    }
-
-    const entityId = parts.slice(1).join("/");
     let entityDir = this.getPrivateObjectDir();
     if (!entityDir.endsWith("/")) {
       entityDir = `${entityDir}/`;
     }
+    
+    let entityId: string;
+    
+    // Handle .private/ paths (from server-side uploads)
+    if (objectPath.startsWith(".private/")) {
+      entityId = objectPath.slice(".private/".length);
+    } else if (objectPath.startsWith("/objects/")) {
+      const parts = objectPath.slice(1).split("/");
+      if (parts.length < 2) {
+        throw new ObjectNotFoundError();
+      }
+      entityId = parts.slice(1).join("/");
+    } else {
+      throw new ObjectNotFoundError();
+    }
+
     const objectEntityPath = `${entityDir}${entityId}`;
     const { bucketName, objectName } = parseObjectPath(objectEntityPath);
     const bucket = objectStorageClient.bucket(bucketName);
@@ -168,13 +174,23 @@ export class ObjectStorageService {
   }
 
   normalizeObjectEntityPath(rawPath: string): string | null {
+    // Handle .private/ paths (from server-side uploads)
+    if (rawPath.startsWith(".private/")) {
+      const entityId = rawPath.slice(".private/".length);
+      // Validate entityId is a valid format
+      if (/^uploads\/(external_)?[a-f0-9-]{36}(\.(jpg|jpeg|png|gif|webp))?$/i.test(entityId)) {
+        return `/objects/${entityId}`;
+      }
+      return null;
+    }
+    
     // Only accept Google Cloud Storage URLs
     if (!rawPath.startsWith("https://storage.googleapis.com/")) {
       // If it's already a clean /objects/ path, validate and return it
       if (rawPath.startsWith("/objects/")) {
         const entityId = rawPath.slice("/objects/".length);
         // Validate entityId is a valid UUID format (no path traversal or injection)
-        if (/^uploads\/[a-f0-9-]{36}$/i.test(entityId)) {
+        if (/^uploads\/(external_)?[a-f0-9-]{36}(\.(jpg|jpeg|png|gif|webp))?$/i.test(entityId)) {
           return rawPath;
         }
       }
@@ -256,6 +272,35 @@ export class ObjectStorageService {
       }
       throw error;
     }
+  }
+
+  async uploadObject(path: string, data: Buffer, contentType: string): Promise<void> {
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith("/")) {
+      entityDir = `${entityDir}/`;
+    }
+    
+    // Handle both full paths and relative paths
+    let fullPath: string;
+    if (path.startsWith(".private/")) {
+      // Convert .private/ to actual private directory
+      fullPath = `${entityDir}${path.slice(".private/".length)}`;
+    } else if (path.startsWith("/")) {
+      fullPath = path;
+    } else {
+      fullPath = `${entityDir}${path}`;
+    }
+    
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    
+    await file.save(data, {
+      contentType,
+      metadata: {
+        contentType,
+      },
+    });
   }
 
   async getSignedDownloadURL(objectPath: string, ttlSec: number = 3600): Promise<string> {

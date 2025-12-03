@@ -1511,7 +1511,55 @@ export async function registerRoutes(
         if (!externalUrl.startsWith("http://") && !externalUrl.startsWith("https://")) {
           return res.status(400).json({ error: "Invalid external URL" });
         }
-        storagePath = externalUrl;
+        
+        // Download the image and upload to Object Storage to avoid hotlink blocking
+        try {
+          const imageResponse = await fetch(externalUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+              'Referer': new URL(externalUrl).origin,
+            },
+          });
+          
+          if (!imageResponse.ok) {
+            return res.status(400).json({ error: "Не удалось загрузить изображение по ссылке" });
+          }
+          
+          const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+          const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+          
+          // Generate unique filename
+          const uuid = crypto.randomUUID();
+          const ext = contentType.includes('png') ? 'png' : 
+                      contentType.includes('gif') ? 'gif' : 
+                      contentType.includes('webp') ? 'webp' : 'jpg';
+          const fileName = `external_${uuid}.${ext}`;
+          
+          // Upload to Object Storage
+          const objectStorageService = new ObjectStorageService();
+          const uploadPath = `.private/uploads/${fileName}`;
+          await objectStorageService.uploadObject(uploadPath, imageBuffer, contentType);
+          
+          // Set ACL policy
+          await objectStorageService.trySetObjectEntityAclPolicy(
+            uploadPath,
+            {
+              owner: userId,
+              teamId: teamId || undefined,
+              visibility: "private",
+            }
+          );
+          
+          storagePath = uploadPath;
+          
+          // Update file size with actual size
+          req.body.fileSize = imageBuffer.length;
+          req.body.fileType = contentType;
+        } catch (downloadError) {
+          console.error("Error downloading external image:", downloadError);
+          return res.status(400).json({ error: "Не удалось скачать изображение. Попробуйте другую ссылку." });
+        }
       } else {
         // Regular file upload - validate and set ACL policy
         const objectStorageService = new ObjectStorageService();
