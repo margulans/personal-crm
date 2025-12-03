@@ -178,7 +178,8 @@ export const contacts = pgTable("contacts", {
     financial: number;
     network: number;
     trust: number;
-  }>().default({ financial: 0, network: 0, trust: 0 }),
+    emotional: number;
+  }>().default({ financial: 0, network: 0, trust: 0, emotional: 0 }),
   
   potentialDetails: jsonb("potential_details").$type<{
     personal: number;
@@ -333,6 +334,7 @@ const contributionDetailsSchema = z.object({
   financial: z.number().min(0).max(3).default(0),
   network: z.number().min(0).max(3).default(0),
   trust: z.number().min(0).max(3).default(0),
+  emotional: z.number().min(0).max(3).default(0),
 });
 
 const potentialDetailsSchema = z.object({
@@ -454,7 +456,7 @@ export const insertContactSchema = createInsertSchema(contacts).omit({
   roleTags: z.array(z.string()).default([]),
   
   // Scoring
-  contributionDetails: contributionDetailsSchema.default({ financial: 0, network: 0, trust: 0 }),
+  contributionDetails: contributionDetailsSchema.default({ financial: 0, network: 0, trust: 0, emotional: 0 }),
   potentialDetails: potentialDetailsSchema.default({ personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 }),
   importanceLevel: z.enum(["A", "B", "C"]).default("C"),
   attentionLevel: z.number().min(1).max(10).default(1),
