@@ -280,7 +280,7 @@ export const insertAttachmentSchema = createInsertSchema(attachments).omit({
   fileName: z.string().min(1),
   originalName: z.string().min(1),
   fileType: z.string().min(1),
-  fileSize: z.number().min(1),
+  fileSize: z.number().min(0),
   storagePath: z.string().min(1),
   description: z.string().optional(),
 });
