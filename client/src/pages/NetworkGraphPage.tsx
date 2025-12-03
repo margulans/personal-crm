@@ -195,7 +195,7 @@ export default function NetworkGraphPage() {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         const newWidth = Math.max(rect.width || 300, 300);
-        const newHeight = Math.max(rect.height - 60, 300);
+        const newHeight = Math.max(rect.height || 300, 300);
         
         setDimensions({ width: newWidth, height: newHeight });
       }
@@ -469,12 +469,12 @@ export default function NetworkGraphPage() {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-between p-3 md:p-4 border-b bg-background gap-2">
-        <div className="flex items-center gap-2 md:gap-3 min-w-0">
-          <Link2 className="h-5 w-5 md:h-6 md:w-6 text-primary shrink-0" />
+      <div className="flex items-center justify-between p-2 md:p-3 border-b bg-background gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Link2 className="h-4 w-4 md:h-5 md:w-5 text-primary shrink-0" />
           <div className="min-w-0">
-            <h1 className="text-base md:text-xl font-semibold truncate">Граф связей</h1>
-            <p className="text-xs md:text-sm text-muted-foreground">
+            <h1 className="text-sm md:text-lg font-semibold truncate leading-tight">Граф связей</h1>
+            <p className="text-xs text-muted-foreground leading-tight">
               {graphData.nodes.length} контактов, {graphData.links.length} связей
             </p>
           </div>
@@ -568,7 +568,7 @@ export default function NetworkGraphPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="absolute bottom-3 left-3 h-8 text-xs bg-slate-800/90 border-slate-600 text-slate-200 hover:bg-slate-700"
+                className="absolute bottom-2 left-2 h-7 text-xs bg-slate-800/90 border-slate-600 text-slate-200 hover:bg-slate-700"
                 onClick={() => setShowLegend(!showLegend)}
               >
                 <Menu className="h-3 w-3 mr-1" />
@@ -577,31 +577,31 @@ export default function NetworkGraphPage() {
             ) : null}
             
             {(showLegend || !isMobile) && (
-              <div className={`absolute ${isMobile ? 'bottom-12 left-3 right-3' : 'bottom-4 left-4 w-56'} p-2 md:p-3 rounded-lg bg-slate-800/90 backdrop-blur-sm border border-slate-600`}>
+              <div className={`absolute ${isMobile ? 'bottom-10 left-2 right-2' : 'bottom-3 left-3 w-52'} p-2 rounded-lg bg-slate-800/90 backdrop-blur-sm border border-slate-600`}>
                 {isMobile && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute top-1 right-1 h-6 w-6 text-slate-400 hover:text-slate-200"
+                    className="absolute top-1 right-1 h-5 w-5 text-slate-400 hover:text-slate-200"
                     onClick={() => setShowLegend(false)}
                   >
                     <X className="h-3 w-3" />
                   </Button>
                 )}
-                <div className="text-xs font-medium mb-2 text-slate-300">Важность контакта</div>
-                <div className={`grid ${isMobile ? 'grid-cols-4' : 'grid-cols-3'} gap-1 text-xs mb-3`}>
-                  {Object.entries(valueCategoryColors).slice(0, isMobile ? 8 : 9).map(([cat, color]) => (
-                    <div key={cat} className="flex items-center gap-1">
-                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}` }} />
+                <div className="text-[10px] font-medium mb-1 text-slate-300">Важность</div>
+                <div className={`grid ${isMobile ? 'grid-cols-5' : 'grid-cols-4'} gap-0.5 text-[10px] mb-2`}>
+                  {Object.entries(valueCategoryColors).slice(0, isMobile ? 10 : 8).map(([cat, color]) => (
+                    <div key={cat} className="flex items-center gap-0.5">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color, boxShadow: `0 0 3px ${color}` }} />
                       <span className="text-slate-400">{cat}</span>
                     </div>
                   ))}
                 </div>
-                <div className="text-xs font-medium mb-2 text-slate-300">Сила связи</div>
-                <div className="flex items-center gap-2 text-xs">
+                <div className="text-[10px] font-medium mb-1 text-slate-300">Сила связи</div>
+                <div className="flex items-center gap-1.5 text-[10px]">
                   {[1, 2, 3, 4, 5].map((s) => (
-                    <div key={s} className="flex items-center gap-1">
-                      <div className="w-6 h-0.5 rounded" style={{ backgroundColor: strengthColors[s].replace(/[\d.]+\)$/, '1)') }} />
+                    <div key={s} className="flex items-center gap-0.5">
+                      <div className="w-4 h-0.5 rounded" style={{ backgroundColor: strengthColors[s].replace(/[\d.]+\)$/, '1)') }} />
                       <span className="text-slate-400">{s}</span>
                     </div>
                   ))}
