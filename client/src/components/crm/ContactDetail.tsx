@@ -430,10 +430,11 @@ export function ContactDetail({
                 <CardContent className="space-y-4">
                   {editingSection === "identity" ? (
                     <div className="space-y-4">
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-4">
                         <div className="grid gap-2">
-                          <Label>Фамилия</Label>
+                          <Label className="text-base font-medium">Фамилия</Label>
                           <Input 
+                            className="h-12 text-lg"
                             value={getFieldValue("lastName") || ""} 
                             onChange={e => {
                               updateField("lastName", e.target.value);
@@ -447,8 +448,9 @@ export function ContactDetail({
                           />
                         </div>
                         <div className="grid gap-2">
-                          <Label>Имя</Label>
+                          <Label className="text-base font-medium">Имя</Label>
                           <Input 
+                            className="h-12 text-lg"
                             value={getFieldValue("firstName") || ""} 
                             onChange={e => {
                               updateField("firstName", e.target.value);
@@ -462,8 +464,9 @@ export function ContactDetail({
                           />
                         </div>
                         <div className="grid gap-2">
-                          <Label>Отчество</Label>
+                          <Label className="text-base font-medium">Отчество</Label>
                           <Input 
+                            className="h-12 text-lg"
                             value={getFieldValue("patronymic") || ""} 
                             onChange={e => {
                               updateField("patronymic", e.target.value);
