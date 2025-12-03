@@ -67,7 +67,7 @@ export default function ContactsPage() {
   const searchString = useSearch();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState("name");
+  const [sortBy, setSortBy] = useState("importance");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [editingTab, setEditingTab] = useState<string>("basic");
