@@ -76,6 +76,14 @@ export interface Contact {
     count: number;
     lastPurchaseDate: string | null;
   } | null;
+  contributionTotals?: {
+    [key: string]: {
+      totalAmount: number;
+      currency: string;
+      count: number;
+      lastDate: string | null;
+    };
+  } | null;
   createdAt: string;
   updatedAt: string;
 }

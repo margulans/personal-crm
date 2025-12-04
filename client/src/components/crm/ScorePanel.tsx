@@ -13,6 +13,15 @@ interface PurchaseTotals {
   lastPurchaseDate: string | null;
 }
 
+interface ContributionTotals {
+  [key: string]: {
+    totalAmount: number;
+    currency: string;
+    count: number;
+    lastDate: string | null;
+  };
+}
+
 const SCORE_DESCRIPTIONS = {
   contribution: {
     title: "Вклад (0-15 баллов)",
@@ -33,9 +42,11 @@ interface ScorePanelProps {
   onAddPurchase?: () => void;
   purchaseTotals?: PurchaseTotals | null;
   onEditPurchaseTotal?: () => void;
+  contributionTotals?: ContributionTotals | null;
+  onAddContribution?: (criterionType: string) => void;
 }
 
-export function ScorePanel({ type, scores, totalScore, scoreClass, compact = false, onAddPurchase, purchaseTotals, onEditPurchaseTotal }: ScorePanelProps) {
+export function ScorePanel({ type, scores, totalScore, scoreClass, compact = false, onAddPurchase, purchaseTotals, onEditPurchaseTotal, contributionTotals, onAddContribution }: ScorePanelProps) {
   const criteria = type === "contribution" ? CONTRIBUTION_CRITERIA : POTENTIAL_CRITERIA;
   const title = type === "contribution" ? "Вклад" : "Потенциал";
   const info = SCORE_DESCRIPTIONS[type];
@@ -68,19 +79,21 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
         {criteria.map((criterion) => {
           const key = criterion.key as keyof typeof scores;
           const value = scores[key] || 0;
-          const isFinancial = criterion.key === "financial" && type === "contribution";
+          const isContributionType = type === "contribution";
+          const isFinancial = criterion.key === "financial" && isContributionType;
+          const contributionTotal = isContributionType && contributionTotals?.[criterion.key];
           return (
             <div key={criterion.key} className="space-y-1">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-1.5">
                   <span className="text-muted-foreground">{criterion.label}</span>
-                  {isFinancial && onAddPurchase && (
+                  {isContributionType && onAddContribution && (
                     <Button
                       size="icon"
                       variant="ghost"
                       className="h-5 w-5 text-primary hover:bg-primary/10"
-                      onClick={onAddPurchase}
-                      data-testid="button-add-purchase-from-contribution"
+                      onClick={() => onAddContribution(criterion.key)}
+                      data-testid={`button-add-contribution-${criterion.key}`}
                     >
                       <Plus className="h-3.5 w-3.5" />
                     </Button>
@@ -104,6 +117,11 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
                         </Button>
                       )}
                     </div>
+                  )}
+                  {contributionTotal && contributionTotal.count > 0 && (
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                      {contributionTotal.totalAmount > 0 ? formatAmount(contributionTotal.totalAmount, contributionTotal.currency) : `${contributionTotal.count} шт.`}
+                    </span>
                   )}
                   <span className="font-mono font-medium">{value}/3</span>
                 </div>

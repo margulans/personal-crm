@@ -67,6 +67,7 @@ import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEnt
 import { SectionAttachments } from "./SectionAttachments";
 import { GiftSection } from "./GiftSection";
 import { PurchaseSection, PurchaseForm, type PurchaseFormData } from "./PurchaseSection";
+import { ContributionSection, ContributionForm, type ContributionFormData, type ContributionFormProps } from "./ContributionSection";
 
 const BLOCK_DESCRIPTIONS = {
   identity: {
@@ -165,6 +166,8 @@ export function ContactDetail({
   const [showPurchaseFromContribution, setShowPurchaseFromContribution] = useState(false);
   const [showEditPurchaseTotal, setShowEditPurchaseTotal] = useState(false);
   const [editPurchaseTotalAmount, setEditPurchaseTotalAmount] = useState("");
+  const [showContributionForm, setShowContributionForm] = useState(false);
+  const [defaultContributionCriterion, setDefaultContributionCriterion] = useState<string | undefined>(undefined);
 
   const { data: connections = [] } = useQuery<Array<{ fromContactId: string; toContactId: string }>>({
     queryKey: ["/api/connections"],
@@ -232,6 +235,37 @@ export function ContactDetail({
       toast({ title: "Ошибка", description: error.message, variant: "destructive" });
     },
   });
+
+  const createContributionMutation = useMutation({
+    mutationFn: async (data: ContributionFormData) => {
+      const res = await apiRequest("POST", "/api/contributions", {
+        contactId: contact.id,
+        criterionType: data.criterionType,
+        title: data.title,
+        amount: data.hasAmount && data.amount ? parseFloat(data.amount) : null,
+        currency: data.currency,
+        contributedAt: data.contributedAt,
+        notes: data.notes || null,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id, "contributions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      toast({ title: "Вклад добавлен" });
+      setShowContributionForm(false);
+      setDefaultContributionCriterion(undefined);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleAddContribution = (criterionType: string) => {
+    setDefaultContributionCriterion(criterionType);
+    setShowContributionForm(true);
+  };
 
   const updatePurchaseTotalMutation = useMutation({
     mutationFn: async (totalAmount: number) => {
@@ -2140,6 +2174,8 @@ export function ContactDetail({
                       onAddPurchase={() => setShowPurchaseFromContribution(true)}
                       purchaseTotals={contact.purchaseTotals as { totalAmount: number; currency: string; count: number; lastPurchaseDate: string | null } | null}
                       onEditPurchaseTotal={handleEditPurchaseTotal}
+                      contributionTotals={contact.contributionTotals as { [key: string]: { totalAmount: number; currency: string; count: number; lastDate: string | null } } | null}
+                      onAddContribution={handleAddContribution}
                     />
                   )}
                 </CardContent>
@@ -2478,6 +2514,19 @@ export function ContactDetail({
                 </CardContent>
               </Card>
 
+              {/* Contributions */}
+              <ContributionSection 
+                contactId={contact.id} 
+                contributionTotals={contact.contributionTotals as {
+                  [key: string]: {
+                    totalAmount: number;
+                    currency: string;
+                    count: number;
+                    lastDate: string | null;
+                  };
+                } | null}
+              />
+
               {/* Purchases */}
               <PurchaseSection 
                 contactId={contact.id} 
@@ -2505,6 +2554,26 @@ export function ContactDetail({
           <PurchaseForm 
             onSubmit={(data) => createPurchaseMutation.mutate(data)} 
             onCancel={() => setShowPurchaseFromContribution(false)} 
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Contribution Form Dialog - opened from ScorePanel */}
+      <Dialog open={showContributionForm} onOpenChange={(open) => {
+        setShowContributionForm(open);
+        if (!open) setDefaultContributionCriterion(undefined);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить вклад</DialogTitle>
+          </DialogHeader>
+          <ContributionForm 
+            onSubmit={(data) => createContributionMutation.mutate(data)} 
+            onCancel={() => {
+              setShowContributionForm(false);
+              setDefaultContributionCriterion(undefined);
+            }}
+            defaultCriterion={defaultContributionCriterion as any}
           />
         </DialogContent>
       </Dialog>
