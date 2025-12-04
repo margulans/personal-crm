@@ -49,11 +49,12 @@ PRIMA is a multi-user collaborative application with team-based access control. 
 - **Currency Support**: USD (default), EUR, RUB, KZT with appropriate symbols ($, €, ₽, ₸)
 - **Components**: GiftSection (in contact detail), GiftsPage (full gift list with filters)
 
-### Geographic & Industry Analytics
-- **Contact Fields**: `country` and `industry` added to contacts for demographic analysis
-- **Charts**: CountryChart (pie chart, top 10 countries) and IndustryChart (bar chart, top 8 industries)
+### Geographic, Industry & Activity Analytics
+- **Contact Fields**: `country`, `industry`, and `activityType` added to contacts for demographic analysis
+- **Charts**: CountryChart (pie chart, top 10 countries), IndustryChart (bar chart, top 8 industries), ActivityTypeChart (pie chart, top 10 activity types)
+- **Activity Types**: Спорт, Культура, Бизнес, Политика, Наука и др.
 - **Route**: Displayed on `/analytics` page alongside other team analytics
-- **Data Handling**: Excludes contacts with empty country/industry values from visualization
+- **Data Handling**: Excludes contacts with empty values from visualization
 
 ### Network Graph (Relationship Visualization)
 - **Library**: react-force-graph-2d for interactive force-directed graph layout

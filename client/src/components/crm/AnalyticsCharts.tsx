@@ -40,6 +40,10 @@ const CHART_DESCRIPTIONS = {
   industry: {
     title: "По отраслям",
     description: "Показывает распределение контактов по отраслям бизнеса. Помогает понять, в каких секторах у вас сильные позиции, а где есть потенциал для расширения."
+  },
+  activityType: {
+    title: "По видам деятельности",
+    description: "Показывает распределение контактов по сферам: спорт, культура, бизнес, политика, наука и др. Помогает оценить разнообразие вашей сети и найти возможности для кросс-секторного сотрудничества."
   }
 };
 
@@ -472,6 +476,99 @@ export function IndustryChart({ contacts }: AnalyticsChartsProps) {
               />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+const ACTIVITY_COLORS = [
+  "#8b5cf6", "#06b6d4", "#22c55e", "#f59e0b", "#ef4444",
+  "#ec4899", "#3b82f6", "#84cc16", "#f97316", "#6366f1"
+];
+
+export function ActivityTypeChart({ contacts }: AnalyticsChartsProps) {
+  const activityMap = new Map<string, number>();
+  
+  contacts.forEach((c) => {
+    const activity = c.activityType || "Не указан";
+    activityMap.set(activity, (activityMap.get(activity) || 0) + 1);
+  });
+  
+  const data = Array.from(activityMap.entries())
+    .filter(([name]) => name !== "Не указан")
+    .map(([name, value], index) => ({
+      name,
+      value,
+      color: ACTIVITY_COLORS[index % ACTIVITY_COLORS.length],
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
+
+  if (data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">По видам деятельности</CardTitle>
+        </CardHeader>
+        <CardContent className="h-64 flex items-center justify-center text-muted-foreground">
+          Нет данных. Укажите вид деятельности в карточке контакта.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const total = data.reduce((acc, item) => acc + item.value, 0);
+
+  return (
+    <Card data-testid="chart-activity-type">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center">
+          По видам деятельности
+          <InfoPopover chartKey="activityType" />
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-64 flex items-center">
+          <ResponsiveContainer width="50%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={40}
+                outerRadius={80}
+                dataKey="value"
+                nameKey="name"
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(value: number) => [`${value} контактов (${Math.round(value / total * 100)}%)`, ""]}
+                contentStyle={{
+                  backgroundColor: "hsl(var(--background))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "6px",
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="flex-1 space-y-1 text-sm">
+            {data.map((item, index) => (
+              <div key={index} className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-3 h-3 rounded-sm" 
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="truncate max-w-32">{item.name}</span>
+                </div>
+                <span className="text-muted-foreground">{item.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>

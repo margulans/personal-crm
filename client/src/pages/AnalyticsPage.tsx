@@ -30,6 +30,7 @@ import {
   AttentionDistributionChart,
   CountryChart,
   IndustryChart,
+  ActivityTypeChart,
 } from "@/components/crm/AnalyticsCharts";
 import { contactsApi, interactionsApi, invalidateContacts, invalidateInteractions } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -554,9 +555,10 @@ export default function AnalyticsPage() {
               <AttentionDistributionChart contacts={contacts} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <CountryChart contacts={contacts} />
               <IndustryChart contacts={contacts} />
+              <ActivityTypeChart contacts={contacts} />
             </div>
           </>
         )}
