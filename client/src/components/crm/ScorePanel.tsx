@@ -187,7 +187,7 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
               <PopoverContent className="w-80">
                 <div className="space-y-2">
                   <h4 className="font-medium">{info.title}</h4>
-                  <p className="text-sm text-muted-foreground">{info.description}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">{info.description}</p>
                 </div>
               </PopoverContent>
             </Popover>
