@@ -88,7 +88,7 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-1.5">
                   <span className="text-muted-foreground">{criterion.label}</span>
-                  {isContributionType && onAddContribution && (
+                  {isContributionType && !isFinancial && onAddContribution && (
                     <Button
                       size="icon"
                       variant="ghost"
@@ -97,6 +97,17 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
                       data-testid={`button-add-contribution-${criterion.key}`}
                     >
                       <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {isContributionType && !isFinancial && onViewContributions && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                      onClick={() => onViewContributions(criterion.key)}
+                      data-testid={`button-view-contributions-${criterion.key}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </div>
@@ -120,22 +131,9 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
                     </div>
                   )}
                   {contributionTotal && contributionTotal.count > 0 && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                        {contributionTotal.totalAmount > 0 ? formatAmount(contributionTotal.totalAmount, contributionTotal.currency) : `${contributionTotal.count} шт.`}
-                      </span>
-                      {onViewContributions && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-4 w-4 text-muted-foreground hover:text-foreground"
-                          onClick={() => onViewContributions(criterion.key)}
-                          data-testid={`button-view-contributions-${criterion.key}`}
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                      {contributionTotal.totalAmount > 0 ? formatAmount(contributionTotal.totalAmount, contributionTotal.currency) : `${contributionTotal.count} шт.`}
+                    </span>
                   )}
                   <span className="font-mono font-medium">{value}/3</span>
                 </div>
