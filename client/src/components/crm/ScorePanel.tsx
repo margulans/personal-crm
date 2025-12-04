@@ -153,7 +153,7 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
                       <Plus className="h-3.5 w-3.5" />
                     </Button>
                   )}
-                  {isContributionType && onViewContributions && (
+                  {isContributionType && onViewContributions && !isFinancial && (
                     <Button
                       size="icon"
                       variant="ghost"
