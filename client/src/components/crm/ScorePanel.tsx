@@ -176,11 +176,11 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center">
-            {title}
+          <div className="flex items-center gap-1">
+            <CardTitle className="text-base">{title}</CardTitle>
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 ml-1" data-testid={`button-info-${type}`}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 touch-manipulation" data-testid={`button-info-${type}`}>
                   <Info className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DialogTrigger>
@@ -191,7 +191,7 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
                 <p className="text-sm text-muted-foreground whitespace-pre-line">{info.description}</p>
               </DialogContent>
             </Dialog>
-          </CardTitle>
+          </div>
           <div className="flex items-center gap-2">
             <span className="text-2xl font-bold font-mono">{totalScore}</span>
             <span className={`text-xl font-bold ${classColors[scoreClass]}`}>
