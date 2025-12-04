@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,11 +99,20 @@ const BLOCK_DESCRIPTIONS = {
   },
   contribution: {
     title: "Вклад (0-15 баллов)",
-    description: "Что этот человек уже даёт: финансовый, ресурсный, репутационный, интеллектуальный и эмоциональный вклад."
+    description: `Что этот человек уже даёт: финансовый, ресурсный, репутационный, интеллектуальный и эмоциональный вклад.
+
+Расчёт баллов:
+• Финансовый — 50% веса (до 7.5 б.): $0=0, до $1000=1, до $5000=2, $5000+=3 балла
+• Остальные 4 критерия — по 12.5% каждый (до 1.875 б.): 0 записей=0, 1-2=1, 3-4=2, 5+=3 балла
+
+Классы: A (12+), B (8-11), C (4-7), D (0-3).`
   },
   potential: {
     title: "Потенциал (0-15 баллов)",
-    description: "Будущий потенциал: личностный рост, ресурсы, доступ к сети, синергия."
+    description: `Что этот человек может дать в будущем: личностный рост, ресурсы, доступ к сети, синергия и роль в вашей системе.
+
+Каждый критерий от 0 до 3 баллов.
+Классы: A (12-15), B (8-11), C (4-7), D (0-3).`
   },
   interactions: {
     title: "Взаимодействия",
@@ -115,21 +125,62 @@ const BLOCK_DESCRIPTIONS = {
 };
 
 function InfoPopover({ blockKey }: { blockKey: keyof typeof BLOCK_DESCRIPTIONS }) {
+  const [isOpen, setIsOpen] = useState(false);
   const info = BLOCK_DESCRIPTIONS[blockKey];
+  
+  const handleOpen = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOpen(true);
+  };
+  
+  const handleClose = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOpen(false);
+  };
+  
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
-          <Info className="h-4 w-4 text-muted-foreground" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80">
-        <div className="space-y-2">
-          <h4 className="font-medium">{info.title}</h4>
-          <p className="text-sm text-muted-foreground">{info.description}</p>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <>
+      <button
+        type="button"
+        className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent active:bg-accent touch-manipulation ml-1"
+        onClick={handleOpen}
+        onTouchEnd={handleOpen}
+        data-testid={`button-info-${blockKey}`}
+      >
+        <Info className="h-4 w-4 text-muted-foreground" />
+      </button>
+      {isOpen && createPortal(
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          onClick={handleClose}
+          onTouchEnd={handleClose}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        >
+          <div 
+            className="bg-background rounded-lg shadow-lg max-w-md w-full p-5 relative max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={handleClose}
+              onTouchEnd={handleClose}
+              className="absolute top-3 right-3 p-2 rounded-sm hover:bg-accent active:bg-accent"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h3 className="font-semibold text-lg mb-4 pr-8">{info.title}</h3>
+            <div className="text-sm text-muted-foreground space-y-3">
+              {info.description.split('\n\n').map((paragraph, i) => (
+                <p key={i} className="whitespace-pre-line">{paragraph}</p>
+              ))}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
