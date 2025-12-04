@@ -1412,28 +1412,41 @@ export function ContactForm({ initialData, onSubmit, onCancel, isLoading, allTag
 
         <TabsContent value="contribution" className="space-y-4 mt-4">
           <p className="text-sm text-muted-foreground">
-            Оцените вклад контакта по каждому критерию от 0 до 3. Максимум 9 баллов.
+            Финансовый критерий рассчитывается по покупкам. Остальные 4 критерия рассчитываются автоматически по количеству вкладов: 1-2 вклада = 1 балл, 3-5 = 2 балла, 6+ = 3 балла.
           </p>
-          {CONTRIBUTION_CRITERIA.map((criterion) => (
-            <div key={criterion.key} className="space-y-2 p-3 rounded-lg border bg-muted/30">
-              <div className="flex items-center justify-between">
-                <Label className="font-medium">{criterion.label}</Label>
-                <span className="text-sm font-mono bg-background px-2 py-0.5 rounded">
-                  {formData.contributionDetails?.[criterion.key as keyof typeof formData.contributionDetails] || 0}/3
-                </span>
+          {CONTRIBUTION_CRITERIA.map((criterion) => {
+            const isAutoCalculated = criterion.key !== 'financial';
+            const value = formData.contributionDetails?.[criterion.key as keyof typeof formData.contributionDetails] || 0;
+            
+            return (
+              <div key={criterion.key} className="space-y-2 p-3 rounded-lg border bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <Label className="font-medium">{criterion.label}</Label>
+                  <span className="text-sm font-mono bg-background px-2 py-0.5 rounded">
+                    {value}/3
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">{criterion.description}</p>
+                {isAutoCalculated ? (
+                  <div className="flex items-center gap-2 text-xs text-primary bg-primary/10 px-2 py-1 rounded">
+                    <span>Авто-расчёт по вкладам</span>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground/70 italic">{'scale' in criterion ? criterion.scale : ''}</p>
+                    <Slider
+                      value={[value]}
+                      onValueChange={([v]) => updateContribution(criterion.key, v)}
+                      min={0}
+                      max={3}
+                      step={1}
+                      className="w-full"
+                    />
+                  </>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground">{criterion.description}</p>
-              <p className="text-xs text-muted-foreground/70 italic">{'scale' in criterion ? criterion.scale : ''}</p>
-              <Slider
-                value={[formData.contributionDetails?.[criterion.key as keyof typeof formData.contributionDetails] || 0]}
-                onValueChange={([v]) => updateContribution(criterion.key, v)}
-                min={0}
-                max={3}
-                step={1}
-                className="w-full"
-              />
-            </div>
-          ))}
+            );
+          })}
         </TabsContent>
 
         <TabsContent value="potential" className="space-y-4 mt-4">
