@@ -59,22 +59,31 @@ interface ScorePanelProps {
 function InfoModal({ isOpen, onClose, title, description }: { isOpen: boolean; onClose: () => void; title: string; description: string }) {
   if (!isOpen) return null;
   
+  const handleClose = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClose();
+  };
+  
   return createPortal(
     <div 
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-      onClick={onClose}
+      onClick={handleClose}
+      onTouchEnd={handleClose}
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
     >
       <div 
         className="bg-background rounded-lg shadow-lg max-w-sm w-full p-4 relative"
         onClick={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
       >
         <button 
-          onClick={onClose}
-          className="absolute top-3 right-3 p-1 rounded-sm hover:bg-accent"
+          onClick={handleClose}
+          onTouchEnd={handleClose}
+          className="absolute top-3 right-3 p-2 rounded-sm hover:bg-accent active:bg-accent"
           data-testid="button-close-info-modal"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </button>
         <h3 className="font-semibold text-lg mb-3 pr-8">{title}</h3>
         <p className="text-sm text-muted-foreground whitespace-pre-line">{description}</p>
@@ -208,15 +217,15 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <CardTitle className="text-base">{title}</CardTitle>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 touch-manipulation" 
+            <button 
+              type="button"
+              className="h-10 w-10 flex items-center justify-center rounded-md hover:bg-accent active:bg-accent touch-manipulation" 
               onClick={() => setShowInfo(true)}
+              onTouchEnd={(e) => { e.preventDefault(); setShowInfo(true); }}
               data-testid={`button-info-${type}`}
             >
-              <Info className="h-4 w-4 text-muted-foreground" />
-            </Button>
+              <Info className="h-5 w-5 text-muted-foreground" />
+            </button>
             <InfoModal 
               isOpen={showInfo} 
               onClose={() => setShowInfo(false)} 
