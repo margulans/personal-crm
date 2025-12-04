@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { insertContactSchema, insertInteractionSchema, insertTeamSchema, insertAttachmentSchema, insertContactConnectionSchema, insertGiftSchema, updateGiftSchema, insertPurchaseSchema, updatePurchaseSchema, teams, aiInsightsCache } from "@shared/schema";
+import { insertContactSchema, insertInteractionSchema, insertTeamSchema, insertAttachmentSchema, insertContactConnectionSchema, insertGiftSchema, updateGiftSchema, insertPurchaseSchema, updatePurchaseSchema, insertContributionSchema, updateContributionSchema, teams, aiInsightsCache } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -2104,6 +2104,126 @@ export async function registerRoutes(
   });
 
   // ============= END PURCHASE ENDPOINTS =============
+
+  // ============= CONTRIBUTION ENDPOINTS (All criterion types) =============
+  
+  // Get all contributions for current team
+  app.get("/api/contributions", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      const allContributions = await storage.getContributions(teamId);
+      res.json(allContributions);
+    } catch (error) {
+      console.error("Error fetching contributions:", error);
+      res.status(500).json({ error: "Failed to fetch contributions" });
+    }
+  });
+
+  // Get contributions for a specific contact
+  app.get("/api/contacts/:contactId/contributions", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const contact = await storage.getContact(req.params.contactId, teamId);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      const contactContributions = await storage.getContactContributions(req.params.contactId, teamId);
+      res.json(contactContributions);
+    } catch (error) {
+      console.error("Error fetching contact contributions:", error);
+      res.status(500).json({ error: "Failed to fetch contact contributions" });
+    }
+  });
+
+  // Create a new contribution
+  app.post("/api/contributions", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const userId = (req as any).user?.claims?.sub;
+      const contributionData = {
+        ...req.body,
+        teamId,
+        createdBy: userId,
+      };
+      
+      const validatedData = insertContributionSchema.parse(contributionData);
+      
+      // Verify contact belongs to team
+      const contact = await storage.getContact(validatedData.contactId, teamId);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      const contribution = await storage.createContribution(validatedData);
+      res.status(201).json(contribution);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: fromZodError(error).message });
+      }
+      console.error("Error creating contribution:", error);
+      res.status(500).json({ error: "Failed to create contribution" });
+    }
+  });
+
+  // Update a contribution
+  app.patch("/api/contributions/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const contribution = await storage.getContribution(req.params.id, teamId);
+      if (!contribution) {
+        return res.status(404).json({ error: "Contribution not found" });
+      }
+      
+      const validatedData = updateContributionSchema.parse(req.body);
+      const updated = await storage.updateContribution(req.params.id, validatedData, teamId);
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: fromZodError(error).message });
+      }
+      console.error("Error updating contribution:", error);
+      res.status(500).json({ error: "Failed to update contribution" });
+    }
+  });
+
+  // Delete a contribution
+  app.delete("/api/contributions/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const contribution = await storage.getContribution(req.params.id, teamId);
+      if (!contribution) {
+        return res.status(404).json({ error: "Contribution not found" });
+      }
+      
+      await storage.deleteContribution(req.params.id, teamId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting contribution:", error);
+      res.status(500).json({ error: "Failed to delete contribution" });
+    }
+  });
+
+  // ============= END CONTRIBUTION ENDPOINTS =============
 
   // Endpoint for scheduled backup (can be called by cron/scheduled deployment)
   app.post("/api/backups/auto", async (req: Request, res: Response) => {
