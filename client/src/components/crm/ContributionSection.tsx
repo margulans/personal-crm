@@ -531,7 +531,7 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
   });
 
   const handleNavigateToContact = (targetContactId: string) => {
-    navigate(`/contacts/${targetContactId}`);
+    navigate(`/?contact=${targetContactId}`);
   };
 
   const createMutation = useMutation({

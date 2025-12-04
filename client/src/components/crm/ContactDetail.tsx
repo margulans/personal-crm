@@ -2840,7 +2840,7 @@ export function ContactDetail({
         }}
         contacts={allContacts}
         currentContactId={contact.id}
-        onNavigateToContact={(targetContactId) => setLocation(`/contacts/${targetContactId}`)}
+        onNavigateToContact={(targetContactId) => setLocation(`/?contact=${targetContactId}`)}
       />
     </div>
   );
