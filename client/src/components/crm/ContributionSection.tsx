@@ -38,6 +38,7 @@ const CONTRIBUTION_EXAMPLES: Record<ContributionCriterionType, string[]> = {
     "Оплатил совместное мероприятие",
     "Финансовая поддержка",
     "Спонсорство события",
+    "Другое",
   ],
   network: [
     "Познакомил с важным человеком",
@@ -46,6 +47,7 @@ const CONTRIBUTION_EXAMPLES: Record<ContributionCriterionType, string[]> = {
     "Пригласил на закрытое мероприятие",
     "Предоставил контакты",
     "Помог с наймом сотрудника",
+    "Другое",
   ],
   trust: [
     "Публичная рекомендация",
@@ -54,6 +56,7 @@ const CONTRIBUTION_EXAMPLES: Record<ContributionCriterionType, string[]> = {
     "Поручительство",
     "Рекомендация в соцсетях",
     "Упоминание на конференции",
+    "Другое",
   ],
   emotional: [
     "Поддержка в трудный момент",
@@ -62,6 +65,7 @@ const CONTRIBUTION_EXAMPLES: Record<ContributionCriterionType, string[]> = {
     "Неожиданный знак внимания",
     "Мотивирующий разговор",
     "Помощь с личной проблемой",
+    "Другое",
   ],
   intellectual: [
     "Экспертная консультация",
@@ -70,6 +74,7 @@ const CONTRIBUTION_EXAMPLES: Record<ContributionCriterionType, string[]> = {
     "Менторская сессия",
     "Поделился полезными материалами",
     "Помог решить сложную задачу",
+    "Другое",
   ],
 };
 
