@@ -131,7 +131,7 @@ function InfoPopover({ blockKey }: { blockKey: keyof typeof BLOCK_DESCRIPTIONS }
   );
 }
 
-type EditingSection = "identity" | "contacts" | "interests" | "family" | "team" | "status" | "contribution" | "potential" | null;
+type EditingSection = "identity" | "contacts" | "interests" | "family" | "team" | "status" | "potential" | null;
 
 interface ContactDetailProps {
   contact: Contact;
@@ -398,10 +398,6 @@ export function ContactDetail({
           events: (currentFamily.events || []).map(e => ({ ...e })),
           notes: currentFamily.notes || "",
         },
-      });
-    } else if (section === "contribution") {
-      setFormData({
-        contributionDetails: { ...(contact.contributionDetails as { financial: number; network: number; trust: number; emotional: number; intellectual: number } || { financial: 0, network: 0, trust: 0, emotional: 0, intellectual: 0 }) },
       });
     } else if (section === "potential") {
       setFormData({
@@ -2117,67 +2113,20 @@ export function ContactDetail({
                     Вклад ({contact.contributionScore}/15)
                     <InfoPopover blockKey="contribution" />
                   </CardTitle>
-                  {editingSection === "contribution" ? <SaveCancelButtons /> : <EditButton section="contribution" />}
                 </CardHeader>
                 <CardContent>
-                  {editingSection === "contribution" ? (
-                    <div className="space-y-4">
-                      {CONTRIBUTION_CRITERIA.map((criterion) => {
-                        const isFinancial = criterion.key === "financial";
-                        return (
-                          <div key={criterion.key} className="grid gap-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5">
-                                <Label>{criterion.label} (0-3)</Label>
-                                {isFinancial && (
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    type="button"
-                                    className="h-5 w-5 text-primary hover:bg-primary/10"
-                                    onClick={() => setShowPurchaseFromContribution(true)}
-                                    data-testid="button-add-purchase-from-contribution-edit"
-                                  >
-                                    <Plus className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                              </div>
-                              <span className="text-xs text-muted-foreground">{criterion.description}</span>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <Slider
-                                value={[(getFieldValue("contributionDetails") as typeof contributionDetails)?.[criterion.key as keyof typeof contributionDetails] ?? contributionDetails[criterion.key as keyof typeof contributionDetails] ?? 0]}
-                                onValueChange={([value]) => updateField("contributionDetails", { 
-                                  ...contributionDetails, 
-                                  ...(formData.contributionDetails as typeof contributionDetails || {}),
-                                  [criterion.key]: value 
-                                })}
-                                min={0}
-                                max={3}
-                                step={1}
-                                className="flex-1"
-                                data-testid={`slider-${criterion.key}`}
-                              />
-                              <span className="font-mono text-lg w-8">{(getFieldValue("contributionDetails") as typeof contributionDetails)?.[criterion.key as keyof typeof contributionDetails] ?? contributionDetails[criterion.key as keyof typeof contributionDetails] ?? 0}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <ScorePanel
-                      type="contribution"
-                      scores={contributionDetails}
-                      totalScore={contact.contributionScore}
-                      scoreClass={contact.contributionClass}
-                      compact
-                      onAddPurchase={() => setShowPurchaseFromContribution(true)}
-                      purchaseTotals={contact.purchaseTotals as { totalAmount: number; currency: string; count: number; lastPurchaseDate: string | null } | null}
-                      onEditPurchaseTotal={handleEditPurchaseTotal}
-                      contributionTotals={contact.contributionTotals as { [key: string]: { totalAmount: number; currency: string; count: number; lastDate: string | null } } | null}
-                      onAddContribution={handleAddContribution}
-                    />
-                  )}
+                  <ScorePanel
+                    type="contribution"
+                    scores={contributionDetails}
+                    totalScore={contact.contributionScore}
+                    scoreClass={contact.contributionClass}
+                    compact
+                    onAddPurchase={() => setShowPurchaseFromContribution(true)}
+                    purchaseTotals={contact.purchaseTotals as { totalAmount: number; currency: string; count: number; lastPurchaseDate: string | null } | null}
+                    onEditPurchaseTotal={handleEditPurchaseTotal}
+                    contributionTotals={contact.contributionTotals as { [key: string]: { totalAmount: number; currency: string; count: number; lastDate: string | null } } | null}
+                    onAddContribution={handleAddContribution}
+                  />
                 </CardContent>
               </Card>
 
