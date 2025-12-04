@@ -24,7 +24,7 @@ const CATEGORIES = [
   { value: "other", label: "Другое" },
 ];
 
-interface PurchaseFormData {
+export interface PurchaseFormData {
   productName: string;
   category: string;
   amount: string;
@@ -33,14 +33,14 @@ interface PurchaseFormData {
   notes: string;
 }
 
-interface PurchaseFormProps {
+export interface PurchaseFormProps {
   onSubmit: (data: PurchaseFormData) => void;
   onCancel: () => void;
   initialData?: Partial<PurchaseFormData>;
   isEditing?: boolean;
 }
 
-function PurchaseForm({ onSubmit, onCancel, initialData, isEditing }: PurchaseFormProps) {
+export function PurchaseForm({ onSubmit, onCancel, initialData, isEditing }: PurchaseFormProps) {
   const [formData, setFormData] = useState<PurchaseFormData>({
     productName: initialData?.productName || "",
     category: initialData?.category || "product",

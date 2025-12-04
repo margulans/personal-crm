@@ -3,7 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Info } from "lucide-react";
+import { Info, Plus } from "lucide-react";
 import { CONTRIBUTION_CRITERIA, POTENTIAL_CRITERIA } from "@/lib/constants";
 
 const SCORE_DESCRIPTIONS = {
@@ -23,9 +23,10 @@ interface ScorePanelProps {
   totalScore: number;
   scoreClass: string;
   compact?: boolean;
+  onAddPurchase?: () => void;
 }
 
-export function ScorePanel({ type, scores, totalScore, scoreClass, compact = false }: ScorePanelProps) {
+export function ScorePanel({ type, scores, totalScore, scoreClass, compact = false, onAddPurchase }: ScorePanelProps) {
   const criteria = type === "contribution" ? CONTRIBUTION_CRITERIA : POTENTIAL_CRITERIA;
   const title = type === "contribution" ? "Вклад" : "Потенциал";
   const info = SCORE_DESCRIPTIONS[type];
@@ -52,10 +53,24 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
         {criteria.map((criterion) => {
           const key = criterion.key as keyof typeof scores;
           const value = scores[key] || 0;
+          const isFinancial = criterion.key === "financial" && type === "contribution";
           return (
             <div key={criterion.key} className="space-y-1">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{criterion.label}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">{criterion.label}</span>
+                  {isFinancial && onAddPurchase && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-5 w-5 text-primary hover:bg-primary/10"
+                      onClick={onAddPurchase}
+                      data-testid="button-add-purchase-from-contribution"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
                 <span className="font-mono font-medium">{value}/3</span>
               </div>
               <Progress value={(value / 3) * 100} className="h-1.5" />

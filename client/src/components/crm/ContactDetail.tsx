@@ -66,7 +66,7 @@ import { useLocation } from "wouter";
 import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, EmailEntry, FamilyStatus, FamilyMember, StaffMember, StaffPhone, StaffMessenger, AIInsight, AIRecommendation } from "@/lib/types";
 import { SectionAttachments } from "./SectionAttachments";
 import { GiftSection } from "./GiftSection";
-import { PurchaseSection } from "./PurchaseSection";
+import { PurchaseSection, PurchaseForm, type PurchaseFormData } from "./PurchaseSection";
 
 const BLOCK_DESCRIPTIONS = {
   identity: {
@@ -162,6 +162,7 @@ export function ContactDetail({
   const [formData, setFormData] = useState<Partial<Contact>>({});
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarSignedUrl, setAvatarSignedUrl] = useState<string | null>(null);
+  const [showPurchaseFromContribution, setShowPurchaseFromContribution] = useState(false);
 
   const { data: connections = [] } = useQuery<Array<{ fromContactId: string; toContactId: string }>>({
     queryKey: ["/api/connections"],
@@ -205,6 +206,28 @@ export function ContactDetail({
         description: error.message,
         variant: "destructive" 
       });
+    },
+  });
+
+  const createPurchaseMutation = useMutation({
+    mutationFn: async (data: PurchaseFormData) => {
+      const res = await apiRequest("POST", "/api/purchases", {
+        ...data,
+        contactId: contact.id,
+        amount: data.amount ? parseFloat(data.amount) : null,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id, "purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
+      toast({ title: "Покупка добавлена" });
+      setShowPurchaseFromContribution(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
     },
   });
 
@@ -2022,30 +2045,47 @@ export function ContactDetail({
                 <CardContent>
                   {editingSection === "contribution" ? (
                     <div className="space-y-4">
-                      {CONTRIBUTION_CRITERIA.map((criterion) => (
-                        <div key={criterion.key} className="grid gap-2">
-                          <div className="flex items-center justify-between">
-                            <Label>{criterion.label} (0-3)</Label>
-                            <span className="text-xs text-muted-foreground">{criterion.description}</span>
+                      {CONTRIBUTION_CRITERIA.map((criterion) => {
+                        const isFinancial = criterion.key === "financial";
+                        return (
+                          <div key={criterion.key} className="grid gap-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <Label>{criterion.label} (0-3)</Label>
+                                {isFinancial && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    type="button"
+                                    className="h-5 w-5 text-primary hover:bg-primary/10"
+                                    onClick={() => setShowPurchaseFromContribution(true)}
+                                    data-testid="button-add-purchase-from-contribution-edit"
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground">{criterion.description}</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <Slider
+                                value={[(getFieldValue("contributionDetails") as typeof contributionDetails)?.[criterion.key as keyof typeof contributionDetails] ?? contributionDetails[criterion.key as keyof typeof contributionDetails] ?? 0]}
+                                onValueChange={([value]) => updateField("contributionDetails", { 
+                                  ...contributionDetails, 
+                                  ...(formData.contributionDetails as typeof contributionDetails || {}),
+                                  [criterion.key]: value 
+                                })}
+                                min={0}
+                                max={3}
+                                step={1}
+                                className="flex-1"
+                                data-testid={`slider-${criterion.key}`}
+                              />
+                              <span className="font-mono text-lg w-8">{(getFieldValue("contributionDetails") as typeof contributionDetails)?.[criterion.key as keyof typeof contributionDetails] ?? contributionDetails[criterion.key as keyof typeof contributionDetails] ?? 0}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <Slider
-                              value={[(getFieldValue("contributionDetails") as typeof contributionDetails)?.[criterion.key as keyof typeof contributionDetails] ?? contributionDetails[criterion.key as keyof typeof contributionDetails] ?? 0]}
-                              onValueChange={([value]) => updateField("contributionDetails", { 
-                                ...contributionDetails, 
-                                ...(formData.contributionDetails as typeof contributionDetails || {}),
-                                [criterion.key]: value 
-                              })}
-                              min={0}
-                              max={3}
-                              step={1}
-                              className="flex-1"
-                              data-testid={`slider-${criterion.key}`}
-                            />
-                            <span className="font-mono text-lg w-8">{(getFieldValue("contributionDetails") as typeof contributionDetails)?.[criterion.key as keyof typeof contributionDetails] ?? contributionDetails[criterion.key as keyof typeof contributionDetails] ?? 0}</span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <ScorePanel
@@ -2054,6 +2094,7 @@ export function ContactDetail({
                       totalScore={contact.contributionScore}
                       scoreClass={contact.contributionClass}
                       compact
+                      onAddPurchase={() => setShowPurchaseFromContribution(true)}
                     />
                   )}
                 </CardContent>
@@ -2409,6 +2450,19 @@ export function ContactDetail({
           </div>
         </div>
       </ScrollArea>
+
+      {/* Purchase Form Dialog - opened from Contribution section */}
+      <Dialog open={showPurchaseFromContribution} onOpenChange={setShowPurchaseFromContribution}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить покупку</DialogTitle>
+          </DialogHeader>
+          <PurchaseForm 
+            onSubmit={(data) => createPurchaseMutation.mutate(data)} 
+            onCancel={() => setShowPurchaseFromContribution(false)} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
