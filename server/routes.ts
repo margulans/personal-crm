@@ -663,7 +663,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Contact not found" });
       }
       
-      await storage.recalculateContributionTotals(contactId);
+      await storage.recalculateContributionTotals(contactId, teamId!);
       const updatedContact = await storage.getContact(contactId, teamId || undefined);
       res.json(updatedContact);
     } catch (error) {
@@ -2201,6 +2201,35 @@ export async function registerRoutes(
       }
       
       const contribution = await storage.createContribution(validatedData);
+      
+      // If this is a network contribution with an introduced contact, create a connection in the graph
+      if (validatedData.criterionType === "network" && validatedData.introducedContactId) {
+        try {
+          // Check if connection already exists (in either direction)
+          const connectionExists = await storage.checkDuplicateConnection(
+            validatedData.contactId,
+            validatedData.introducedContactId,
+            teamId
+          );
+          
+          if (!connectionExists) {
+            // Create a new connection between the contacts
+            await storage.createConnection({
+              teamId,
+              fromContactId: validatedData.contactId,
+              toContactId: validatedData.introducedContactId,
+              connectionType: "acquaintance",
+              strength: 3,
+              notes: `Познакомил: ${validatedData.title || "Сетевой вклад"}`,
+              createdBy: userId,
+            });
+          }
+        } catch (connectionError) {
+          // Log but don't fail the main operation
+          console.error("Error creating connection from contribution:", connectionError);
+        }
+      }
+      
       res.status(201).json(contribution);
     } catch (error) {
       if (error instanceof ZodError) {

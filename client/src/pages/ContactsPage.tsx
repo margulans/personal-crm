@@ -81,6 +81,7 @@ export default function ContactsPage() {
     heatStatus: "",
   });
   const [cameFromAnalytics, setCameFromAnalytics] = useState(false);
+  const [cameFromContactLink, setCameFromContactLink] = useState(false);
   const [showAIDashboard, setShowAIDashboard] = useState(false);
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   const { toast } = useToast();
@@ -162,9 +163,10 @@ export default function ContactsPage() {
           setEditingContact(contact);
         } else {
           setSelectedContactId(contactId);
+          setCameFromContactLink(true);
         }
       }
-      // Clear the URL params after applying
+      // Clear the URL params after applying but keep history for back navigation
       setLocation("/", { replace: true });
     } else if (status && ["green", "yellow", "red"].includes(status)) {
       setFilters(prev => ({ ...prev, heatStatus: status }));
@@ -182,6 +184,16 @@ export default function ContactsPage() {
     setCameFromAnalytics(false);
     setFilters({ search: "", importance: "", valueCategory: "", heatStatus: "" });
     setLocation("/analytics");
+  };
+
+  const handleBackFromContact = () => {
+    if (cameFromContactLink) {
+      setCameFromContactLink(false);
+      setSelectedContactId(null);
+      window.history.back();
+    } else {
+      setSelectedContactId(null);
+    }
   };
 
   const { data: interactions = [] } = useQuery<Interaction[]>({
@@ -390,7 +402,7 @@ export default function ContactsPage() {
         <ContactDetail
           contact={selectedContact}
           interactions={interactions}
-          onBack={() => setSelectedContactId(null)}
+          onBack={handleBackFromContact}
           onEdit={() => openEditForm(selectedContact)}
           onEditTab={(tab) => openEditForm(selectedContact, tab)}
           onAddInteraction={(data) => {
