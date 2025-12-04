@@ -864,12 +864,19 @@ export class DatabaseStorage implements IStorage {
     // Get all purchases for this contact
     const contactPurchases = await this.getContactPurchases(contactId, teamId);
     
-    // Calculate totals (assuming all amounts are in the same currency - RUB)
+    // Calculate totals with defensive checks
+    // Only count valid amounts (positive, finite numbers)
     let totalAmount = 0;
+    let validCount = 0;
     let lastPurchaseDate: string | null = null;
     
     for (const purchase of contactPurchases) {
-      totalAmount += purchase.amount || 0;
+      const amount = purchase.amount;
+      // Only count valid positive finite amounts
+      if (typeof amount === 'number' && isFinite(amount) && amount > 0) {
+        totalAmount += amount;
+        validCount++;
+      }
       if (!lastPurchaseDate || (purchase.purchasedAt && purchase.purchasedAt > lastPurchaseDate)) {
         lastPurchaseDate = purchase.purchasedAt;
       }
@@ -878,7 +885,7 @@ export class DatabaseStorage implements IStorage {
     const purchaseTotals: PurchaseTotals = {
       totalAmount,
       currency: "RUB",
-      count: contactPurchases.length,
+      count: validCount,
       lastPurchaseDate,
     };
     

@@ -27,6 +27,20 @@ PRIMA is a multi-user collaborative application with team-based access control. 
 - **Data Model**: Key tables include `contacts` (comprehensive contact details, scoring, and relationship metrics), `interactions` (tracking touchpoints), `attachments` (file uploads organized by category), `contact_connections` (relationship graph edges between contacts), `gifts` (gift tracking with direction, occasion, amount), and `backups` (team data snapshots).
 - **Backup System**: Supports manual and automatic daily backups, with restoration capabilities and retention policies.
 
+### Purchase Tracking (NEW)
+- **Table**: `purchases` storing customer purchase history
+- **Fields**: productName, category, amount, currency, purchasedAt, notes
+- **Categories**: product, service, subscription, consultation, training, license, support, other
+- **Currency Support**: RUB, USD, EUR, KZT (validated enum)
+- **Aggregation**: `purchaseTotals` field on contacts stores totalAmount, count, lastPurchaseDate
+- **Financial Score Calculation**: Automatic based on total purchase amount:
+  - 0₽ = 0 points (Нет покупок)
+  - < 100,000₽ = 1 point (До 100 тыс.)
+  - < 500,000₽ = 2 points (100-500 тыс.)
+  - >= 500,000₽ = 3 points (500+ тыс.)
+- **Component**: PurchaseSection (in contact detail) with add/edit/delete functionality
+- **API Endpoints**: /api/purchases, /api/contacts/:id/purchases
+
 ### Gift Tracking
 - **Route**: `/gifts` accessible via sidebar "Подарки"
 - **Features**: Track gifts given to and received from contacts with title, description, amount, currency, occasion type, and date

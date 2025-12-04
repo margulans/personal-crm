@@ -464,6 +464,8 @@ export const purchases = pgTable("purchases", {
 export type Purchase = typeof purchases.$inferSelect;
 export type InsertPurchase = typeof purchases.$inferInsert;
 
+export const supportedCurrencies = ["RUB", "USD", "EUR", "KZT"] as const;
+
 export const insertPurchaseSchema = createInsertSchema(purchases).omit({
   id: true,
   createdAt: true,
@@ -474,8 +476,8 @@ export const insertPurchaseSchema = createInsertSchema(purchases).omit({
   createdBy: z.string().optional(),
   productName: z.string().min(1, "Название продукта обязательно"),
   category: z.enum(productCategories).default("product"),
-  amount: z.number().min(0, "Сумма должна быть положительной"),
-  currency: z.string().default("RUB"),
+  amount: z.number().finite().min(0.01, "Сумма должна быть положительной"),
+  currency: z.enum(supportedCurrencies).default("RUB"),
   purchasedAt: z.string().min(1, "Дата покупки обязательна"),
   notes: z.string().optional().nullable(),
 });
@@ -483,8 +485,8 @@ export const insertPurchaseSchema = createInsertSchema(purchases).omit({
 export const updatePurchaseSchema = z.object({
   productName: z.string().min(1, "Название продукта обязательно").optional(),
   category: z.enum(productCategories).optional(),
-  amount: z.number().min(0).optional(),
-  currency: z.string().optional(),
+  amount: z.number().finite().min(0.01, "Сумма должна быть положительной").optional(),
+  currency: z.enum(supportedCurrencies).optional(),
   purchasedAt: z.string().optional(),
   notes: z.string().optional().nullable(),
 });
