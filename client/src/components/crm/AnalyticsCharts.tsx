@@ -417,13 +417,13 @@ export function IndustryChart({ contacts }: AnalyticsChartsProps) {
   
   const data = Array.from(industryMap.entries())
     .filter(([name]) => name !== "Не указана")
-    .map(([name, value]) => ({
-      name: name.length > 15 ? name.substring(0, 15) + "..." : name,
-      fullName: name,
+    .map(([name, value], index) => ({
+      name,
       value,
+      color: INDUSTRY_COLORS[index % INDUSTRY_COLORS.length],
     }))
     .sort((a, b) => b.value - a.value)
-    .slice(0, 8);
+    .slice(0, 10);
 
   if (data.length === 0) {
     return (
@@ -449,19 +449,26 @@ export function IndustryChart({ contacts }: AnalyticsChartsProps) {
       <CardContent>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ left: 10, right: 20 }}>
-              <XAxis type="number" allowDecimals={false} fontSize={12} />
-              <YAxis 
-                type="category" 
-                dataKey="name" 
-                fontSize={11} 
-                width={100}
-                tick={{ fill: "hsl(var(--muted-foreground))" }}
-              />
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={80}
+                paddingAngle={2}
+                dataKey="value"
+                label={({ name, percent }) => `${name.length > 12 ? name.substring(0, 12) + "..." : name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
               <Tooltip
-                formatter={(value: number, name: string, props: any) => [
+                formatter={(value: number, name: string, props: { payload?: { name?: string } }) => [
                   `${value} контактов`, 
-                  props.payload.fullName
+                  props.payload?.name || ""
                 ]}
                 contentStyle={{
                   backgroundColor: "hsl(var(--background))",
@@ -469,12 +476,7 @@ export function IndustryChart({ contacts }: AnalyticsChartsProps) {
                   borderRadius: "6px",
                 }}
               />
-              <Bar 
-                dataKey="value" 
-                fill="hsl(var(--primary))" 
-                radius={[0, 4, 4, 0]}
-              />
-            </BarChart>
+            </PieChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
