@@ -160,9 +160,9 @@ function GiftForm({ onSubmit, onCancel, contacts, initialData, isEditing }: Gift
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="RUB">₽</SelectItem>
                 <SelectItem value="USD">$</SelectItem>
                 <SelectItem value="EUR">€</SelectItem>
+                <SelectItem value="RUB">₽</SelectItem>
                 <SelectItem value="KZT">₸</SelectItem>
               </SelectContent>
             </Select>
@@ -370,7 +370,7 @@ export default function GiftsPage() {
                     </p>
                     {givenTotal > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        ~{givenTotal.toLocaleString()} ₽
+                        ~${givenTotal.toLocaleString()}
                       </p>
                     )}
                   </div>
@@ -388,7 +388,7 @@ export default function GiftsPage() {
                     </p>
                     {receivedTotal > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        ~{receivedTotal.toLocaleString()} ₽
+                        ~${receivedTotal.toLocaleString()}
                       </p>
                     )}
                   </div>
@@ -473,7 +473,7 @@ export default function GiftsPage() {
                       month: "short",
                       year: "numeric",
                     });
-                    const currencySymbol = gift.currency === "RUB" ? "₽" : gift.currency === "USD" ? "$" : gift.currency === "KZT" ? "₸" : "€";
+                    const currencySymbol = gift.currency === "USD" ? "$" : gift.currency === "EUR" ? "€" : gift.currency === "KZT" ? "₸" : "₽";
 
                     return (
                       <div

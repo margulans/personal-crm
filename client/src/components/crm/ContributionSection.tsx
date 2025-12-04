@@ -374,8 +374,8 @@ export function ContributionForm({ onSubmit, onCancel, initialData, isEditing, d
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="USD">$</SelectItem>
-                <SelectItem value="RUB">₽</SelectItem>
                 <SelectItem value="EUR">€</SelectItem>
+                <SelectItem value="RUB">₽</SelectItem>
                 <SelectItem value="KZT">₸</SelectItem>
               </SelectContent>
             </Select>
@@ -739,7 +739,7 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
                 <div className="text-sm text-muted-foreground space-y-2 pt-2">
                   <p>Вклады влияют на расчёт Contribution Score (макс. 15 баллов):</p>
                   <ul className="list-disc list-inside space-y-1 text-xs">
-                    <li><strong>Финансовый</strong> — 50% веса (до 7.5 б.). Расчёт по сумме: 0₽=0, до 100т₽=1, до 500т₽=2, 500т₽+=3 балла</li>
+                    <li><strong>Финансовый</strong> — 50% веса (до 7.5 б.). Расчёт по сумме: $0=0, до $1000=1, до $5000=2, $5000+=3 балла</li>
                     <li><strong>Ресурсный, Репутационный, Эмоциональный, Интеллектуальный</strong> — по 12.5% (до 1.875 б. каждый). Расчёт по кол-ву записей: 0=0, 1-2=1, 3-4=2, 5+=3 балла</li>
                   </ul>
                 </div>

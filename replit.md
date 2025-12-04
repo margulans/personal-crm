@@ -31,13 +31,13 @@ PRIMA is a multi-user collaborative application with team-based access control. 
 - **Table**: `purchases` storing customer purchase history
 - **Fields**: productName, category, amount, currency, purchasedAt, notes
 - **Categories**: product, service, subscription, consultation, training, license, support, other
-- **Currency Support**: RUB, USD, EUR, KZT (validated enum)
+- **Currency Support**: USD (default), EUR, RUB, KZT (validated enum)
 - **Aggregation**: `purchaseTotals` field on contacts stores totalAmount, count, lastPurchaseDate
 - **Financial Score Calculation**: Automatic based on total purchase amount:
-  - 0₽ = 0 points (Нет покупок)
-  - < 100,000₽ = 1 point (До 100 тыс.)
-  - < 500,000₽ = 2 points (100-500 тыс.)
-  - >= 500,000₽ = 3 points (500+ тыс.)
+  - $0 = 0 points (Нет покупок)
+  - < $1,000 = 1 point
+  - < $5,000 = 2 points
+  - >= $5,000 = 3 points
 - **Component**: PurchaseSection (in contact detail) with add/edit/delete functionality
 - **API Endpoints**: /api/purchases, /api/contacts/:id/purchases
 
@@ -46,7 +46,7 @@ PRIMA is a multi-user collaborative application with team-based access control. 
 - **Features**: Track gifts given to and received from contacts with title, description, amount, currency, occasion type, and date
 - **Direction**: "given" (sent to contact) or "received" (received from contact)
 - **Occasions**: birthday, new_year, anniversary, holiday, business, thank_you, apology, no_occasion, other
-- **Currency Support**: RUB, USD, EUR, KZT with appropriate symbols (₽, $, €, ₸)
+- **Currency Support**: USD (default), EUR, RUB, KZT with appropriate symbols ($, €, ₽, ₸)
 - **Components**: GiftSection (in contact detail), GiftsPage (full gift list with filters)
 
 ### Network Graph (Relationship Visualization)

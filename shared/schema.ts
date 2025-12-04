@@ -390,7 +390,7 @@ export const gifts = pgTable("gifts", {
   title: text("title").notNull(),
   description: text("description"),
   amount: real("amount"), // approximate cost
-  currency: varchar("currency", { length: 10 }).default("RUB"),
+  currency: varchar("currency", { length: 10 }).default("USD"),
   direction: varchar("direction", { length: 10 }).notNull(), // "given" or "received"
   occasion: varchar("occasion", { length: 30 }).default("no_occasion"),
   date: date("date").notNull(),
@@ -459,7 +459,7 @@ export const purchases = pgTable("purchases", {
   productName: text("product_name").notNull(),
   category: varchar("category", { length: 30 }).default("product"),
   amount: real("amount").notNull(),
-  currency: varchar("currency", { length: 10 }).default("RUB"),
+  currency: varchar("currency", { length: 10 }).default("USD"),
   purchasedAt: date("purchased_at").notNull(),
   notes: text("notes"),
   
@@ -474,7 +474,7 @@ export const purchases = pgTable("purchases", {
 export type Purchase = typeof purchases.$inferSelect;
 export type InsertPurchase = typeof purchases.$inferInsert;
 
-export const supportedCurrencies = ["RUB", "USD", "EUR", "KZT"] as const;
+export const supportedCurrencies = ["USD", "EUR", "RUB", "KZT"] as const;
 
 export const insertPurchaseSchema = createInsertSchema(purchases).omit({
   id: true,
@@ -487,7 +487,7 @@ export const insertPurchaseSchema = createInsertSchema(purchases).omit({
   productName: z.string().min(1, "Название продукта обязательно"),
   category: z.enum(productCategories).default("product"),
   amount: z.number().finite().min(0.01, "Сумма должна быть положительной"),
-  currency: z.enum(supportedCurrencies).default("RUB"),
+  currency: z.enum(supportedCurrencies).default("USD"),
   purchasedAt: z.string().min(1, "Дата покупки обязательна"),
   notes: z.string().optional().nullable(),
 });

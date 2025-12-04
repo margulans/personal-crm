@@ -28,7 +28,7 @@ const SCORE_DESCRIPTIONS = {
     description: `Что этот человек уже даёт: финансовый, ресурсный, репутационный, интеллектуальный и эмоциональный вклад.
 
 Расчёт баллов:
-• Финансовый — 50% веса (до 7.5 б.): 0₽=0, до 100т₽=1, до 500т₽=2, 500т₽+=3 балла
+• Финансовый — 50% веса (до 7.5 б.): $0=0, до $1000=1, до $5000=2, $5000+=3 балла
 • Остальные 4 критерия — по 12.5% каждый (до 1.875 б.): 0 записей=0, 1-2=1, 3-4=2, 5+=3 балла
 
 Классы: A (12+), B (8-11), C (4-7), D (0-3).`
@@ -69,7 +69,7 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
 
   const formatAmount = (amount: number, currency: string) => {
     // Default to USD ($) if currency not specified or unknown
-    const symbol = currency === "RUB" ? "₽" : currency === "EUR" ? "€" : currency === "KZT" ? "₸" : "$";
+    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "KZT" ? "₸" : "₽";
     return `${amount.toLocaleString()} ${symbol}`;
   };
 

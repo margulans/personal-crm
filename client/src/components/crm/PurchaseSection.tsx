@@ -139,9 +139,9 @@ export function PurchaseForm({ onSubmit, onCancel, initialData, isEditing }: Pur
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="RUB">₽</SelectItem>
               <SelectItem value="USD">$</SelectItem>
               <SelectItem value="EUR">€</SelectItem>
+              <SelectItem value="RUB">₽</SelectItem>
               <SelectItem value="KZT">₸</SelectItem>
             </SelectContent>
           </Select>
@@ -189,7 +189,7 @@ function PurchaseItem({ purchase, onEdit, onDelete }: PurchaseItemProps) {
       })
     : "";
 
-  const currencySymbol = purchase.currency === "RUB" ? "₽" : purchase.currency === "USD" ? "$" : purchase.currency === "KZT" ? "₸" : "€";
+  const currencySymbol = purchase.currency === "USD" ? "$" : purchase.currency === "EUR" ? "€" : purchase.currency === "KZT" ? "₸" : "₽";
 
   return (
     <div

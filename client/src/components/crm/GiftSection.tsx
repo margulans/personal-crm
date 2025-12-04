@@ -126,9 +126,9 @@ function GiftForm({ onSubmit, onCancel, initialData, isEditing }: GiftFormProps)
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="RUB">₽</SelectItem>
                 <SelectItem value="USD">$</SelectItem>
                 <SelectItem value="EUR">€</SelectItem>
+                <SelectItem value="RUB">₽</SelectItem>
                 <SelectItem value="KZT">₸</SelectItem>
               </SelectContent>
             </Select>
@@ -194,7 +194,7 @@ function GiftItem({ gift, onEdit, onDelete }: GiftItemProps) {
     year: gift.date.startsWith(new Date().getFullYear().toString()) ? undefined : "numeric",
   });
 
-  const currencySymbol = gift.currency === "RUB" ? "₽" : gift.currency === "USD" ? "$" : gift.currency === "KZT" ? "₸" : "€";
+  const currencySymbol = gift.currency === "USD" ? "$" : gift.currency === "EUR" ? "€" : gift.currency === "KZT" ? "₸" : "₽";
 
   return (
     <div
@@ -396,11 +396,11 @@ export function GiftSection({ contactId }: GiftSectionProps) {
               <div className="flex gap-4 text-xs text-muted-foreground mb-2 pb-2 border-b">
                 <span>
                   Подарено: <span className="font-medium text-orange-600 dark:text-orange-400">{givenGifts.length}</span>
-                  {givenTotal > 0 && ` (~${givenTotal.toLocaleString()} ₽)`}
+                  {givenTotal > 0 && ` (~$${givenTotal.toLocaleString()})`}
                 </span>
                 <span>
                   Получено: <span className="font-medium text-green-600 dark:text-green-400">{receivedGifts.length}</span>
-                  {receivedTotal > 0 && ` (~${receivedTotal.toLocaleString()} ₽)`}
+                  {receivedTotal > 0 && ` (~$${receivedTotal.toLocaleString()})`}
                 </span>
               </div>
             )}
