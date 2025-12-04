@@ -44,9 +44,10 @@ interface ScorePanelProps {
   onEditPurchaseTotal?: () => void;
   contributionTotals?: ContributionTotals | null;
   onAddContribution?: (criterionType: string) => void;
+  onViewContributions?: (criterionType: string) => void;
 }
 
-export function ScorePanel({ type, scores, totalScore, scoreClass, compact = false, onAddPurchase, purchaseTotals, onEditPurchaseTotal, contributionTotals, onAddContribution }: ScorePanelProps) {
+export function ScorePanel({ type, scores, totalScore, scoreClass, compact = false, onAddPurchase, purchaseTotals, onEditPurchaseTotal, contributionTotals, onAddContribution, onViewContributions }: ScorePanelProps) {
   const criteria = type === "contribution" ? CONTRIBUTION_CRITERIA : POTENTIAL_CRITERIA;
   const title = type === "contribution" ? "Вклад" : "Потенциал";
   const info = SCORE_DESCRIPTIONS[type];
@@ -119,9 +120,22 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
                     </div>
                   )}
                   {contributionTotal && contributionTotal.count > 0 && (
-                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                      {contributionTotal.totalAmount > 0 ? formatAmount(contributionTotal.totalAmount, contributionTotal.currency) : `${contributionTotal.count} шт.`}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                        {contributionTotal.totalAmount > 0 ? formatAmount(contributionTotal.totalAmount, contributionTotal.currency) : `${contributionTotal.count} шт.`}
+                      </span>
+                      {onViewContributions && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-4 w-4 text-muted-foreground hover:text-foreground"
+                          onClick={() => onViewContributions(criterion.key)}
+                          data-testid={`button-view-contributions-${criterion.key}`}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
                   )}
                   <span className="font-mono font-medium">{value}/3</span>
                 </div>

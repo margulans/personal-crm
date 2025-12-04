@@ -64,6 +64,7 @@ import {
 import { useLocation } from "wouter";
 
 import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, EmailEntry, FamilyStatus, FamilyMember, StaffMember, StaffPhone, StaffMessenger, AIInsight, AIRecommendation } from "@/lib/types";
+import type { Contribution, ContributionCriterionType } from "@shared/schema";
 import { SectionAttachments } from "./SectionAttachments";
 import { GiftSection } from "./GiftSection";
 import { PurchaseSection, PurchaseForm, type PurchaseFormData } from "./PurchaseSection";
@@ -131,6 +132,153 @@ function InfoPopover({ blockKey }: { blockKey: keyof typeof BLOCK_DESCRIPTIONS }
   );
 }
 
+const CRITERION_LABELS: Record<string, string> = {
+  financial: "Финансовый",
+  network: "Ресурсный",
+  trust: "Репутационный",
+  emotional: "Эмоциональный",
+  intellectual: "Интеллектуальный",
+};
+
+interface ViewContributionsByCriterionDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  criterionType: string | null;
+  contributions: Contribution[];
+  onEdit: (id: string, data: ContributionFormData) => void;
+  onDelete: (id: string) => void;
+  onAdd: () => void;
+}
+
+function ViewContributionsByCriterionDialog({ 
+  isOpen, 
+  onClose, 
+  criterionType, 
+  contributions,
+  onEdit,
+  onDelete,
+  onAdd
+}: ViewContributionsByCriterionDialogProps) {
+  const [editingContribution, setEditingContribution] = useState<Contribution | null>(null);
+
+  const formatAmount = (amount: number | null, currency: string | null) => {
+    if (!amount) return null;
+    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "KZT" ? "₸" : "₽";
+    return `${amount.toLocaleString()} ${symbol}`;
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("ru-RU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const handleEdit = (data: ContributionFormData) => {
+    if (editingContribution) {
+      onEdit(editingContribution.id, data);
+      setEditingContribution(null);
+    }
+  };
+
+  const criterionLabel = criterionType ? CRITERION_LABELS[criterionType] || criterionType : "";
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between">
+            <span>Вклады: {criterionLabel}</span>
+            <Button size="sm" onClick={onAdd} data-testid="button-add-contribution-in-dialog">
+              <Plus className="h-4 w-4 mr-1" />
+              Добавить
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
+        
+        {editingContribution ? (
+          <div className="space-y-4">
+            <h4 className="font-medium">Редактирование вклада</h4>
+            <ContributionForm
+              initialData={{
+                criterionType: editingContribution.criterionType as ContributionCriterionType,
+                title: editingContribution.title,
+                amount: editingContribution.amount?.toString() || "",
+                currency: editingContribution.currency || "USD",
+                contributedAt: editingContribution.contributedAt,
+                notes: editingContribution.notes || "",
+                hasAmount: !!editingContribution.amount && editingContribution.amount > 0,
+              }}
+              onSubmit={handleEdit}
+              onCancel={() => setEditingContribution(null)}
+              isEditing
+              defaultCriterion={criterionType as ContributionCriterionType}
+            />
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {contributions.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Нет вкладов в этой категории</p>
+                <p className="text-sm mt-1">Нажмите "Добавить" чтобы добавить первый вклад</p>
+              </div>
+            ) : (
+              contributions.map((contribution) => (
+                <div 
+                  key={contribution.id}
+                  className="flex items-start gap-3 p-3 rounded-lg border bg-card hover-elevate transition-colors"
+                  data-testid={`view-contribution-item-${contribution.id}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium" data-testid={`text-view-contribution-title-${contribution.id}`}>
+                      {contribution.title}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {contribution.amount && contribution.amount > 0 && (
+                        <Badge variant="outline" className="text-xs text-emerald-600">
+                          {formatAmount(contribution.amount, contribution.currency)}
+                        </Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(contribution.contributedAt)}
+                      </span>
+                    </div>
+                    {contribution.notes && (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{contribution.notes}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setEditingContribution(contribution)}
+                      className="h-8 w-8"
+                      data-testid={`button-edit-view-contribution-${contribution.id}`}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => onDelete(contribution.id)}
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      data-testid={`button-delete-view-contribution-${contribution.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 type EditingSection = "identity" | "contacts" | "interests" | "family" | "team" | "status" | "potential" | null;
 
 interface ContactDetailProps {
@@ -168,6 +316,7 @@ export function ContactDetail({
   const [editPurchaseTotalAmount, setEditPurchaseTotalAmount] = useState("");
   const [showContributionForm, setShowContributionForm] = useState(false);
   const [defaultContributionCriterion, setDefaultContributionCriterion] = useState<string | undefined>(undefined);
+  const [viewContributionsCriterion, setViewContributionsCriterion] = useState<string | null>(null);
 
   const { data: connections = [] } = useQuery<Array<{ fromContactId: string; toContactId: string }>>({
     queryKey: ["/api/connections"],
@@ -262,9 +411,62 @@ export function ContactDetail({
     },
   });
 
+  const { data: allContributions = [] } = useQuery<Contribution[]>({
+    queryKey: ["/api/contacts", contact.id, "contributions"],
+    queryFn: async () => {
+      const response = await fetch(`/api/contacts/${contact.id}/contributions`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch contributions");
+      return response.json();
+    },
+  });
+
+  const updateContributionMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: ContributionFormData }) => {
+      const res = await apiRequest("PATCH", `/api/contributions/${id}`, {
+        criterionType: data.criterionType,
+        title: data.title,
+        amount: data.hasAmount && data.amount ? parseFloat(data.amount) : null,
+        currency: data.currency,
+        contributedAt: data.contributedAt,
+        notes: data.notes || null,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id, "contributions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      toast({ title: "Вклад обновлён" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteContributionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/contributions/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id, "contributions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      toast({ title: "Вклад удалён" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleAddContribution = (criterionType: string) => {
     setDefaultContributionCriterion(criterionType);
     setShowContributionForm(true);
+  };
+
+  const handleViewContributions = (criterionType: string) => {
+    setViewContributionsCriterion(criterionType);
   };
 
   const updatePurchaseTotalMutation = useMutation({
@@ -2127,6 +2329,7 @@ export function ContactDetail({
                     onEditPurchaseTotal={handleEditPurchaseTotal}
                     contributionTotals={contact.contributionTotals as { [key: string]: { totalAmount: number; currency: string; count: number; lastDate: string | null } } | null}
                     onAddContribution={handleAddContribution}
+                    onViewContributions={handleViewContributions}
                   />
                 </CardContent>
               </Card>
@@ -2568,6 +2771,20 @@ export function ContactDetail({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* View Contributions by Criterion Dialog */}
+      <ViewContributionsByCriterionDialog
+        isOpen={!!viewContributionsCriterion}
+        onClose={() => setViewContributionsCriterion(null)}
+        criterionType={viewContributionsCriterion}
+        contributions={allContributions.filter(c => c.criterionType === viewContributionsCriterion)}
+        onEdit={(id, data) => updateContributionMutation.mutate({ id, data })}
+        onDelete={(id) => deleteContributionMutation.mutate(id)}
+        onAdd={() => {
+          setDefaultContributionCriterion(viewContributionsCriterion || undefined);
+          setShowContributionForm(true);
+        }}
+      />
     </div>
   );
 }
