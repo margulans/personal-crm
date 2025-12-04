@@ -68,7 +68,7 @@ import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEnt
 import type { Contribution, ContributionCriterionType } from "@shared/schema";
 import { SectionAttachments } from "./SectionAttachments";
 import { GiftSection } from "./GiftSection";
-import { PurchaseSection, PurchaseForm, type PurchaseFormData } from "./PurchaseSection";
+import { PurchaseForm, type PurchaseFormData } from "./PurchaseSection";
 import { ContributionSection, ContributionForm, type ContributionFormData, type ContributionFormProps } from "./ContributionSection";
 
 const BLOCK_DESCRIPTIONS = {
@@ -2729,17 +2729,6 @@ export function ContactDetail({
                     count: number;
                     lastDate: string | null;
                   };
-                } | null}
-              />
-
-              {/* Purchases */}
-              <PurchaseSection 
-                contactId={contact.id} 
-                purchaseTotals={contact.purchaseTotals as {
-                  totalAmount: number;
-                  currency: string;
-                  count: number;
-                  lastPurchaseDate: string | null;
                 } | null}
               />
 
