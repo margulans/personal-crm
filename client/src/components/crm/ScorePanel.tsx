@@ -90,7 +90,7 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-1.5">
                   <span className="text-muted-foreground">{criterion.label}</span>
-                  {isContributionType && !isFinancial && onAddContribution && (
+                  {isContributionType && onAddContribution && (
                     <Button
                       size="icon"
                       variant="ghost"
@@ -101,7 +101,7 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
                       <Plus className="h-3.5 w-3.5" />
                     </Button>
                   )}
-                  {isContributionType && !isFinancial && onViewContributions && (
+                  {isContributionType && onViewContributions && (
                     <Button
                       size="icon"
                       variant="ghost"
@@ -112,7 +112,7 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                   )}
-                  {isContributionType && !isFinancial && onRecalculate && (
+                  {isContributionType && onRecalculate && (
                     <Button
                       size="icon"
                       variant="ghost"
