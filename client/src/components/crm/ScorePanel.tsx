@@ -1,9 +1,10 @@
+import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Info, Plus, Pencil, RefreshCw } from "lucide-react";
+import { Info, Plus, Pencil, RefreshCw, X } from "lucide-react";
 import { CONTRIBUTION_CRITERIA, POTENTIAL_CRITERIA } from "@/lib/constants";
 
 interface PurchaseTotals {
@@ -55,7 +56,36 @@ interface ScorePanelProps {
   isRecalculating?: boolean;
 }
 
+function InfoModal({ isOpen, onClose, title, description }: { isOpen: boolean; onClose: () => void; title: string; description: string }) {
+  if (!isOpen) return null;
+  
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      onClick={onClose}
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+    >
+      <div 
+        className="bg-background rounded-lg shadow-lg max-w-sm w-full p-4 relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button 
+          onClick={onClose}
+          className="absolute top-3 right-3 p-1 rounded-sm hover:bg-accent"
+          data-testid="button-close-info-modal"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <h3 className="font-semibold text-lg mb-3 pr-8">{title}</h3>
+        <p className="text-sm text-muted-foreground whitespace-pre-line">{description}</p>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export function ScorePanel({ type, scores, totalScore, scoreClass, compact = false, onAddPurchase, purchaseTotals, onEditPurchaseTotal, contributionTotals, onAddContribution, onViewContributions, onRecalculate, isRecalculating }: ScorePanelProps) {
+  const [showInfo, setShowInfo] = useState(false);
   const criteria = type === "contribution" ? CONTRIBUTION_CRITERIA : POTENTIAL_CRITERIA;
   const title = type === "contribution" ? "Вклад" : "Потенциал";
   const info = SCORE_DESCRIPTIONS[type];
@@ -178,19 +208,21 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <CardTitle className="text-base">{title}</CardTitle>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 touch-manipulation" data-testid={`button-info-${type}`}>
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-sm">
-                <DialogHeader>
-                  <DialogTitle>{info.title}</DialogTitle>
-                </DialogHeader>
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{info.description}</p>
-              </DialogContent>
-            </Dialog>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 touch-manipulation" 
+              onClick={() => setShowInfo(true)}
+              data-testid={`button-info-${type}`}
+            >
+              <Info className="h-4 w-4 text-muted-foreground" />
+            </Button>
+            <InfoModal 
+              isOpen={showInfo} 
+              onClose={() => setShowInfo(false)} 
+              title={info.title} 
+              description={info.description} 
+            />
           </div>
           <div className="flex items-center gap-2">
             <span className="text-2xl font-bold font-mono">{totalScore}</span>
