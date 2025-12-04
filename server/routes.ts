@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { insertContactSchema, insertInteractionSchema, insertTeamSchema, insertAttachmentSchema, insertContactConnectionSchema, insertGiftSchema, updateGiftSchema, teams, aiInsightsCache } from "@shared/schema";
+import { insertContactSchema, insertInteractionSchema, insertTeamSchema, insertAttachmentSchema, insertContactConnectionSchema, insertGiftSchema, updateGiftSchema, insertPurchaseSchema, updatePurchaseSchema, teams, aiInsightsCache } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -1986,6 +1986,124 @@ export async function registerRoutes(
   });
 
   // ============= END GIFT ENDPOINTS =============
+
+  // ============= PURCHASE ENDPOINTS =============
+  
+  // Get all purchases for current team
+  app.get("/api/purchases", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      const purchases = await storage.getPurchases(teamId);
+      res.json(purchases);
+    } catch (error) {
+      console.error("Error fetching purchases:", error);
+      res.status(500).json({ error: "Failed to fetch purchases" });
+    }
+  });
+
+  // Get purchases for a specific contact
+  app.get("/api/contacts/:contactId/purchases", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const contact = await storage.getContact(req.params.contactId, teamId);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      const purchases = await storage.getContactPurchases(req.params.contactId, teamId);
+      res.json(purchases);
+    } catch (error) {
+      console.error("Error fetching contact purchases:", error);
+      res.status(500).json({ error: "Failed to fetch contact purchases" });
+    }
+  });
+
+  // Create a new purchase
+  app.post("/api/purchases", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const userId = getUserId(req);
+      const purchaseData = insertPurchaseSchema.parse({
+        ...req.body,
+        teamId,
+        createdBy: userId,
+      });
+      
+      // Verify contact exists and belongs to team
+      const contact = await storage.getContact(purchaseData.contactId, teamId);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      const purchase = await storage.createPurchase(purchaseData);
+      res.status(201).json(purchase);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: fromZodError(error).message });
+      }
+      console.error("Error creating purchase:", error);
+      res.status(500).json({ error: "Failed to create purchase" });
+    }
+  });
+
+  // Update a purchase
+  app.patch("/api/purchases/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const purchase = await storage.getPurchase(req.params.id, teamId);
+      if (!purchase) {
+        return res.status(404).json({ error: "Purchase not found" });
+      }
+      
+      const validatedData = updatePurchaseSchema.parse(req.body);
+      const updated = await storage.updatePurchase(req.params.id, validatedData, teamId);
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: fromZodError(error).message });
+      }
+      console.error("Error updating purchase:", error);
+      res.status(500).json({ error: "Failed to update purchase" });
+    }
+  });
+
+  // Delete a purchase
+  app.delete("/api/purchases/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getVerifiedTeamId(req);
+      if (!teamId) {
+        return res.status(403).json({ error: "Team membership required" });
+      }
+      
+      const purchase = await storage.getPurchase(req.params.id, teamId);
+      if (!purchase) {
+        return res.status(404).json({ error: "Purchase not found" });
+      }
+      
+      await storage.deletePurchase(req.params.id, teamId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting purchase:", error);
+      res.status(500).json({ error: "Failed to delete purchase" });
+    }
+  });
+
+  // ============= END PURCHASE ENDPOINTS =============
 
   // Endpoint for scheduled backup (can be called by cron/scheduled deployment)
   app.post("/api/backups/auto", async (req: Request, res: Response) => {
