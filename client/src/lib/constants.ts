@@ -46,31 +46,36 @@ export const CONTRIBUTION_CRITERIA = [
     key: "financial", 
     label: "Финансовый", 
     description: "Покупки, инвестиции, привёл оборот",
-    scale: "0=нет; 1=до $10K; 2=$10-100K; 3=$100K+"
+    scale: "0=нет; 1=до $10K; 2=$10-100K; 3=$100K+",
+    weight: 50, // 50% веса, макс 7.5 баллов
   },
   { 
     key: "network", 
     label: "Ресурсный", 
     description: "Интро, доступ к людям, открыл двери, ресурсы",
-    scale: "0=нет; 1=разовая помощь; 2=существенный ресурс; 3=системная помощь"
+    scale: "0=нет; 1=разовая помощь; 2=существенный ресурс; 3=системная помощь",
+    weight: 12.5, // 12.5% веса, макс ~1.9 балла
   },
   { 
     key: "trust", 
     label: "Репутационный", 
     description: "Лояльность, рекомендации, защита репутации",
-    scale: "0=нет; 1=единичные жесты; 2=ощутимый вклад; 3=системное усиление"
+    scale: "0=нет; 1=единичные жесты; 2=ощутимый вклад; 3=системное усиление",
+    weight: 12.5, // 12.5% веса, макс ~1.9 балла
   },
   { 
     key: "intellectual", 
     label: "Интеллектуальный", 
     description: "Знания, опыт, экспертиза, менторство",
-    scale: "0=нет; 1=разовые советы; 2=регулярная помощь; 3=ментор/эксперт"
+    scale: "0=нет; 1=разовые советы; 2=регулярная помощь; 3=ментор/эксперт",
+    weight: 12.5, // 12.5% веса, макс ~1.9 балла
   },
   { 
     key: "emotional", 
     label: "Эмоциональный", 
     description: "Приятное общение, поддержка, психологический комфорт",
-    scale: "0=нет; 1=иногда приятно; 2=регулярная поддержка; 3=ключевой человек"
+    scale: "0=нет; 1=иногда приятно; 2=регулярная поддержка; 3=ключевой человек",
+    weight: 12.5, // 12.5% веса, макс ~1.9 балла
   },
 ] as const;
 
@@ -93,6 +98,41 @@ export function getClassFromScore(score: number, maxScore: number = 15): string 
   if (score >= 5) return "B";
   if (score >= 2) return "C";
   return "D";
+}
+
+// Calculate contribution score with weighted criteria
+// Financial = 50% weight (max 7.5 points when value = 3)
+// Other 4 criteria = 50% weight total (12.5% each, max ~1.9 points each when value = 3)
+export function calculateContributionScore(details: {
+  financial?: number;
+  network?: number;
+  trust?: number;
+  emotional?: number;
+  intellectual?: number;
+}): number {
+  const d = details || {};
+  const financialWeight = 2.5; // 3 * 2.5 = 7.5 (50%)
+  const otherWeight = 0.625;   // 3 * 0.625 = 1.875 per criterion (12.5% each)
+  
+  return Math.round(
+    (d.financial || 0) * financialWeight +
+    (d.network || 0) * otherWeight +
+    (d.trust || 0) * otherWeight +
+    (d.emotional || 0) * otherWeight +
+    (d.intellectual || 0) * otherWeight
+  );
+}
+
+// Calculate potential score (simple sum, no weighted criteria)
+export function calculatePotentialScore(details: {
+  personal?: number;
+  resources?: number;
+  network?: number;
+  synergy?: number;
+  systemRole?: number;
+}): number {
+  const d = details || {};
+  return (d.personal || 0) + (d.resources || 0) + (d.network || 0) + (d.synergy || 0) + (d.systemRole || 0);
 }
 
 export function calculateHeatIndex(

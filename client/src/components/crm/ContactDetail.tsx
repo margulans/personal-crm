@@ -20,7 +20,7 @@ import { AttentionGapIndicator } from "./AttentionGapIndicator";
 import { ScorePanel } from "./ScorePanel";
 import { InteractionItem } from "./InteractionItem";
 import { InteractionForm } from "./InteractionForm";
-import { ATTENTION_LEVELS, CONTRIBUTION_CRITERIA, formatDaysAgo } from "@/lib/constants";
+import { ATTENTION_LEVELS, CONTRIBUTION_CRITERIA, formatDaysAgo, calculateContributionScore, calculatePotentialScore, getClassFromScore } from "@/lib/constants";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -441,16 +441,17 @@ export function ContactDetail({
     
     if (dataToSave.contributionDetails) {
       const details = dataToSave.contributionDetails as { financial: number; network: number; trust: number; emotional: number; intellectual: number };
-      const contributionScore = (details.financial || 0) + (details.network || 0) + (details.trust || 0) + (details.emotional || 0) + (details.intellectual || 0);
-      dataToSave.contributionScore = contributionScore;
-      dataToSave.contributionClass = contributionScore >= 12 ? "A" : contributionScore >= 8 ? "B" : contributionScore >= 4 ? "C" : "D";
+      // Use weighted calculation: financial 50%, others 12.5% each
+      const score = calculateContributionScore(details);
+      dataToSave.contributionScore = score;
+      dataToSave.contributionClass = getClassFromScore(score, 15);
     }
     
     if (dataToSave.potentialDetails) {
       const details = dataToSave.potentialDetails as { personal: number; resources: number; network: number; synergy: number; systemRole: number };
-      const potentialScore = (details.personal || 0) + (details.resources || 0) + (details.network || 0) + (details.synergy || 0) + (details.systemRole || 0);
-      dataToSave.potentialScore = potentialScore;
-      dataToSave.potentialClass = potentialScore >= 12 ? "A" : potentialScore >= 8 ? "B" : potentialScore >= 4 ? "C" : "D";
+      const score = calculatePotentialScore(details);
+      dataToSave.potentialScore = score;
+      dataToSave.potentialClass = getClassFromScore(score, 15);
     }
     
     await updateMutation.mutateAsync(dataToSave);
