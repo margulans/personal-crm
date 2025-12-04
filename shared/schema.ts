@@ -574,12 +574,12 @@ export const updateContributionSchema = z.object({
   introducedContactId: z.string().optional().nullable(),
 });
 
-// Financial score thresholds (in RUB)
+// Financial score thresholds (in USD)
 export const FINANCIAL_SCORE_THRESHOLDS = {
-  SCORE_0: 0,        // 0₽ = 0 баллов
-  SCORE_1: 100000,   // <100k = 1 балл
-  SCORE_2: 500000,   // <500k = 2 балла
-  SCORE_3: 500000,   // ≥500k = 3 балла
+  SCORE_0: 0,        // $0 = 0 баллов
+  SCORE_1: 100000,   // <$100k = 1 балл
+  SCORE_2: 500000,   // <$500k = 2 балла
+  SCORE_3: 500000,   // ≥$500k = 3 балла
 } as const;
 
 export function calculateFinancialScore(totalAmount: number): number {

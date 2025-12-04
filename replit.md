@@ -35,9 +35,9 @@ PRIMA is a multi-user collaborative application with team-based access control. 
 - **Aggregation**: `purchaseTotals` field on contacts stores totalAmount, count, lastPurchaseDate
 - **Financial Score Calculation**: Automatic based on total purchase amount:
   - $0 = 0 points (Нет покупок)
-  - < $1,000 = 1 point
-  - < $5,000 = 2 points
-  - >= $5,000 = 3 points
+  - >$0 и <$100,000 = 1 point
+  - ≥$100,000 и <$500,000 = 2 points
+  - ≥$500,000 = 3 points
 - **Component**: PurchaseSection (in contact detail) with add/edit/delete functionality
 - **API Endpoints**: /api/purchases, /api/contacts/:id/purchases
 
