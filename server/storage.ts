@@ -1058,7 +1058,8 @@ export class DatabaseStorage implements IStorage {
     // Calculate totals per criterion type
     const totals: { [key: string]: { totalAmount: number; currency: string; count: number; lastDate: string | null } } = {};
     
-    // New contribution details - reset scores for criteria without contributions
+    // New contribution details - calculate scores based on contribution count
+    // Escalation formula: 1-2 contributions = 1, 3-5 = 2, 6+ = 3
     const newDetails: { 
       financial: number; 
       network: number; 
@@ -1071,6 +1072,15 @@ export class DatabaseStorage implements IStorage {
       trust: 0,
       emotional: 0,
       intellectual: 0,
+    };
+    
+    // Helper function to calculate score from contribution count
+    // 1-2 contributions = 1 point, 3-5 = 2 points, 6+ = 3 points
+    const calculateScoreFromCount = (count: number): number => {
+      if (count === 0) return 0;
+      if (count < 3) return 1;  // 1-2 contributions
+      if (count < 6) return 2;  // 3-5 contributions
+      return 3;                  // 6+ contributions
     };
     
     for (const criterionType of contributionCriteriaTypes) {
@@ -1102,14 +1112,13 @@ export class DatabaseStorage implements IStorage {
           count,
           lastDate,
         };
-        
-        // Preserve existing score for criteria with contributions
-        if (criterionType !== 'financial') {
-          const key = criterionType as keyof typeof newDetails;
-          newDetails[key] = currentDetails[key] || 0;
-        }
       }
-      // If count === 0, the score stays 0 (already set in newDetails initialization)
+      
+      // Auto-calculate score for non-financial criteria based on contribution count
+      if (criterionType !== 'financial') {
+        const key = criterionType as keyof typeof newDetails;
+        newDetails[key] = calculateScoreFromCount(count);
+      }
     }
     
     // Calculate new contribution score and class
