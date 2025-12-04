@@ -614,7 +614,7 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
       <CardHeader className="flex-row items-center justify-between space-y-0 gap-2 pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          Вклады ({stats.totalCount})
+          История вкладов
           {stats.totalAmount > 0 && (
             <Badge variant="secondary" className="ml-2">
               {stats.totalAmount.toLocaleString()} $
@@ -642,36 +642,33 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
         </Dialog>
       </CardHeader>
       <CardContent className="space-y-3">
-        {contributions.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            <Button
-              size="sm"
-              variant={filterCriterion === "all" ? "default" : "outline"}
-              onClick={() => setFilterCriterion("all")}
-              className="text-xs h-7"
-              data-testid="filter-all-contributions"
-            >
-              Все
-            </Button>
-            {CRITERION_TYPES.map((ct) => {
-              const count = contributions.filter(c => c.criterionType === ct.value).length;
-              if (count === 0) return null;
-              return (
-                <Button
-                  key={ct.value}
-                  size="sm"
-                  variant={filterCriterion === ct.value ? "default" : "outline"}
-                  onClick={() => setFilterCriterion(ct.value)}
-                  className="text-xs h-7 gap-1"
-                  data-testid={`filter-${ct.value}-contributions`}
-                >
-                  <ct.icon className={`h-3 w-3 ${ct.color}`} />
-                  {ct.label} ({count})
-                </Button>
-              );
-            })}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-1">
+          <Button
+            size="sm"
+            variant={filterCriterion === "all" ? "default" : "outline"}
+            onClick={() => setFilterCriterion("all")}
+            className="text-xs h-7"
+            data-testid="filter-all-contributions"
+          >
+            Все ({contributions.length})
+          </Button>
+          {CRITERION_TYPES.map((ct) => {
+            const count = contributions.filter(c => c.criterionType === ct.value).length;
+            return (
+              <Button
+                key={ct.value}
+                size="sm"
+                variant={filterCriterion === ct.value ? "default" : "outline"}
+                onClick={() => setFilterCriterion(ct.value)}
+                className={`text-xs h-7 gap-1 ${count === 0 ? "opacity-50" : ""}`}
+                data-testid={`filter-${ct.value}-contributions`}
+              >
+                <ct.icon className={`h-3 w-3 ${ct.color}`} />
+                {ct.label} ({count})
+              </Button>
+            );
+          })}
+        </div>
 
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">
