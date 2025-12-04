@@ -193,6 +193,14 @@ export const contacts = pgTable("contacts", {
     systemRole: number;
   }>().default({ personal: 0, resources: 0, network: 0, synergy: 0, systemRole: 0 }),
   
+  // Purchase totals (calculated from purchases table)
+  purchaseTotals: jsonb("purchase_totals").$type<{
+    totalAmount: number;
+    currency: string;
+    count: number;
+    lastPurchaseDate: string | null;
+  }>().default({ totalAmount: 0, currency: "RUB", count: 0, lastPurchaseDate: null }),
+  
   importanceLevel: varchar("importance_level", { length: 1 }).notNull().default("C"),
   recommendedAttentionLevel: integer("recommended_attention_level").notNull().default(2),
   attentionLevel: integer("attention_level").notNull().default(1),
@@ -415,6 +423,86 @@ export const updateGiftSchema = z.object({
   occasion: z.enum(giftOccasions).optional(),
   date: z.string().optional(),
 });
+
+// Product categories for purchases
+export const productCategories = [
+  "consulting", "training", "software", "hardware", "subscription", "service", "product", "other"
+] as const;
+
+export type ProductCategory = typeof productCategories[number];
+
+// Purchase totals stored on contact
+export type PurchaseTotals = {
+  totalAmount: number;
+  currency: string;
+  count: number;
+  lastPurchaseDate: string | null;
+};
+
+// Purchases table
+export const purchases = pgTable("purchases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  contactId: varchar("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  createdBy: varchar("created_by").references(() => users.id),
+  
+  productName: text("product_name").notNull(),
+  category: varchar("category", { length: 30 }).default("product"),
+  amount: real("amount").notNull(),
+  currency: varchar("currency", { length: 10 }).default("RUB"),
+  purchasedAt: date("purchased_at").notNull(),
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_purchases_team_id").on(table.teamId),
+  index("idx_purchases_contact_id").on(table.contactId),
+  index("idx_purchases_date").on(table.purchasedAt),
+]);
+
+export type Purchase = typeof purchases.$inferSelect;
+export type InsertPurchase = typeof purchases.$inferInsert;
+
+export const insertPurchaseSchema = createInsertSchema(purchases).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  teamId: z.string().min(1),
+  contactId: z.string().min(1),
+  createdBy: z.string().optional(),
+  productName: z.string().min(1, "Название продукта обязательно"),
+  category: z.enum(productCategories).default("product"),
+  amount: z.number().min(0, "Сумма должна быть положительной"),
+  currency: z.string().default("RUB"),
+  purchasedAt: z.string().min(1, "Дата покупки обязательна"),
+  notes: z.string().optional().nullable(),
+});
+
+export const updatePurchaseSchema = z.object({
+  productName: z.string().min(1, "Название продукта обязательно").optional(),
+  category: z.enum(productCategories).optional(),
+  amount: z.number().min(0).optional(),
+  currency: z.string().optional(),
+  purchasedAt: z.string().optional(),
+  notes: z.string().optional().nullable(),
+});
+
+// Financial score thresholds (in RUB)
+export const FINANCIAL_SCORE_THRESHOLDS = {
+  SCORE_0: 0,        // 0₽ = 0 баллов
+  SCORE_1: 100000,   // <100k = 1 балл
+  SCORE_2: 500000,   // <500k = 2 балла
+  SCORE_3: 500000,   // ≥500k = 3 балла
+} as const;
+
+export function calculateFinancialScore(totalAmount: number): number {
+  if (totalAmount >= FINANCIAL_SCORE_THRESHOLDS.SCORE_3) return 3;
+  if (totalAmount >= FINANCIAL_SCORE_THRESHOLDS.SCORE_1) return 2;
+  if (totalAmount > FINANCIAL_SCORE_THRESHOLDS.SCORE_0) return 1;
+  return 0;
+}
 
 const contributionDetailsSchema = z.object({
   financial: z.number().min(0).max(3).default(0),
