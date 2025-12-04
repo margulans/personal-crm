@@ -140,6 +140,8 @@ export const contacts = pgTable("contacts", {
   // Company info
   company: text("company"),
   companyRole: text("company_role"),
+  industry: text("industry"), // Отрасль
+  country: text("country"), // Страна
   
   // Contact methods (legacy single fields kept for backwards compatibility)
   phone: text("phone"),
