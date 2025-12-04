@@ -724,11 +724,6 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
         <CardTitle className="text-base flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
           История вкладов
-          {stats.totalAmount > 0 && (
-            <Badge variant="secondary" className="ml-2">
-              {stats.totalAmount.toLocaleString()} $
-            </Badge>
-          )}
         </CardTitle>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
