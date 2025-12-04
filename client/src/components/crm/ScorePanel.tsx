@@ -3,7 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Info, Plus, Pencil } from "lucide-react";
+import { Info, Plus, Pencil, RefreshCw } from "lucide-react";
 import { CONTRIBUTION_CRITERIA, POTENTIAL_CRITERIA } from "@/lib/constants";
 
 interface PurchaseTotals {
@@ -45,9 +45,11 @@ interface ScorePanelProps {
   contributionTotals?: ContributionTotals | null;
   onAddContribution?: (criterionType: string) => void;
   onViewContributions?: (criterionType: string) => void;
+  onRecalculate?: () => void;
+  isRecalculating?: boolean;
 }
 
-export function ScorePanel({ type, scores, totalScore, scoreClass, compact = false, onAddPurchase, purchaseTotals, onEditPurchaseTotal, contributionTotals, onAddContribution, onViewContributions }: ScorePanelProps) {
+export function ScorePanel({ type, scores, totalScore, scoreClass, compact = false, onAddPurchase, purchaseTotals, onEditPurchaseTotal, contributionTotals, onAddContribution, onViewContributions, onRecalculate, isRecalculating }: ScorePanelProps) {
   const criteria = type === "contribution" ? CONTRIBUTION_CRITERIA : POTENTIAL_CRITERIA;
   const title = type === "contribution" ? "Вклад" : "Потенциал";
   const info = SCORE_DESCRIPTIONS[type];
@@ -108,6 +110,18 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
                       data-testid={`button-view-contributions-${criterion.key}`}
                     >
                       <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {isContributionType && !isFinancial && onRecalculate && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-5 w-5 text-muted-foreground hover:text-primary"
+                      onClick={onRecalculate}
+                      disabled={isRecalculating}
+                      data-testid={`button-recalculate-${criterion.key}`}
+                    >
+                      <RefreshCw className={cn("h-3.5 w-3.5", isRecalculating && "animate-spin")} />
                     </Button>
                   )}
                 </div>

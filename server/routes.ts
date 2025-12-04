@@ -653,6 +653,25 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/contacts/:id/recalculate-contributions", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getCurrentTeamId(req);
+      const contactId = req.params.id;
+      
+      const contact = await storage.getContact(contactId, teamId || undefined);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      await storage.recalculateContributionTotals(contactId);
+      const updatedContact = await storage.getContact(contactId, teamId || undefined);
+      res.json(updatedContact);
+    } catch (error) {
+      console.error("Error recalculating contact contributions:", error);
+      res.status(500).json({ error: "Failed to recalculate contributions" });
+    }
+  });
+
   app.post("/api/import", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getUserId(req);

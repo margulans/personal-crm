@@ -495,6 +495,21 @@ export function ContactDetail({
     },
   });
 
+  const recalculateContributionsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/contacts/${contact.id}/recalculate-contributions`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      toast({ title: "Баллы пересчитаны" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleEditPurchaseTotal = () => {
     const currentTotal = (contact.purchaseTotals as { totalAmount: number } | null)?.totalAmount || 0;
     setEditPurchaseTotalAmount(currentTotal.toString());
@@ -2330,6 +2345,8 @@ export function ContactDetail({
                     contributionTotals={contact.contributionTotals as { [key: string]: { totalAmount: number; currency: string; count: number; lastDate: string | null } } | null}
                     onAddContribution={handleAddContribution}
                     onViewContributions={handleViewContributions}
+                    onRecalculate={() => recalculateContributionsMutation.mutate()}
+                    isRecalculating={recalculateContributionsMutation.isPending}
                   />
                 </CardContent>
               </Card>
