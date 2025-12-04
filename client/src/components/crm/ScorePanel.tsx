@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Info, Plus, Pencil, RefreshCw } from "lucide-react";
 import { CONTRIBUTION_CRITERIA, POTENTIAL_CRITERIA } from "@/lib/constants";
@@ -178,19 +178,19 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center">
             {title}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 ml-1" data-testid={`button-info-${type}`}>
                   <Info className="h-4 w-4 text-muted-foreground" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-2">
-                  <h4 className="font-medium">{info.title}</h4>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">{info.description}</p>
-                </div>
-              </PopoverContent>
-            </Popover>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>{info.title}</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{info.description}</p>
+              </DialogContent>
+            </Dialog>
           </CardTitle>
           <div className="flex items-center gap-2">
             <span className="text-2xl font-bold font-mono">{totalScore}</span>
