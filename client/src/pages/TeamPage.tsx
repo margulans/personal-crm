@@ -154,6 +154,19 @@ export default function TeamPage() {
     },
   });
 
+  const recalculateContributionsMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/contacts/recalculate-contributions");
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      toast({ title: "Баллы пересчитаны", description: `Обновлено контактов: ${data.updated}` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
   const copyInviteCode = () => {
     if (team?.inviteCode) {
       navigator.clipboard.writeText(team.inviteCode);
@@ -455,6 +468,35 @@ export default function TeamPage() {
                     )}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {isOwnerOrAdmin && (
+            <Card data-testid="card-recalculate">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5 text-primary" />
+                  <CardTitle>Пересчёт баллов</CardTitle>
+                </div>
+                <CardDescription>
+                  Пересчитать баллы вкладов для всех контактов. Баллы критериев (Ресурсный, Репутационный, Эмоциональный, Интеллектуальный) 
+                  рассчитываются автоматически по количеству записей вкладов: 1-2 = 1 балл, 3-5 = 2 балла, 6+ = 3 балла.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={() => recalculateContributionsMutation.mutate()}
+                  disabled={recalculateContributionsMutation.isPending}
+                  data-testid="button-recalculate-contributions"
+                >
+                  {recalculateContributionsMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Пересчитать баллы
+                </Button>
               </CardContent>
             </Card>
           )}

@@ -638,6 +638,21 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/contacts/recalculate-contributions", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const teamId = await getCurrentTeamId(req);
+      if (!teamId) {
+        return res.status(400).json({ error: "Team is required" });
+      }
+      
+      const updatedCount = await storage.recalculateAllContactContributions(teamId);
+      res.json({ message: `Recalculated contributions for ${updatedCount} contacts`, updated: updatedCount });
+    } catch (error) {
+      console.error("Error recalculating contributions:", error);
+      res.status(500).json({ error: "Failed to recalculate contributions" });
+    }
+  });
+
   app.post("/api/import", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getUserId(req);

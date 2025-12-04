@@ -1135,6 +1135,19 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(contacts.id, contactId));
   }
+
+  async recalculateAllContactContributions(teamId: string): Promise<number> {
+    // Get all contacts for the team
+    const teamContacts = await this.getContacts(teamId);
+    let updatedCount = 0;
+    
+    for (const contact of teamContacts) {
+      await this.recalculateContributionTotals(contact.id, teamId);
+      updatedCount++;
+    }
+    
+    return updatedCount;
+  }
 }
 
 export const storage = new DatabaseStorage();
