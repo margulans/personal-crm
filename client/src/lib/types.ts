@@ -52,6 +52,8 @@ export interface Contact {
     financial: number;
     network: number;
     trust: number;
+    emotional: number;
+    intellectual: number;
   };
   potentialDetails: {
     personal: number;
@@ -139,6 +141,8 @@ export interface InsertContact {
     financial: number;
     network: number;
     trust: number;
+    emotional: number;
+    intellectual: number;
   };
   potentialDetails?: {
     personal: number;
