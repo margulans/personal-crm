@@ -60,6 +60,7 @@ import {
   Trash2,
   Camera,
   Upload,
+  ExternalLink,
 } from "lucide-react";
 import { useLocation } from "wouter";
 
@@ -148,6 +149,9 @@ interface ViewContributionsByCriterionDialogProps {
   onEdit: (id: string, data: ContributionFormData) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
+  contacts?: Contact[];
+  currentContactId?: string;
+  onNavigateToContact?: (contactId: string) => void;
 }
 
 function ViewContributionsByCriterionDialog({ 
@@ -157,7 +161,10 @@ function ViewContributionsByCriterionDialog({
   contributions,
   onEdit,
   onDelete,
-  onAdd
+  onAdd,
+  contacts = [],
+  currentContactId,
+  onNavigateToContact
 }: ViewContributionsByCriterionDialogProps) {
   const [editingContribution, setEditingContribution] = useState<Contribution | null>(null);
 
@@ -209,11 +216,14 @@ function ViewContributionsByCriterionDialog({
                 contributedAt: editingContribution.contributedAt,
                 notes: editingContribution.notes || "",
                 hasAmount: !!editingContribution.amount && editingContribution.amount > 0,
+                introducedContactId: editingContribution.introducedContactId || null,
               }}
               onSubmit={handleEdit}
               onCancel={() => setEditingContribution(null)}
               isEditing
               defaultCriterion={criterionType as ContributionCriterionType}
+              contacts={contacts}
+              currentContactId={currentContactId}
             />
           </div>
         ) : (
@@ -225,52 +235,71 @@ function ViewContributionsByCriterionDialog({
                 <p className="text-sm mt-1">Нажмите "Добавить" чтобы добавить первый вклад</p>
               </div>
             ) : (
-              contributions.map((contribution) => (
-                <div 
-                  key={contribution.id}
-                  className="flex items-start gap-3 p-3 rounded-lg border bg-card hover-elevate transition-colors"
-                  data-testid={`view-contribution-item-${contribution.id}`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium" data-testid={`text-view-contribution-title-${contribution.id}`}>
-                      {contribution.title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      {contribution.amount && contribution.amount > 0 && (
-                        <Badge variant="outline" className="text-xs text-emerald-600">
-                          {formatAmount(contribution.amount, contribution.currency)}
-                        </Badge>
+              contributions.map((contribution) => {
+                const introducedContact = contribution.introducedContactId 
+                  ? contacts.find(c => c.id === contribution.introducedContactId)
+                  : null;
+                return (
+                  <div 
+                    key={contribution.id}
+                    className="flex items-start gap-3 p-3 rounded-lg border bg-card hover-elevate transition-colors"
+                    data-testid={`view-contribution-item-${contribution.id}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium" data-testid={`text-view-contribution-title-${contribution.id}`}>
+                        {contribution.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {introducedContact && (
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs text-blue-600 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950 gap-1"
+                            onClick={() => {
+                              onClose();
+                              onNavigateToContact?.(introducedContact.id);
+                            }}
+                            data-testid={`link-introduced-contact-${contribution.id}`}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            {introducedContact.fullName}
+                          </Badge>
+                        )}
+                        {contribution.amount && contribution.amount > 0 && (
+                          <Badge variant="outline" className="text-xs text-emerald-600">
+                            {formatAmount(contribution.amount, contribution.currency)}
+                          </Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(contribution.contributedAt)}
+                        </span>
+                      </div>
+                      {contribution.notes && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{contribution.notes}</p>
                       )}
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(contribution.contributedAt)}
-                      </span>
                     </div>
-                    {contribution.notes && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{contribution.notes}</p>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setEditingContribution(contribution)}
+                        className="h-8 w-8"
+                        data-testid={`button-edit-view-contribution-${contribution.id}`}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => onDelete(contribution.id)}
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        data-testid={`button-delete-view-contribution-${contribution.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setEditingContribution(contribution)}
-                      className="h-8 w-8"
-                      data-testid={`button-edit-view-contribution-${contribution.id}`}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => onDelete(contribution.id)}
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      data-testid={`button-delete-view-contribution-${contribution.id}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}
@@ -320,6 +349,10 @@ export function ContactDetail({
 
   const { data: connections = [] } = useQuery<Array<{ fromContactId: string; toContactId: string }>>({
     queryKey: ["/api/connections"],
+  });
+
+  const { data: allContacts = [] } = useQuery<Contact[]>({
+    queryKey: ["/api/contacts"],
   });
   
   const hasConnections = connections.some(
@@ -395,6 +428,7 @@ export function ContactDetail({
         currency: data.currency,
         contributedAt: data.contributedAt,
         notes: data.notes || null,
+        introducedContactId: data.introducedContactId || null,
       });
       return res.json();
     },
@@ -431,6 +465,7 @@ export function ContactDetail({
         currency: data.currency,
         contributedAt: data.contributedAt,
         notes: data.notes || null,
+        introducedContactId: data.introducedContactId || null,
       });
       return res.json();
     },
@@ -2744,6 +2779,8 @@ export function ContactDetail({
               setDefaultContributionCriterion(undefined);
             }}
             defaultCriterion={defaultContributionCriterion as any}
+            contacts={allContacts}
+            currentContactId={contact.id}
           />
         </DialogContent>
       </Dialog>
@@ -2801,6 +2838,9 @@ export function ContactDetail({
           setDefaultContributionCriterion(viewContributionsCriterion || undefined);
           setShowContributionForm(true);
         }}
+        contacts={allContacts}
+        currentContactId={contact.id}
+        onNavigateToContact={(targetContactId) => setLocation(`/contacts/${targetContactId}`)}
       />
     </div>
   );

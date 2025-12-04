@@ -532,6 +532,9 @@ export const contributions = pgTable("contributions", {
   contributedAt: date("contributed_at").notNull(), // When the contribution happened
   notes: text("notes"),
   
+  // For network contributions - link to the contact they introduced
+  introducedContactId: varchar("introduced_contact_id").references(() => contacts.id, { onDelete: "set null" }),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -558,6 +561,7 @@ export const insertContributionSchema = createInsertSchema(contributions).omit({
   currency: z.enum(supportedCurrencies).default("USD"),
   contributedAt: z.string().min(1, "Дата вклада обязательна"),
   notes: z.string().optional().nullable(),
+  introducedContactId: z.string().optional().nullable(),
 });
 
 export const updateContributionSchema = z.object({
@@ -567,6 +571,7 @@ export const updateContributionSchema = z.object({
   currency: z.enum(supportedCurrencies).optional(),
   contributedAt: z.string().optional(),
   notes: z.string().optional().nullable(),
+  introducedContactId: z.string().optional().nullable(),
 });
 
 // Financial score thresholds (in RUB)

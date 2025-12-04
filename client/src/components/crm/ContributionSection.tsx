@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,10 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Heart, Plus, Calendar, Trash2, Pencil, DollarSign, X, Lightbulb, Users, Shield, Brain, Sparkles } from "lucide-react";
-import type { Contribution, ContributionCriterionType } from "@shared/schema";
+import { Heart, Plus, Calendar, Trash2, Pencil, DollarSign, X, Lightbulb, Users, Shield, Brain, Sparkles, Search, ExternalLink, Check, ChevronsUpDown } from "lucide-react";
+import type { Contribution, ContributionCriterionType, Contact } from "@shared/schema";
+import { cn } from "@/lib/utils";
 
 const CRITERION_TYPES: { value: ContributionCriterionType; label: string; icon: typeof Heart; color: string }[] = [
   { value: "financial", label: "Финансовый", icon: DollarSign, color: "text-emerald-600" },
@@ -86,7 +90,14 @@ export interface ContributionFormData {
   contributedAt: string;
   notes: string;
   hasAmount: boolean;
+  introducedContactId: string | null;
 }
+
+type ContactForSelect = {
+  id: string;
+  fullName: string;
+  company?: string | null | undefined;
+};
 
 export interface ContributionFormProps {
   onSubmit: (data: ContributionFormData) => void;
@@ -94,9 +105,11 @@ export interface ContributionFormProps {
   initialData?: Partial<ContributionFormData>;
   isEditing?: boolean;
   defaultCriterion?: ContributionCriterionType;
+  contacts?: ContactForSelect[];
+  currentContactId?: string;
 }
 
-export function ContributionForm({ onSubmit, onCancel, initialData, isEditing, defaultCriterion }: ContributionFormProps) {
+export function ContributionForm({ onSubmit, onCancel, initialData, isEditing, defaultCriterion, contacts = [], currentContactId }: ContributionFormProps) {
   const [formData, setFormData] = useState<ContributionFormData>({
     criterionType: initialData?.criterionType || defaultCriterion || "financial",
     title: initialData?.title || "",
@@ -105,7 +118,11 @@ export function ContributionForm({ onSubmit, onCancel, initialData, isEditing, d
     contributedAt: initialData?.contributedAt || new Date().toISOString().split("T")[0],
     notes: initialData?.notes || "",
     hasAmount: initialData?.hasAmount ?? (initialData?.amount ? true : false),
+    introducedContactId: initialData?.introducedContactId || null,
   });
+  const [contactSearchOpen, setContactSearchOpen] = useState(false);
+  
+  const availableContacts = contacts.filter(c => c.id !== currentContactId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,6 +191,71 @@ export function ContributionForm({ onSubmit, onCancel, initialData, isEditing, d
           data-testid="input-contribution-title"
         />
       </div>
+
+      {formData.criterionType === "network" && availableContacts.length > 0 && (
+        <div className="space-y-2">
+          <Label>С кем познакомил?</Label>
+          <Popover open={contactSearchOpen} onOpenChange={setContactSearchOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={contactSearchOpen}
+                className="w-full justify-between"
+                data-testid="select-introduced-contact"
+              >
+                {formData.introducedContactId
+                  ? availableContacts.find(c => c.id === formData.introducedContactId)?.fullName || "Выберите контакт"
+                  : "Выберите контакт (опционально)"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Поиск контакта..." />
+                <CommandList>
+                  <CommandEmpty>Контакт не найден</CommandEmpty>
+                  <CommandGroup>
+                    {formData.introducedContactId && (
+                      <CommandItem
+                        value="__clear__"
+                        onSelect={() => {
+                          setFormData({ ...formData, introducedContactId: null });
+                          setContactSearchOpen(false);
+                        }}
+                      >
+                        <X className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Очистить выбор</span>
+                      </CommandItem>
+                    )}
+                    {availableContacts.map((contact) => (
+                      <CommandItem
+                        key={contact.id}
+                        value={contact.fullName}
+                        onSelect={() => {
+                          setFormData({ ...formData, introducedContactId: contact.id });
+                          setContactSearchOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            formData.introducedContactId === contact.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {contact.fullName}
+                        {contact.company && (
+                          <span className="ml-2 text-muted-foreground text-sm">({contact.company})</span>
+                        )}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="contributedAt">Дата</Label>
@@ -280,9 +362,11 @@ interface ContributionItemProps {
   contribution: Contribution;
   onEdit: (contribution: Contribution) => void;
   onDelete: (id: string) => void;
+  contacts?: ContactForSelect[];
+  onNavigateToContact?: (contactId: string) => void;
 }
 
-function ContributionItem({ contribution, onEdit, onDelete }: ContributionItemProps) {
+function ContributionItem({ contribution, onEdit, onDelete, contacts = [], onNavigateToContact }: ContributionItemProps) {
   const criterionInfo = CRITERION_TYPES.find(c => c.value === contribution.criterionType);
   const Icon = criterionInfo?.icon || Heart;
 
@@ -299,6 +383,10 @@ function ContributionItem({ contribution, onEdit, onDelete }: ContributionItemPr
       year: "numeric",
     });
   };
+
+  const introducedContact = contribution.introducedContactId 
+    ? contacts.find(c => c.id === contribution.introducedContactId)
+    : null;
 
   return (
     <div 
@@ -318,6 +406,17 @@ function ContributionItem({ contribution, onEdit, onDelete }: ContributionItemPr
               <Badge variant="secondary" className="text-xs">
                 {CRITERION_LABELS[contribution.criterionType as ContributionCriterionType] || contribution.criterionType}
               </Badge>
+              {introducedContact && (
+                <Badge 
+                  variant="outline" 
+                  className="text-xs text-blue-600 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950 gap-1"
+                  onClick={() => onNavigateToContact?.(introducedContact.id)}
+                  data-testid={`link-introduced-contact-${contribution.id}`}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  {introducedContact.fullName}
+                </Badge>
+              )}
               {contribution.amount && contribution.amount > 0 && (
                 <Badge variant="outline" className="text-xs text-emerald-600">
                   {formatAmount(contribution.amount, contribution.currency)}
@@ -371,6 +470,7 @@ interface ContributionSectionProps {
 
 export function ContributionSection({ contactId, contributionTotals }: ContributionSectionProps) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingContribution, setEditingContribution] = useState<Contribution | null>(null);
   const [filterCriterion, setFilterCriterion] = useState<string>("all");
@@ -386,6 +486,14 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
     },
   });
 
+  const { data: allContacts = [] } = useQuery<Contact[]>({
+    queryKey: ["/api/contacts"],
+  });
+
+  const handleNavigateToContact = (targetContactId: string) => {
+    navigate(`/contacts/${targetContactId}`);
+  };
+
   const createMutation = useMutation({
     mutationFn: async (data: ContributionFormData) => {
       const res = await apiRequest("POST", "/api/contributions", {
@@ -396,6 +504,7 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
         currency: data.currency,
         contributedAt: data.contributedAt,
         notes: data.notes || null,
+        introducedContactId: data.introducedContactId || null,
       });
       return res.json();
     },
@@ -419,6 +528,7 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
         currency: data.currency,
         contributedAt: data.contributedAt,
         notes: data.notes || null,
+        introducedContactId: data.introducedContactId || null,
       });
       return res.json();
     },
@@ -485,6 +595,8 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
             <ContributionForm
               onSubmit={(data) => createMutation.mutate(data)}
               onCancel={() => setIsAddOpen(false)}
+              contacts={allContacts}
+              currentContactId={contactId}
             />
           </DialogContent>
         </Dialog>
@@ -541,6 +653,8 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
                 contribution={contribution}
                 onEdit={setEditingContribution}
                 onDelete={(id) => deleteMutation.mutate(id)}
+                contacts={allContacts}
+                onNavigateToContact={handleNavigateToContact}
               />
             ))}
           </div>
@@ -562,10 +676,13 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
                 contributedAt: editingContribution.contributedAt,
                 notes: editingContribution.notes || "",
                 hasAmount: !!editingContribution.amount && editingContribution.amount > 0,
+                introducedContactId: editingContribution.introducedContactId || null,
               }}
               onSubmit={(data) => updateMutation.mutate({ id: editingContribution.id, data })}
               onCancel={() => setEditingContribution(null)}
               isEditing
+              contacts={allContacts}
+              currentContactId={contactId}
             />
           )}
         </DialogContent>
