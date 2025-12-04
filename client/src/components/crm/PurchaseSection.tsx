@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ShoppingCart, Plus, Calendar, Trash2, Pencil, TrendingUp } from "lucide-react";
+import { ShoppingCart, Plus, Calendar, Trash2, Pencil, TrendingUp, X } from "lucide-react";
 import type { Purchase } from "@shared/schema";
 
 const CATEGORIES = [
@@ -91,16 +91,30 @@ export function PurchaseForm({ onSubmit, onCancel, initialData, isEditing }: Pur
 
         <div className="space-y-2">
           <Label htmlFor="purchasedAt">Дата покупки</Label>
-          <div className="relative">
-            <Input
-              id="purchasedAt"
-              type="date"
-              value={formData.purchasedAt}
-              onChange={(e) => setFormData({ ...formData, purchasedAt: e.target.value })}
-              className="pl-9"
-              data-testid="input-purchase-date"
-            />
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="flex gap-1 items-center">
+            <div className="relative flex-1">
+              <Input
+                id="purchasedAt"
+                type="date"
+                value={formData.purchasedAt}
+                onChange={(e) => setFormData({ ...formData, purchasedAt: e.target.value })}
+                className="pl-9"
+                data-testid="input-purchase-date"
+              />
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            </div>
+            {formData.purchasedAt && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setFormData({ ...formData, purchasedAt: "" })}
+                data-testid="button-clear-purchase-date"
+                title="Сбросить дату"
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
