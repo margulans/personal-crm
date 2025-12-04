@@ -45,7 +45,7 @@ export function PurchaseForm({ onSubmit, onCancel, initialData, isEditing }: Pur
     productName: initialData?.productName || "",
     category: initialData?.category || "product",
     amount: initialData?.amount || "",
-    currency: initialData?.currency || "RUB",
+    currency: initialData?.currency || "USD",
     purchasedAt: initialData?.purchasedAt || new Date().toISOString().split("T")[0],
     notes: initialData?.notes || "",
   });
