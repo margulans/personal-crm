@@ -14,7 +14,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Heart, Plus, Calendar, Trash2, Pencil, DollarSign, X, Lightbulb, Users, Shield, Brain, Sparkles, Search, ExternalLink, Check, ChevronsUpDown } from "lucide-react";
+import * as React from "react";
+import { Heart, Plus, Calendar, Trash2, Pencil, DollarSign, X, Lightbulb, Users, User, Shield, Brain, Sparkles, Search, ExternalLink, Check, ChevronsUpDown } from "lucide-react";
 import type { Contribution, ContributionCriterionType, Contact } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -120,9 +121,22 @@ export function ContributionForm({ onSubmit, onCancel, initialData, isEditing, d
     hasAmount: initialData?.hasAmount ?? (initialData?.amount ? true : false),
     introducedContactId: initialData?.introducedContactId || null,
   });
+  const [contactSearchQuery, setContactSearchQuery] = useState("");
   const [contactSearchOpen, setContactSearchOpen] = useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   
   const availableContacts = contacts.filter(c => c.id !== currentContactId);
+  
+  const selectedContact = formData.introducedContactId 
+    ? availableContacts.find(c => c.id === formData.introducedContactId) 
+    : null;
+    
+  const filteredContacts = contactSearchQuery.trim() 
+    ? availableContacts.filter(c => 
+        c.fullName.toLowerCase().includes(contactSearchQuery.toLowerCase()) ||
+        (c.company && c.company.toLowerCase().includes(contactSearchQuery.toLowerCase()))
+      )
+    : availableContacts;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,65 +209,91 @@ export function ContributionForm({ onSubmit, onCancel, initialData, isEditing, d
       {formData.criterionType === "network" && availableContacts.length > 0 && (
         <div className="space-y-2">
           <Label>С кем познакомил?</Label>
-          <Popover open={contactSearchOpen} onOpenChange={setContactSearchOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={contactSearchOpen}
-                className="w-full justify-between"
-                data-testid="select-introduced-contact"
-              >
-                {formData.introducedContactId
-                  ? availableContacts.find(c => c.id === formData.introducedContactId)?.fullName || "Выберите контакт"
-                  : "Выберите контакт (опционально)"}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Поиск контакта..." />
-                <CommandList>
-                  <CommandEmpty>Контакт не найден</CommandEmpty>
-                  <CommandGroup>
-                    {formData.introducedContactId && (
-                      <CommandItem
-                        value="__clear__"
-                        onSelect={() => {
-                          setFormData({ ...formData, introducedContactId: null });
-                          setContactSearchOpen(false);
-                        }}
-                      >
-                        <X className="mr-2 h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Очистить выбор</span>
-                      </CommandItem>
-                    )}
-                    {availableContacts.map((contact) => (
-                      <CommandItem
+          <div className="relative">
+            {selectedContact ? (
+              <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                  <User className="h-3 w-3 mr-1" />
+                  {selectedContact.fullName}
+                  {selectedContact.company && (
+                    <span className="ml-1 opacity-70">({selectedContact.company})</span>
+                  )}
+                </Badge>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 ml-auto"
+                  onClick={() => {
+                    setFormData({ ...formData, introducedContactId: null });
+                    setContactSearchQuery("");
+                  }}
+                  data-testid="button-clear-introduced-contact"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Input
+                  ref={inputRef}
+                  value={contactSearchQuery}
+                  onChange={(e) => {
+                    setContactSearchQuery(e.target.value);
+                    setContactSearchOpen(true);
+                  }}
+                  onFocus={() => setContactSearchOpen(true)}
+                  onBlur={() => {
+                    setTimeout(() => setContactSearchOpen(false), 200);
+                  }}
+                  placeholder="Начните вводить имя контакта..."
+                  data-testid="input-introduced-contact-search"
+                  className="pr-8"
+                />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                
+                {contactSearchOpen && filteredContacts.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {filteredContacts.slice(0, 10).map((contact) => (
+                      <div
                         key={contact.id}
-                        value={contact.fullName}
-                        onSelect={() => {
+                        className="flex items-center gap-2 px-3 py-2 cursor-pointer hover-elevate"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
                           setFormData({ ...formData, introducedContactId: contact.id });
+                          setContactSearchQuery("");
                           setContactSearchOpen(false);
                         }}
+                        data-testid={`suggestion-contact-${contact.id}`}
                       >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            formData.introducedContactId === contact.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {contact.fullName}
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span>{contact.fullName}</span>
                         {contact.company && (
-                          <span className="ml-2 text-muted-foreground text-sm">({contact.company})</span>
+                          <span className="text-muted-foreground text-sm">({contact.company})</span>
                         )}
-                      </CommandItem>
+                      </div>
                     ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+                    {filteredContacts.length > 10 && (
+                      <div className="px-3 py-2 text-sm text-muted-foreground border-t">
+                        Ещё {filteredContacts.length - 10} контактов...
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {contactSearchOpen && contactSearchQuery.trim() && filteredContacts.length === 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      Контакт не найден
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Введите имя, чтобы найти контакт из вашего списка
+          </p>
         </div>
       )}
 
