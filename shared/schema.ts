@@ -199,7 +199,17 @@ export const contacts = pgTable("contacts", {
     currency: string;
     count: number;
     lastPurchaseDate: string | null;
-  }>().default({ totalAmount: 0, currency: "RUB", count: 0, lastPurchaseDate: null }),
+  }>().default({ totalAmount: 0, currency: "USD", count: 0, lastPurchaseDate: null }),
+  
+  // Contribution totals (calculated from contributions table, per criterion)
+  contributionTotals: jsonb("contribution_totals").$type<{
+    [key: string]: {
+      totalAmount: number;
+      currency: string;
+      count: number;
+      lastDate: string | null;
+    };
+  }>().default({}),
   
   importanceLevel: varchar("importance_level", { length: 1 }).notNull().default("C"),
   recommendedAttentionLevel: integer("recommended_attention_level").notNull().default(2),
@@ -488,6 +498,74 @@ export const updatePurchaseSchema = z.object({
   amount: z.number().finite().min(0.01, "Сумма должна быть положительной").optional(),
   currency: z.enum(supportedCurrencies).optional(),
   purchasedAt: z.string().optional(),
+  notes: z.string().optional().nullable(),
+});
+
+// Contribution criteria types (for tracking all contribution types)
+export const contributionCriteriaTypes = [
+  "financial", "network", "trust", "emotional", "intellectual"
+] as const;
+
+export type ContributionCriterionType = typeof contributionCriteriaTypes[number];
+
+// Contribution totals stored on contact (per criterion)
+export type ContributionTotals = {
+  [key in ContributionCriterionType]?: {
+    totalAmount: number;
+    currency: string;
+    count: number;
+    lastDate: string | null;
+  };
+};
+
+// Contributions table - tracks all types of contributions (financial and non-financial)
+export const contributions = pgTable("contributions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teamId: varchar("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  contactId: varchar("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  createdBy: varchar("created_by").references(() => users.id),
+  
+  criterionType: varchar("criterion_type", { length: 20 }).notNull(), // financial, network, trust, emotional, intellectual
+  title: text("title").notNull(), // Description of the contribution
+  amount: real("amount"), // Optional - for monetary contributions
+  currency: varchar("currency", { length: 10 }).default("USD"), // Optional - for monetary contributions
+  contributedAt: date("contributed_at").notNull(), // When the contribution happened
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_contributions_team_id").on(table.teamId),
+  index("idx_contributions_contact_id").on(table.contactId),
+  index("idx_contributions_criterion").on(table.criterionType),
+  index("idx_contributions_date").on(table.contributedAt),
+]);
+
+export type Contribution = typeof contributions.$inferSelect;
+export type InsertContribution = typeof contributions.$inferInsert;
+
+export const insertContributionSchema = createInsertSchema(contributions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  teamId: z.string().min(1),
+  contactId: z.string().min(1),
+  createdBy: z.string().optional(),
+  criterionType: z.enum(contributionCriteriaTypes),
+  title: z.string().min(1, "Описание вклада обязательно"),
+  amount: z.number().finite().min(0).optional().nullable(),
+  currency: z.enum(supportedCurrencies).default("USD"),
+  contributedAt: z.string().min(1, "Дата вклада обязательна"),
+  notes: z.string().optional().nullable(),
+});
+
+export const updateContributionSchema = z.object({
+  criterionType: z.enum(contributionCriteriaTypes).optional(),
+  title: z.string().min(1, "Описание вклада обязательно").optional(),
+  amount: z.number().finite().min(0).optional().nullable(),
+  currency: z.enum(supportedCurrencies).optional(),
+  contributedAt: z.string().optional(),
   notes: z.string().optional().nullable(),
 });
 
