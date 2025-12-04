@@ -30,6 +30,49 @@ const CRITERION_LABELS: Record<ContributionCriterionType, string> = {
   intellectual: "Интеллектуальный",
 };
 
+const CONTRIBUTION_EXAMPLES: Record<ContributionCriterionType, string[]> = {
+  financial: [
+    "Покупка продукта/услуги",
+    "Инвестиция в проект",
+    "Привёл платящего клиента",
+    "Оплатил совместное мероприятие",
+    "Финансовая поддержка",
+    "Спонсорство события",
+  ],
+  network: [
+    "Познакомил с важным человеком",
+    "Открыл доступ к ресурсам",
+    "Рекомендовал партнёра",
+    "Пригласил на закрытое мероприятие",
+    "Предоставил контакты",
+    "Помог с наймом сотрудника",
+  ],
+  trust: [
+    "Публичная рекомендация",
+    "Отзыв о работе",
+    "Защита репутации",
+    "Поручительство",
+    "Рекомендация в соцсетях",
+    "Упоминание на конференции",
+  ],
+  emotional: [
+    "Поддержка в трудный момент",
+    "Приятное общение",
+    "Поздравление с праздником",
+    "Неожиданный знак внимания",
+    "Мотивирующий разговор",
+    "Помощь с личной проблемой",
+  ],
+  intellectual: [
+    "Экспертная консультация",
+    "Обучение навыку",
+    "Ценный совет по бизнесу",
+    "Менторская сессия",
+    "Поделился полезными материалами",
+    "Помог решить сложную задачу",
+  ],
+};
+
 export interface ContributionFormData {
   criterionType: ContributionCriterionType;
   title: string;
@@ -98,12 +141,31 @@ export function ContributionForm({ onSubmit, onCancel, initialData, isEditing, d
       </div>
 
       <div className="space-y-2">
+        <Label>Примеры вкладов</Label>
+        <Select
+          value=""
+          onValueChange={(v) => setFormData({ ...formData, title: v })}
+        >
+          <SelectTrigger data-testid="select-contribution-example">
+            <SelectValue placeholder="Выберите из примеров или введите свой" />
+          </SelectTrigger>
+          <SelectContent>
+            {CONTRIBUTION_EXAMPLES[formData.criterionType].map((example) => (
+              <SelectItem key={example} value={example}>
+                {example}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="title">Описание вклада *</Label>
         <Input
           id="title"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          placeholder="Например: Рекомендация клиента, Помощь с проектом, Консультация"
+          placeholder="Или введите своё описание"
           data-testid="input-contribution-title"
         />
       </div>
