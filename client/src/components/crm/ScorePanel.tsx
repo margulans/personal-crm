@@ -73,7 +73,7 @@ function InfoModal({ isOpen, onClose, title, description }: { isOpen: boolean; o
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
     >
       <div 
-        className="bg-background rounded-lg shadow-lg max-w-sm w-full p-4 relative"
+        className="bg-background rounded-lg shadow-lg max-w-md w-full p-5 relative max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
       >
@@ -85,8 +85,12 @@ function InfoModal({ isOpen, onClose, title, description }: { isOpen: boolean; o
         >
           <X className="h-5 w-5" />
         </button>
-        <h3 className="font-semibold text-lg mb-3 pr-8">{title}</h3>
-        <p className="text-sm text-muted-foreground whitespace-pre-line">{description}</p>
+        <h3 className="font-semibold text-lg mb-4 pr-8">{title}</h3>
+        <div className="text-sm text-muted-foreground space-y-3">
+          {description.split('\n\n').map((paragraph, i) => (
+            <p key={i} className="whitespace-pre-line">{paragraph}</p>
+          ))}
+        </div>
       </div>
     </div>,
     document.body
