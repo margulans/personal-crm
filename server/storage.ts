@@ -20,6 +20,9 @@ import {
   type Purchase,
   type InsertPurchase,
   type PurchaseTotals,
+  type Contribution,
+  type InsertContribution,
+  type ContributionCriterionType,
   contacts, 
   interactions,
   users,
@@ -30,10 +33,12 @@ import {
   contactConnections,
   gifts,
   purchases,
+  contributions,
   getClassFromScore,
   calculateHeatIndex,
   getRecommendedAttentionLevel,
   calculateFinancialScore,
+  contributionCriteriaTypes,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or, sql } from "drizzle-orm";
@@ -116,6 +121,15 @@ export interface IStorage {
   updatePurchase(id: string, data: Partial<InsertPurchase>, teamId: string): Promise<Purchase | undefined>;
   deletePurchase(id: string, teamId: string): Promise<boolean>;
   recalculatePurchaseTotals(contactId: string, teamId: string): Promise<void>;
+  
+  // Contribution operations (all criterion types)
+  getContributions(teamId: string): Promise<Contribution[]>;
+  getContactContributions(contactId: string, teamId: string): Promise<Contribution[]>;
+  getContribution(id: string, teamId: string): Promise<Contribution | undefined>;
+  createContribution(contribution: InsertContribution): Promise<Contribution>;
+  updateContribution(id: string, data: Partial<InsertContribution>, teamId: string): Promise<Contribution | undefined>;
+  deleteContribution(id: string, teamId: string): Promise<boolean>;
+  recalculateContributionTotals(contactId: string, teamId: string): Promise<void>;
 }
 
 function calculateScoresAndClass(details: { 
@@ -923,6 +937,135 @@ export class DatabaseStorage implements IStorage {
         financial: financialScore,
       },
     });
+  }
+
+  // Contribution operations (all criterion types)
+  async getContributions(teamId: string): Promise<Contribution[]> {
+    return db.select()
+      .from(contributions)
+      .where(eq(contributions.teamId, teamId))
+      .orderBy(desc(contributions.contributedAt));
+  }
+
+  async getContactContributions(contactId: string, teamId: string): Promise<Contribution[]> {
+    return db.select()
+      .from(contributions)
+      .where(and(
+        eq(contributions.contactId, contactId),
+        eq(contributions.teamId, teamId)
+      ))
+      .orderBy(desc(contributions.contributedAt));
+  }
+
+  async getContribution(id: string, teamId: string): Promise<Contribution | undefined> {
+    const [contribution] = await db.select()
+      .from(contributions)
+      .where(and(
+        eq(contributions.id, id),
+        eq(contributions.teamId, teamId)
+      ));
+    return contribution;
+  }
+
+  async createContribution(contribution: InsertContribution): Promise<Contribution> {
+    const [created] = await db.insert(contributions).values({
+      ...contribution,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    
+    // Recalculate contribution totals for the contact
+    await this.recalculateContributionTotals(contribution.contactId, contribution.teamId);
+    
+    return created;
+  }
+
+  async updateContribution(id: string, data: Partial<InsertContribution>, teamId: string): Promise<Contribution | undefined> {
+    const existing = await this.getContribution(id, teamId);
+    if (!existing) return undefined;
+    
+    const [updated] = await db.update(contributions)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(contributions.id, id),
+        eq(contributions.teamId, teamId)
+      ))
+      .returning();
+    
+    if (updated) {
+      await this.recalculateContributionTotals(updated.contactId, teamId);
+    }
+    
+    return updated;
+  }
+
+  async deleteContribution(id: string, teamId: string): Promise<boolean> {
+    const existing = await this.getContribution(id, teamId);
+    if (!existing) return false;
+    
+    const result = await db.delete(contributions)
+      .where(and(
+        eq(contributions.id, id),
+        eq(contributions.teamId, teamId)
+      ))
+      .returning();
+    
+    if (result.length > 0) {
+      await this.recalculateContributionTotals(existing.contactId, teamId);
+    }
+    
+    return result.length > 0;
+  }
+
+  async recalculateContributionTotals(contactId: string, teamId: string): Promise<void> {
+    // Get all contributions for this contact
+    const contactContributions = await this.getContactContributions(contactId, teamId);
+    
+    // Calculate totals per criterion type
+    const totals: { [key: string]: { totalAmount: number; currency: string; count: number; lastDate: string | null } } = {};
+    
+    for (const criterionType of contributionCriteriaTypes) {
+      const criterionContributions = contactContributions.filter(c => c.criterionType === criterionType);
+      
+      let totalAmount = 0;
+      let count = 0;
+      let lastDate: string | null = null;
+      
+      for (const contribution of criterionContributions) {
+        // Count all contributions
+        count++;
+        
+        // Sum amounts for monetary contributions
+        if (contribution.amount && typeof contribution.amount === 'number' && isFinite(contribution.amount) && contribution.amount > 0) {
+          totalAmount += contribution.amount;
+        }
+        
+        // Track last contribution date
+        if (!lastDate || (contribution.contributedAt && contribution.contributedAt > lastDate)) {
+          lastDate = contribution.contributedAt;
+        }
+      }
+      
+      if (count > 0) {
+        totals[criterionType] = {
+          totalAmount,
+          currency: "USD",
+          count,
+          lastDate,
+        };
+      }
+    }
+    
+    // Update contact with new contribution totals
+    await db.update(contacts)
+      .set({
+        contributionTotals: totals,
+        updatedAt: new Date(),
+      })
+      .where(eq(contacts.id, contactId));
   }
 }
 
