@@ -70,6 +70,12 @@ export interface Contact {
   attentionTrend: number;
   heatIndex: number;
   heatStatus: "green" | "yellow" | "red";
+  purchaseTotals?: {
+    totalAmount: number;
+    currency: string;
+    count: number;
+    lastPurchaseDate: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -66,6 +66,7 @@ import { useLocation } from "wouter";
 import type { Contact, Interaction, PhoneEntry, MessengerEntry, SocialAccountEntry, EmailEntry, FamilyStatus, FamilyMember, StaffMember, StaffPhone, StaffMessenger, AIInsight, AIRecommendation } from "@/lib/types";
 import { SectionAttachments } from "./SectionAttachments";
 import { GiftSection } from "./GiftSection";
+import { PurchaseSection } from "./PurchaseSection";
 
 const BLOCK_DESCRIPTIONS = {
   identity: {
@@ -2390,6 +2391,17 @@ export function ContactDetail({
                   )}
                 </CardContent>
               </Card>
+
+              {/* Purchases */}
+              <PurchaseSection 
+                contactId={contact.id} 
+                purchaseTotals={contact.purchaseTotals as {
+                  totalAmount: number;
+                  currency: string;
+                  count: number;
+                  lastPurchaseDate: string | null;
+                } | null}
+              />
 
               {/* Gifts */}
               <GiftSection contactId={contact.id} />
