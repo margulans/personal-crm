@@ -17,6 +17,9 @@ import {
   type InsertContactConnection,
   type Gift,
   type InsertGift,
+  type Purchase,
+  type InsertPurchase,
+  type PurchaseTotals,
   contacts, 
   interactions,
   users,
@@ -26,9 +29,11 @@ import {
   attachments,
   contactConnections,
   gifts,
+  purchases,
   getClassFromScore,
   calculateHeatIndex,
   getRecommendedAttentionLevel,
+  calculateFinancialScore,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or, sql } from "drizzle-orm";
@@ -102,6 +107,15 @@ export interface IStorage {
   createGift(gift: InsertGift): Promise<Gift>;
   updateGift(id: string, data: Partial<InsertGift>, teamId: string): Promise<Gift | undefined>;
   deleteGift(id: string, teamId: string): Promise<boolean>;
+  
+  // Purchase operations
+  getPurchases(teamId: string): Promise<Purchase[]>;
+  getContactPurchases(contactId: string, teamId: string): Promise<Purchase[]>;
+  getPurchase(id: string, teamId: string): Promise<Purchase | undefined>;
+  createPurchase(purchase: InsertPurchase): Promise<Purchase>;
+  updatePurchase(id: string, data: Partial<InsertPurchase>, teamId: string): Promise<Purchase | undefined>;
+  deletePurchase(id: string, teamId: string): Promise<boolean>;
+  recalculatePurchaseTotals(contactId: string, teamId: string): Promise<void>;
 }
 
 function calculateScoresAndClass(details: { 
@@ -767,6 +781,141 @@ export class DatabaseStorage implements IStorage {
       ))
       .returning();
     return result.length > 0;
+  }
+
+  // Purchase operations
+  async getPurchases(teamId: string): Promise<Purchase[]> {
+    return db.select().from(purchases)
+      .where(eq(purchases.teamId, teamId))
+      .orderBy(desc(purchases.purchasedAt));
+  }
+
+  async getContactPurchases(contactId: string, teamId: string): Promise<Purchase[]> {
+    return db.select().from(purchases)
+      .where(and(
+        eq(purchases.contactId, contactId),
+        eq(purchases.teamId, teamId)
+      ))
+      .orderBy(desc(purchases.purchasedAt));
+  }
+
+  async getPurchase(id: string, teamId: string): Promise<Purchase | undefined> {
+    const [purchase] = await db.select().from(purchases)
+      .where(and(
+        eq(purchases.id, id),
+        eq(purchases.teamId, teamId)
+      ));
+    return purchase;
+  }
+
+  async createPurchase(purchase: InsertPurchase): Promise<Purchase> {
+    const [created] = await db.insert(purchases).values(purchase).returning();
+    
+    // Recalculate purchase totals and update financial score
+    await this.recalculatePurchaseTotals(purchase.contactId, purchase.teamId);
+    
+    return created;
+  }
+
+  async updatePurchase(id: string, data: Partial<InsertPurchase>, teamId: string): Promise<Purchase | undefined> {
+    const existing = await this.getPurchase(id, teamId);
+    if (!existing) return undefined;
+    
+    const safeData: Partial<InsertPurchase> & { updatedAt: Date } = {
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    const [updated] = await db
+      .update(purchases)
+      .set(safeData)
+      .where(and(
+        eq(purchases.id, id),
+        eq(purchases.teamId, teamId)
+      ))
+      .returning();
+    
+    // Recalculate purchase totals and update financial score
+    await this.recalculatePurchaseTotals(existing.contactId, teamId);
+    
+    return updated;
+  }
+
+  async deletePurchase(id: string, teamId: string): Promise<boolean> {
+    const existing = await this.getPurchase(id, teamId);
+    if (!existing) return false;
+    
+    const result = await db.delete(purchases)
+      .where(and(
+        eq(purchases.id, id),
+        eq(purchases.teamId, teamId)
+      ))
+      .returning();
+    
+    if (result.length > 0) {
+      // Recalculate purchase totals and update financial score
+      await this.recalculatePurchaseTotals(existing.contactId, teamId);
+    }
+    
+    return result.length > 0;
+  }
+
+  async recalculatePurchaseTotals(contactId: string, teamId: string): Promise<void> {
+    // Get all purchases for this contact
+    const contactPurchases = await this.getContactPurchases(contactId, teamId);
+    
+    // Calculate totals (assuming all amounts are in the same currency - RUB)
+    let totalAmount = 0;
+    let lastPurchaseDate: string | null = null;
+    
+    for (const purchase of contactPurchases) {
+      totalAmount += purchase.amount || 0;
+      if (!lastPurchaseDate || (purchase.purchasedAt && purchase.purchasedAt > lastPurchaseDate)) {
+        lastPurchaseDate = purchase.purchasedAt;
+      }
+    }
+    
+    const purchaseTotals: PurchaseTotals = {
+      totalAmount,
+      currency: "RUB",
+      count: contactPurchases.length,
+      lastPurchaseDate,
+    };
+    
+    // Calculate financial score based on total amount
+    const financialScore = calculateFinancialScore(totalAmount);
+    
+    // Get current contact to update contribution details
+    const contact = await this.getContact(contactId, teamId);
+    if (!contact) return;
+    
+    const currentContribution = contact.contributionDetails as {
+      financial: number;
+      network: number;
+      trust: number;
+      emotional: number;
+      intellectual: number;
+    } || { financial: 0, network: 0, trust: 0, emotional: 0, intellectual: 0 };
+    
+    // Update contact with new purchase totals and financial score
+    await db.update(contacts)
+      .set({
+        purchaseTotals,
+        contributionDetails: {
+          ...currentContribution,
+          financial: financialScore,
+        },
+        updatedAt: new Date(),
+      })
+      .where(eq(contacts.id, contactId));
+    
+    // Recalculate overall contact metrics (this will recalculate contribution score, class, etc.)
+    await this.updateContact(contactId, {
+      contributionDetails: {
+        ...currentContribution,
+        financial: financialScore,
+      },
+    });
   }
 }
 
