@@ -1043,8 +1043,35 @@ export class DatabaseStorage implements IStorage {
     // Get all contributions for this contact
     const contactContributions = await this.getContactContributions(contactId, teamId);
     
+    // Get current contact to preserve existing details
+    const contact = await this.getContact(contactId, teamId);
+    if (!contact) return;
+    
+    const currentDetails = (contact.contributionDetails as { 
+      financial?: number; 
+      network?: number; 
+      trust?: number;
+      emotional?: number;
+      intellectual?: number;
+    }) || {};
+    
     // Calculate totals per criterion type
     const totals: { [key: string]: { totalAmount: number; currency: string; count: number; lastDate: string | null } } = {};
+    
+    // New contribution details - reset scores for criteria without contributions
+    const newDetails: { 
+      financial: number; 
+      network: number; 
+      trust: number;
+      emotional: number;
+      intellectual: number;
+    } = {
+      financial: currentDetails.financial || 0,
+      network: 0,
+      trust: 0,
+      emotional: 0,
+      intellectual: 0,
+    };
     
     for (const criterionType of contributionCriteriaTypes) {
       const criterionContributions = contactContributions.filter(c => c.criterionType === criterionType);
@@ -1075,13 +1102,26 @@ export class DatabaseStorage implements IStorage {
           count,
           lastDate,
         };
+        
+        // Preserve existing score for criteria with contributions
+        if (criterionType !== 'financial') {
+          const key = criterionType as keyof typeof newDetails;
+          newDetails[key] = currentDetails[key] || 0;
+        }
       }
+      // If count === 0, the score stays 0 (already set in newDetails initialization)
     }
     
-    // Update contact with new contribution totals
+    // Calculate new contribution score and class
+    const { score, scoreClass } = calculateContributionScoreAndClass(newDetails);
+    
+    // Update contact with new contribution totals and reset details for empty criteria
     await db.update(contacts)
       .set({
         contributionTotals: totals,
+        contributionDetails: newDetails,
+        contributionScore: score,
+        contributionClass: scoreClass,
         updatedAt: new Date(),
       })
       .where(eq(contacts.id, contactId));
