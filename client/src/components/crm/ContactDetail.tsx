@@ -1076,6 +1076,15 @@ export function ContactDetail({
                           />
                         </div>
                       </div>
+                      <div className="grid gap-2">
+                        <Label>Вид деятельности</Label>
+                        <Input 
+                          value={getFieldValue("activityType") || ""} 
+                          onChange={e => updateField("activityType", e.target.value)}
+                          placeholder="Спорт, Культура, Бизнес, Политика, Наука..."
+                          data-testid="input-activity-type"
+                        />
+                      </div>
                     </div>
                   ) : (
                     <>
@@ -1090,11 +1099,13 @@ export function ContactDetail({
                           </span>
                         </div>
                       )}
-                      {(contact.industry || contact.country) && (
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      {(contact.industry || contact.country || contact.activityType) && (
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                           {contact.industry && <span>{contact.industry}</span>}
-                          {contact.industry && contact.country && <span>•</span>}
+                          {contact.industry && (contact.country || contact.activityType) && <span>•</span>}
                           {contact.country && <span>{contact.country}</span>}
+                          {contact.country && contact.activityType && <span>•</span>}
+                          {contact.activityType && <span>{contact.activityType}</span>}
                         </div>
                       )}
                     </>
