@@ -1056,6 +1056,26 @@ export function ContactDetail({
                           />
                         </div>
                       </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label>Отрасль</Label>
+                          <Input 
+                            value={getFieldValue("industry") || ""} 
+                            onChange={e => updateField("industry", e.target.value)}
+                            placeholder="Нефть и газ, IT, Финансы..."
+                            data-testid="input-industry"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>Страна</Label>
+                          <Input 
+                            value={getFieldValue("country") || ""} 
+                            onChange={e => updateField("country", e.target.value)}
+                            placeholder="Казахстан, Россия, США..."
+                            data-testid="input-country"
+                          />
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <>
@@ -1068,6 +1088,13 @@ export function ContactDetail({
                             {contact.companyRole && contact.company && " в "}
                             {contact.company && <span>{contact.company}</span>}
                           </span>
+                        </div>
+                      )}
+                      {(contact.industry || contact.country) && (
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          {contact.industry && <span>{contact.industry}</span>}
+                          {contact.industry && contact.country && <span>•</span>}
+                          {contact.country && <span>{contact.country}</span>}
                         </div>
                       )}
                     </>
