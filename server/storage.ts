@@ -132,13 +132,32 @@ export interface IStorage {
   recalculateContributionTotals(contactId: string, teamId: string): Promise<void>;
 }
 
-function calculateScoresAndClass(details: { 
+function calculateContributionScoreAndClass(details: { 
   financial?: number; 
   network?: number; 
   trust?: number;
   emotional?: number;
   intellectual?: number;
-} | { 
+}, maxScore: number = 15): { score: number; scoreClass: string } {
+  const d = details || {};
+  // Financial = 50% weight (max 7.5 points when value = 3)
+  // Other 4 criteria = 50% weight total (12.5% each, max 1.875 points each when value = 3)
+  const financialWeight = 2.5; // 3 * 2.5 = 7.5 (50%)
+  const otherWeight = 0.625;   // 3 * 0.625 = 1.875 per criterion (12.5% each)
+  
+  const score = Math.round(
+    (d.financial || 0) * financialWeight +
+    (d.network || 0) * otherWeight +
+    (d.trust || 0) * otherWeight +
+    (d.emotional || 0) * otherWeight +
+    (d.intellectual || 0) * otherWeight
+  );
+  
+  const scoreClass = getClassFromScore(score, maxScore);
+  return { score, scoreClass };
+}
+
+function calculatePotentialScoreAndClass(details: { 
   personal?: number; 
   resources?: number; 
   network?: number; 
@@ -308,8 +327,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createContact(insertContact: InsertContact): Promise<Contact> {
-    const contribution = calculateScoresAndClass(insertContact.contributionDetails || {}, 15);
-    const potential = calculateScoresAndClass(insertContact.potentialDetails || {}, 15);
+    const contribution = calculateContributionScoreAndClass(insertContact.contributionDetails || {}, 15);
+    const potential = calculatePotentialScoreAndClass(insertContact.potentialDetails || {}, 15);
     
     const today = new Date();
     const lastContactDate = insertContact.lastContactDate ? new Date(insertContact.lastContactDate) : null;
@@ -389,8 +408,8 @@ export class DatabaseStorage implements IStorage {
       ...updateData.potentialDetails,
     };
 
-    const contribution = calculateScoresAndClass(mergedContribution, 15);
-    const potential = calculateScoresAndClass(mergedPotential, 15);
+    const contribution = calculateContributionScoreAndClass(mergedContribution, 15);
+    const potential = calculatePotentialScoreAndClass(mergedPotential, 15);
 
     const lastContactDate = updateData.lastContactDate !== undefined 
       ? updateData.lastContactDate 
