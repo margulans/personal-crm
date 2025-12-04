@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -735,13 +735,15 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Добавить вклад</DialogTitle>
-              <div className="text-sm text-muted-foreground space-y-2 pt-2">
-                <p>Вклады влияют на расчёт Contribution Score (макс. 15 баллов):</p>
-                <ul className="list-disc list-inside space-y-1 text-xs">
-                  <li><strong>Финансовый</strong> — 50% веса (до 7.5 б.). Расчёт по сумме: 0₽=0, до 100т₽=1, до 500т₽=2, 500т₽+=3 балла</li>
-                  <li><strong>Ресурсный, Репутационный, Эмоциональный, Интеллектуальный</strong> — по 12.5% (до 1.875 б. каждый). Расчёт по кол-ву записей: 0=0, 1-2=1, 3-4=2, 5+=3 балла</li>
-                </ul>
-              </div>
+              <DialogDescription asChild>
+                <div className="text-sm text-muted-foreground space-y-2 pt-2">
+                  <p>Вклады влияют на расчёт Contribution Score (макс. 15 баллов):</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li><strong>Финансовый</strong> — 50% веса (до 7.5 б.). Расчёт по сумме: 0₽=0, до 100т₽=1, до 500т₽=2, 500т₽+=3 балла</li>
+                    <li><strong>Ресурсный, Репутационный, Эмоциональный, Интеллектуальный</strong> — по 12.5% (до 1.875 б. каждый). Расчёт по кол-ву записей: 0=0, 1-2=1, 3-4=2, 5+=3 балла</li>
+                  </ul>
+                </div>
+              </DialogDescription>
             </DialogHeader>
             <ContributionForm
               onSubmit={(data) => createMutation.mutate(data)}
