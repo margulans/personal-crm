@@ -142,6 +142,7 @@ export const contacts = pgTable("contacts", {
   companyRole: text("company_role"),
   industry: text("industry"), // Отрасль
   country: text("country"), // Страна
+  activityType: text("activity_type"), // Вид деятельности: спорт, культура, бизнес, политика, наука и др.
   
   // Contact methods (legacy single fields kept for backwards compatibility)
   phone: text("phone"),

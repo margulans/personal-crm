@@ -24,6 +24,7 @@ export interface Contact {
   companyRole?: string | null;
   industry?: string | null;
   country?: string | null;
+  activityType?: string | null;
   
   phone: string | null;
   email: string | null;
