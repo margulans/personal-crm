@@ -32,6 +32,14 @@ const CHART_DESCRIPTIONS = {
   attention: {
     title: "Распределение внимания",
     description: "Показывает, как распределены контакты по 10 уровням статуса отношений (1 — минимум, 10 — максимум). Помогает оценить баланс усилий и выявить перегруженные/недогруженные уровни."
+  },
+  country: {
+    title: "По странам",
+    description: "Показывает географическое распределение вашей сети контактов. Помогает оценить охват и выявить ключевые регионы для развития отношений."
+  },
+  industry: {
+    title: "По отраслям",
+    description: "Показывает распределение контактов по отраслям бизнеса. Помогает понять, в каких секторах у вас сильные позиции, а где есть потенциал для расширения."
   }
 };
 
@@ -302,6 +310,165 @@ export function AttentionDistributionChart({ contacts }: AnalyticsChartsProps) {
                 dataKey="count" 
                 fill="hsl(var(--primary))" 
                 radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+const COUNTRY_COLORS = [
+  "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", 
+  "#ec4899", "#06b6d4", "#84cc16", "#f97316", "#6366f1"
+];
+
+export function CountryChart({ contacts }: AnalyticsChartsProps) {
+  const countryMap = new Map<string, number>();
+  
+  contacts.forEach((c) => {
+    const country = c.country || "Не указана";
+    countryMap.set(country, (countryMap.get(country) || 0) + 1);
+  });
+  
+  const data = Array.from(countryMap.entries())
+    .filter(([name]) => name !== "Не указана")
+    .map(([name, value], index) => ({
+      name,
+      value,
+      color: COUNTRY_COLORS[index % COUNTRY_COLORS.length],
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
+
+  if (data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">По странам</CardTitle>
+        </CardHeader>
+        <CardContent className="h-64 flex items-center justify-center text-muted-foreground">
+          Нет данных. Укажите страну в карточке контакта.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card data-testid="chart-country">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center">
+          По странам
+          <InfoPopover chartKey="country" />
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={80}
+                paddingAngle={2}
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(value: number) => [`${value} контактов`, ""]}
+                contentStyle={{
+                  backgroundColor: "hsl(var(--background))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "6px",
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+const INDUSTRY_COLORS = [
+  "#6366f1", "#22c55e", "#eab308", "#ef4444", "#a855f7",
+  "#14b8a6", "#f97316", "#0ea5e9", "#ec4899", "#84cc16"
+];
+
+export function IndustryChart({ contacts }: AnalyticsChartsProps) {
+  const industryMap = new Map<string, number>();
+  
+  contacts.forEach((c) => {
+    const industry = c.industry || "Не указана";
+    industryMap.set(industry, (industryMap.get(industry) || 0) + 1);
+  });
+  
+  const data = Array.from(industryMap.entries())
+    .filter(([name]) => name !== "Не указана")
+    .map(([name, value]) => ({
+      name: name.length > 15 ? name.substring(0, 15) + "..." : name,
+      fullName: name,
+      value,
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
+
+  if (data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">По отраслям</CardTitle>
+        </CardHeader>
+        <CardContent className="h-64 flex items-center justify-center text-muted-foreground">
+          Нет данных. Укажите отрасль в карточке контакта.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card data-testid="chart-industry">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center">
+          По отраслям
+          <InfoPopover chartKey="industry" />
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} layout="vertical" margin={{ left: 10, right: 20 }}>
+              <XAxis type="number" allowDecimals={false} fontSize={12} />
+              <YAxis 
+                type="category" 
+                dataKey="name" 
+                fontSize={11} 
+                width={100}
+                tick={{ fill: "hsl(var(--muted-foreground))" }}
+              />
+              <Tooltip
+                formatter={(value: number, name: string, props: any) => [
+                  `${value} контактов`, 
+                  props.payload.fullName
+                ]}
+                contentStyle={{
+                  backgroundColor: "hsl(var(--background))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "6px",
+                }}
+              />
+              <Bar 
+                dataKey="value" 
+                fill="hsl(var(--primary))" 
+                radius={[0, 4, 4, 0]}
               />
             </BarChart>
           </ResponsiveContainer>
