@@ -884,7 +884,7 @@ export class DatabaseStorage implements IStorage {
     
     const purchaseTotals: PurchaseTotals = {
       totalAmount,
-      currency: "RUB",
+      currency: "USD",
       count: validCount,
       lastPurchaseDate,
     };
