@@ -16,8 +16,21 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import * as React from "react";
 import { Heart, Plus, Calendar, Trash2, Pencil, DollarSign, X, Lightbulb, Users, User, Shield, Brain, Sparkles, Search, ExternalLink, Check, ChevronsUpDown } from "lucide-react";
-import type { Contribution, ContributionCriterionType, Contact } from "@shared/schema";
+import type { Contribution, ContributionCriterionType, Contact, Purchase } from "@shared/schema";
 import { cn } from "@/lib/utils";
+
+interface ContributionOrPurchase {
+  id: string;
+  type: "contribution" | "purchase";
+  criterionType: ContributionCriterionType;
+  title: string;
+  amount: number | null;
+  currency: string | null;
+  date: string;
+  notes: string | null;
+  introducedContactId?: string | null;
+  originalData: Contribution | Purchase;
+}
 
 const CRITERION_TYPES: { value: ContributionCriterionType; label: string; icon: typeof Heart; color: string }[] = [
   { value: "financial", label: "Финансовый", icon: DollarSign, color: "text-emerald-600" },
@@ -496,6 +509,62 @@ function ContributionItem({ contribution, onEdit, onDelete, contacts = [], onNav
   );
 }
 
+interface PurchaseItemProps {
+  item: ContributionOrPurchase;
+}
+
+function PurchaseItem({ item }: PurchaseItemProps) {
+  const formatAmount = (amount: number | null, currency: string | null) => {
+    if (!amount) return null;
+    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "KZT" ? "₸" : "₽";
+    return `${amount.toLocaleString()} ${symbol}`;
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("ru-RU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  return (
+    <div 
+      className="flex items-start gap-3 p-3 rounded-lg border bg-card hover-elevate transition-colors"
+      data-testid={`purchase-item-${item.id}`}
+    >
+      <div className="p-2 rounded-full bg-muted text-emerald-600">
+        <DollarSign className="h-4 w-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium truncate" data-testid={`text-purchase-title-${item.id}`}>
+              {item.title}
+            </p>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <Badge variant="secondary" className="text-xs">
+                Финансовый (покупка)
+              </Badge>
+              {item.amount && item.amount > 0 && (
+                <Badge variant="outline" className="text-xs text-emerald-600">
+                  {formatAmount(item.amount, item.currency)}
+                </Badge>
+              )}
+              <span className="text-xs text-muted-foreground">
+                {formatDate(item.date)}
+              </span>
+            </div>
+            {item.notes && (
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{item.notes}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface ContributionSectionProps {
   contactId: string;
   contributionTotals?: {
@@ -515,7 +584,7 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
   const [editingContribution, setEditingContribution] = useState<Contribution | null>(null);
   const [filterCriterion, setFilterCriterion] = useState<string>("all");
 
-  const { data: contributions = [], isLoading } = useQuery<Contribution[]>({
+  const { data: contributions = [], isLoading: isLoadingContributions } = useQuery<Contribution[]>({
     queryKey: ["/api/contacts", contactId, "contributions"],
     queryFn: async () => {
       const response = await fetch(`/api/contacts/${contactId}/contributions`, {
@@ -526,9 +595,49 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
     },
   });
 
+  const { data: purchases = [], isLoading: isLoadingPurchases } = useQuery<Purchase[]>({
+    queryKey: ["/api/contacts", contactId, "purchases"],
+    queryFn: async () => {
+      const response = await fetch(`/api/contacts/${contactId}/purchases`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch purchases");
+      return response.json();
+    },
+  });
+
   const { data: allContacts = [] } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
   });
+
+  const isLoading = isLoadingContributions || isLoadingPurchases;
+
+  // Combine contributions and purchases into unified list
+  const allItems: ContributionOrPurchase[] = [
+    ...contributions.map((c): ContributionOrPurchase => ({
+      id: c.id,
+      type: "contribution",
+      criterionType: c.criterionType as ContributionCriterionType,
+      title: c.title,
+      amount: c.amount,
+      currency: c.currency,
+      date: c.contributedAt,
+      notes: c.notes,
+      introducedContactId: c.introducedContactId,
+      originalData: c,
+    })),
+    ...purchases.map((p): ContributionOrPurchase => ({
+      id: p.id,
+      type: "purchase",
+      criterionType: "financial" as ContributionCriterionType,
+      title: p.productName,
+      amount: p.amount,
+      currency: p.currency,
+      date: p.purchasedAt,
+      notes: p.notes,
+      originalData: p,
+    })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const handleNavigateToContact = (targetContactId: string) => {
     navigate(`/?contact=${targetContactId}`);
@@ -597,13 +706,13 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
     },
   });
 
-  const filteredContributions = filterCriterion === "all" 
-    ? contributions 
-    : contributions.filter(c => c.criterionType === filterCriterion);
+  const filteredItems = filterCriterion === "all" 
+    ? allItems 
+    : allItems.filter(c => c.criterionType === filterCriterion);
 
   const getTotalStats = () => {
-    const totalCount = contributions.length;
-    const totalAmount = contributions.reduce((sum, c) => sum + (c.amount || 0), 0);
+    const totalCount = allItems.length;
+    const totalAmount = allItems.reduce((sum, c) => sum + (c.amount || 0), 0);
     return { totalCount, totalAmount };
   };
 
@@ -650,10 +759,10 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
             className="text-xs h-7"
             data-testid="filter-all-contributions"
           >
-            Все ({contributions.length})
+            Все ({allItems.length})
           </Button>
           {CRITERION_TYPES.map((ct) => {
-            const count = contributions.filter(c => c.criterionType === ct.value).length;
+            const count = allItems.filter(c => c.criterionType === ct.value).length;
             return (
               <Button
                 key={ct.value}
@@ -674,26 +783,37 @@ export function ContributionSection({ contactId, contributionTotals }: Contribut
           <div className="text-center py-8 text-muted-foreground">
             Загрузка...
           </div>
-        ) : filteredContributions.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>{contributions.length === 0 ? "Вклады не добавлены" : "Нет вкладов в этой категории"}</p>
-            {contributions.length === 0 && (
+            <p>{allItems.length === 0 ? "Вклады не добавлены" : "Нет вкладов в этой категории"}</p>
+            {allItems.length === 0 && (
               <p className="text-sm mt-1">Отмечайте вклады контакта: финансовые, ресурсные, репутационные и др.</p>
             )}
           </div>
         ) : (
           <div className="space-y-2">
-            {filteredContributions.map((contribution) => (
-              <ContributionItem
-                key={contribution.id}
-                contribution={contribution}
-                onEdit={setEditingContribution}
-                onDelete={(id) => deleteMutation.mutate(id)}
-                contacts={allContacts}
-                onNavigateToContact={handleNavigateToContact}
-              />
-            ))}
+            {filteredItems.map((item) => {
+              if (item.type === "contribution") {
+                return (
+                  <ContributionItem
+                    key={`contribution-${item.id}`}
+                    contribution={item.originalData as Contribution}
+                    onEdit={setEditingContribution}
+                    onDelete={(id) => deleteMutation.mutate(id)}
+                    contacts={allContacts}
+                    onNavigateToContact={handleNavigateToContact}
+                  />
+                );
+              } else {
+                return (
+                  <PurchaseItem
+                    key={`purchase-${item.id}`}
+                    item={item}
+                  />
+                );
+              }
+            })}
           </div>
         )}
       </CardContent>
