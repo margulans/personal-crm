@@ -3,8 +3,15 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Info, Plus } from "lucide-react";
+import { Info, Plus, Pencil } from "lucide-react";
 import { CONTRIBUTION_CRITERIA, POTENTIAL_CRITERIA } from "@/lib/constants";
+
+interface PurchaseTotals {
+  totalAmount: number;
+  currency: string;
+  count: number;
+  lastPurchaseDate: string | null;
+}
 
 const SCORE_DESCRIPTIONS = {
   contribution: {
@@ -24,9 +31,11 @@ interface ScorePanelProps {
   scoreClass: string;
   compact?: boolean;
   onAddPurchase?: () => void;
+  purchaseTotals?: PurchaseTotals | null;
+  onEditPurchaseTotal?: () => void;
 }
 
-export function ScorePanel({ type, scores, totalScore, scoreClass, compact = false, onAddPurchase }: ScorePanelProps) {
+export function ScorePanel({ type, scores, totalScore, scoreClass, compact = false, onAddPurchase, purchaseTotals, onEditPurchaseTotal }: ScorePanelProps) {
   const criteria = type === "contribution" ? CONTRIBUTION_CRITERIA : POTENTIAL_CRITERIA;
   const title = type === "contribution" ? "Вклад" : "Потенциал";
   const info = SCORE_DESCRIPTIONS[type];
@@ -36,6 +45,11 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
     B: "text-amber-600 dark:text-amber-500",
     C: "text-muted-foreground",
     D: "text-muted-foreground/60",
+  };
+
+  const formatAmount = (amount: number, currency: string) => {
+    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "KZT" ? "₸" : "₽";
+    return `${amount.toLocaleString()} ${symbol}`;
   };
 
   if (compact) {
@@ -71,7 +85,27 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
                     </Button>
                   )}
                 </div>
-                <span className="font-mono font-medium">{value}/3</span>
+                <div className="flex items-center gap-2">
+                  {isFinancial && purchaseTotals && purchaseTotals.totalAmount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        {formatAmount(purchaseTotals.totalAmount, purchaseTotals.currency)}
+                      </span>
+                      {onEditPurchaseTotal && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-4 w-4 text-muted-foreground hover:text-foreground"
+                          onClick={onEditPurchaseTotal}
+                          data-testid="button-edit-purchase-total"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  <span className="font-mono font-medium">{value}/3</span>
+                </div>
               </div>
               <Progress value={(value / 3) * 100} className="h-1.5" />
             </div>

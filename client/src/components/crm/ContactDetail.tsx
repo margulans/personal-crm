@@ -163,6 +163,8 @@ export function ContactDetail({
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarSignedUrl, setAvatarSignedUrl] = useState<string | null>(null);
   const [showPurchaseFromContribution, setShowPurchaseFromContribution] = useState(false);
+  const [showEditPurchaseTotal, setShowEditPurchaseTotal] = useState(false);
+  const [editPurchaseTotalAmount, setEditPurchaseTotalAmount] = useState("");
 
   const { data: connections = [] } = useQuery<Array<{ fromContactId: string; toContactId: string }>>({
     queryKey: ["/api/connections"],
@@ -230,6 +232,47 @@ export function ContactDetail({
       toast({ title: "Ошибка", description: error.message, variant: "destructive" });
     },
   });
+
+  const updatePurchaseTotalMutation = useMutation({
+    mutationFn: async (totalAmount: number) => {
+      const currentTotals = contact.purchaseTotals as { totalAmount: number; currency: string; count: number; lastPurchaseDate: string | null } | null;
+      const newTotals = {
+        totalAmount,
+        currency: currentTotals?.currency || "USD",
+        count: currentTotals?.count || 0,
+        lastPurchaseDate: currentTotals?.lastPurchaseDate || null,
+      };
+      const res = await apiRequest("PATCH", `/api/contacts/${contact.id}`, { 
+        purchaseTotals: newTotals 
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts", contact.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      toast({ title: "Сумма покупок обновлена" });
+      setShowEditPurchaseTotal(false);
+      setEditPurchaseTotalAmount("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleEditPurchaseTotal = () => {
+    const currentTotal = (contact.purchaseTotals as { totalAmount: number } | null)?.totalAmount || 0;
+    setEditPurchaseTotalAmount(currentTotal.toString());
+    setShowEditPurchaseTotal(true);
+  };
+
+  const handleSavePurchaseTotal = () => {
+    const amount = parseFloat(editPurchaseTotalAmount);
+    if (isNaN(amount) || amount < 0) {
+      toast({ title: "Ошибка", description: "Введите корректную сумму", variant: "destructive" });
+      return;
+    }
+    updatePurchaseTotalMutation.mutate(amount);
+  };
 
   const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2095,6 +2138,8 @@ export function ContactDetail({
                       scoreClass={contact.contributionClass}
                       compact
                       onAddPurchase={() => setShowPurchaseFromContribution(true)}
+                      purchaseTotals={contact.purchaseTotals as { totalAmount: number; currency: string; count: number; lastPurchaseDate: string | null } | null}
+                      onEditPurchaseTotal={handleEditPurchaseTotal}
                     />
                   )}
                 </CardContent>
@@ -2461,6 +2506,47 @@ export function ContactDetail({
             onSubmit={(data) => createPurchaseMutation.mutate(data)} 
             onCancel={() => setShowPurchaseFromContribution(false)} 
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Purchase Total Dialog */}
+      <Dialog open={showEditPurchaseTotal} onOpenChange={setShowEditPurchaseTotal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Корректировка суммы покупок</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label htmlFor="purchaseTotal">Общая сумма ($)</Label>
+              <Input
+                id="purchaseTotal"
+                type="number"
+                value={editPurchaseTotalAmount}
+                onChange={(e) => setEditPurchaseTotalAmount(e.target.value)}
+                placeholder="0"
+                data-testid="input-edit-purchase-total"
+              />
+              <p className="text-xs text-muted-foreground">
+                Эта сумма используется для расчёта финансового балла вклада
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowEditPurchaseTotal(false)}
+                data-testid="button-cancel-edit-purchase-total"
+              >
+                Отмена
+              </Button>
+              <Button 
+                onClick={handleSavePurchaseTotal}
+                disabled={updatePurchaseTotalMutation.isPending}
+                data-testid="button-save-purchase-total"
+              >
+                {updatePurchaseTotalMutation.isPending ? "Сохранение..." : "Сохранить"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
