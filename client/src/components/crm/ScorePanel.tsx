@@ -48,7 +48,8 @@ export function ScorePanel({ type, scores, totalScore, scoreClass, compact = fal
   };
 
   const formatAmount = (amount: number, currency: string) => {
-    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "KZT" ? "₸" : "₽";
+    // Default to USD ($) if currency not specified or unknown
+    const symbol = currency === "RUB" ? "₽" : currency === "EUR" ? "€" : currency === "KZT" ? "₸" : "$";
     return `${amount.toLocaleString()} ${symbol}`;
   };
 
