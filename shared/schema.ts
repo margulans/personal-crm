@@ -578,17 +578,25 @@ export const updateContributionSchema = z.object({
 });
 
 // Financial score thresholds (in USD)
+// Пороги для демо MVP инвесторам:
+// 0 баллов = $0 (нет покупок)
+// 1 балл = от $1 до $99,999 (начальный уровень)
+// 2 балла = от $100,000 до $499,999 (средний уровень)
+// 3 балла = от $500,000+ (VIP уровень)
 export const FINANCIAL_SCORE_THRESHOLDS = {
-  SCORE_0: 0,        // $0 = 0 баллов
-  SCORE_1: 100000,   // <$100k = 1 балл
-  SCORE_2: 500000,   // <$500k = 2 балла
-  SCORE_3: 500000,   // ≥$500k = 3 балла
+  SCORE_0: 0,        // $0 = 0 баллов (нет покупок)
+  SCORE_1: 100000,   // $100k порог для 2 баллов
+  SCORE_3: 500000,   // $500k порог для 3 баллов
 } as const;
 
 export function calculateFinancialScore(totalAmount: number): number {
+  // ≥$500,000 = 3 балла (VIP)
   if (totalAmount >= FINANCIAL_SCORE_THRESHOLDS.SCORE_3) return 3;
+  // ≥$100,000 = 2 балла (средний)
   if (totalAmount >= FINANCIAL_SCORE_THRESHOLDS.SCORE_1) return 2;
+  // >$0 = 1 балл (начальный)
   if (totalAmount > FINANCIAL_SCORE_THRESHOLDS.SCORE_0) return 1;
+  // $0 = 0 баллов
   return 0;
 }
 

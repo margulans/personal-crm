@@ -331,15 +331,19 @@ export default function ContactsPage() {
     result.sort((a, b) => {
       switch (sortBy) {
         case "heatIndex":
-          return a.heatIndex - b.heatIndex;
+          // DESC: горячие (высокий heatIndex) сверху, при равенстве — по дате последнего контакта
+          const heatDiff = b.heatIndex - a.heatIndex;
+          if (heatDiff !== 0) return heatDiff;
+          const heatDateA = a.lastContactDate ? new Date(a.lastContactDate).getTime() : 0;
+          const heatDateB = b.lastContactDate ? new Date(b.lastContactDate).getTime() : 0;
+          return heatDateB - heatDateA;
         case "importance":
           return a.importanceLevel.localeCompare(b.importanceLevel);
         case "lastContact":
           const dateA = a.lastContactDate ? new Date(a.lastContactDate).getTime() : 0;
           const dateB = b.lastContactDate ? new Date(b.lastContactDate).getTime() : 0;
-          return dateA - dateB;
+          return dateB - dateA; // DESC: недавние контакты сверху
         case "name":
-          // Сортируем по firstName если есть, иначе по fullName
           const nameA = a.firstName || a.fullName;
           const nameB = b.firstName || b.fullName;
           return nameA.localeCompare(nameB);

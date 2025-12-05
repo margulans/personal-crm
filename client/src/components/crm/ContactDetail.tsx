@@ -2622,10 +2622,20 @@ export function ContactDetail({
                       size="sm" 
                       variant={showAIPanel ? "secondary" : "default"}
                       onClick={() => setShowAIPanel(!showAIPanel)}
+                      disabled={showAIPanel && (insightsLoading || recommendationsLoading)}
                       data-testid="button-toggle-ai"
                     >
-                      <Brain className="h-4 w-4 mr-1" />
-                      {showAIPanel ? "Скрыть" : "Анализ"}
+                      {showAIPanel && (insightsLoading || recommendationsLoading) ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          Думаю...
+                        </>
+                      ) : (
+                        <>
+                          <Brain className="h-4 w-4 mr-1" />
+                          {showAIPanel ? "Скрыть" : "Анализ"}
+                        </>
+                      )}
                     </Button>
                   </div>
                 </CardHeader>
